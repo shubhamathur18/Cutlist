@@ -714,15 +714,12 @@ function etCloseAll(except) {
     });
 }
 
-// Populate dropdowns for initial rows
 document.querySelectorAll('#etTbody .Select2__dropdown').forEach(function (dd) {
     dd.innerHTML = etAllOptionsHTML('');
 });
 
-// Delegation on etTableArea
 document.getElementById('etTableArea').addEventListener('click', function (e) {
 
-    // Toggle dropdown via click on input-wrapper (but not on an option)
     var wrapper = e.target.closest('.Select2__input-wrapper');
     if (wrapper) {
         var sel = wrapper.closest('.Select2');
@@ -732,7 +729,6 @@ document.getElementById('etTableArea').addEventListener('click', function (e) {
         return;
     }
 
-    // Select an option
     var opt = e.target.closest('.Select2__option');
     if (opt && !opt.classList.contains('Select2__option--empty')) {
         var sel = opt.closest('.Select2');
@@ -744,7 +740,6 @@ document.getElementById('etTableArea').addEventListener('click', function (e) {
         sel.dataset.price = price;
         sel.dataset.code = code;
 
-        // Update displayed value inside the trigger
         var inputSpan = sel.querySelector('.Select2__input');
         inputSpan.innerHTML =
             '<div class="edgebanding-option">' +
@@ -753,12 +748,10 @@ document.getElementById('etTableArea').addEventListener('click', function (e) {
             '<div class="size">' + size + '</div>' +
             '</div>';
 
-        // Mark as selected, re-render options with highlight
         sel.classList.remove('isEmpty');
         sel.classList.remove('is-open');
         sel.querySelector('.Select2__dropdown').innerHTML = etAllOptionsHTML(code);
 
-        // Unlock qty and activate row
         var qtyInput = row.querySelector('.et-qty-input');
         if (qtyInput) { qtyInput.disabled = false; qtyInput.focus(); }
         row.classList.add('active');
@@ -766,12 +759,10 @@ document.getElementById('etTableArea').addEventListener('click', function (e) {
         var priceCell = row.querySelector('.et-unit-price');
         if (priceCell) priceCell.textContent = '£' + price.toFixed(2);
 
-        // Enable "Add a row" once at least one tape is chosen
         document.getElementById('addEtRowBtn').disabled = false;
         return;
     }
 
-    // Remove row
     var removeBtn = e.target.closest('.button-remove');
     if (removeBtn) {
         removeBtn.closest('tr').remove();
@@ -788,7 +779,6 @@ document.getElementById('addEtRowBtn').addEventListener('click', function () {
     etRenumber();
 });
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', function (e) {
     if (!e.target.closest('#etTableArea .Select2')) {
         etCloseAll(null);
@@ -807,7 +797,6 @@ document.getElementById('etTableArea').addEventListener('input', function (e) {
     if (isInvalid) showMaxTooltip(e.target, 'Minimum quantity is ' + ET_MIN_QTY + 'm');
 });
 
-// On leaving the field, bump anything under the minimum up to it
 document.getElementById('etTableArea').addEventListener('focusout', function (e) {
     if (!e.target.classList.contains('et-qty-input')) return;
     var val = parseFloat(e.target.value);
@@ -826,7 +815,7 @@ document.getElementById('etTableArea').addEventListener('focusout', function (e)
 const updateBasketBtn = document.getElementById("updateBasketBtn");
 const summarySection = document.getElementById("summarySection");
 
-// Harvest the filled-in cutting list rows so basket.html can show them in its PDF.
+// Feeds basket.html's PDF summary.
 function collectCuttingListItems() {
 
     var items = [];
@@ -845,7 +834,6 @@ function collectCuttingListItems() {
         var thickSelect = row.querySelector(".thick select");
         var thick = thickSelect ? thickSelect.value : "";
 
-        // Skip rows the user hasn't started filling in
         if (!decor && !length && !width && !qty) return;
 
         var edges = {};
@@ -875,7 +863,6 @@ function collectCuttingListItems() {
 
 }
 
-// Harvest the filled-in full-sheet rows
 function collectFullSheetItems() {
 
     var items = [];
@@ -905,7 +892,6 @@ function collectFullSheetItems() {
 
 }
 
-// Harvest the selected edging tape rows
 function collectEdgingTapeItems() {
 
     var items = [];
@@ -985,7 +971,6 @@ function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth) {
 
     var html = "<div class=\"box\" style=\"aspect-ratio:" + sheetLength + "/" + sheetWidth + "\">";
 
-    // Place the panels in row-major order across the grid
     for (var i = 0; i < count; i++) {
         var col = i % perRow;
         var row = Math.floor(i / perRow);
@@ -1192,26 +1177,19 @@ updateBasketBtn.addEventListener("click", function () {
 
     var cutItems = collectCuttingListItems();
 
-    // Save the cutting list into the shared basket
     if (window.CutlistBasket) {
         CutlistBasket.setCategory("cut-edge-spray", cutItems);
         var bar = document.getElementById("cbTopbar");
         if (bar) bar.style.display = "";
     }
 
-    // Rebuild the summary from what the user actually entered
     summarySection.innerHTML = buildSummaryHTML(cutItems, collectFullSheetItems(), collectEdgingTapeItems());
-
-    // Show summary
     summarySection.style.display = "block";
-
-    // Scroll to summary
     summarySection.scrollIntoView({
         behavior: "smooth",
         block: "start"
     });
 
-    // Disable button until next change
     updateBasketBtn.disabled = true;
 
 });
@@ -1219,24 +1197,19 @@ updateBasketBtn.addEventListener("click", function () {
 function markDirty() {
     updateBasketBtn.disabled = false;
 }
-// Cutting list — any input change
 table.addEventListener('input', markDirty);
 
-// Cutting list — decor selected from popup
 document.getElementById('decorPopup').addEventListener('click', function (e) {
     if (e.target.closest('.product-row')) markDirty();
 });
 
-// Full sheets — any input or decor selection
 document.getElementById('fsTable').addEventListener('input', markDirty);
 
-// Edging tape — tape selected or qty typed
 document.getElementById('etTableArea').addEventListener('click', function (e) {
     if (e.target.closest('.Select2__option')) markDirty();
 });
 document.getElementById('etTableArea').addEventListener('input', markDirty);
 
-// Adding any row counts as a change
 document.getElementById('addRowBtn').addEventListener('click', markDirty, true);
 document.getElementById('addFsRowBtn').addEventListener('click', markDirty, true);
 document.getElementById('addEtRowBtn').addEventListener('click', markDirty, true);
@@ -1273,7 +1246,6 @@ document.querySelectorAll(".section-title").forEach(function (sectionTitle) {
 
 });
 
-// Wire header-level Add row button
 var hdrAddRowBtn = document.getElementById("hdrAddRowBtn");
 if (hdrAddRowBtn) hdrAddRowBtn.addEventListener("click", function () {
     document.getElementById("addRowBtn").click();
@@ -1501,13 +1473,10 @@ document.querySelectorAll(".product-row")
 
 
 
-            // enable fields except edging
-
+            // Every field unlocks except edging — that stays locked until
+            // an edge finish is actually picked via the Edge popup.
             currentRow.querySelectorAll("input,select")
                 .forEach(field => {
-
-
-                    // keep edgebanding always locked here
 
                     if (
                         field.closest(".edging-input")
@@ -1525,8 +1494,6 @@ document.querySelectorAll(".product-row")
 
                 });
 
-
-            // If in a full-sheets row, auto-fill brand and sheet dimensions
 
             if (currentRow.classList.contains("fs-row")) {
 
@@ -1683,10 +1650,8 @@ function openPanelModal(code) {
         };
     }
 
-    // product code
     document.getElementById('pmProductCode').textContent = 'Product code: ' + p.fullCode;
 
-    // gallery slides — label overlaid inside image
     var slidesEl = document.getElementById('pmSlides');
     slidesEl.innerHTML = p.slides.map(function (s, i) {
         return '<div class="pm-gallery-slide' + (i === 0 ? ' active' : '') + '">' +
@@ -1696,7 +1661,6 @@ function openPanelModal(code) {
             '</div>';
     }).join('');
 
-    // thumbnails
     var thumbsEl = document.getElementById('pmThumbs');
     thumbsEl.innerHTML = p.slides.map(function (s, i) {
         return '<div class="pm-gallery-thumb' + (i === 0 ? ' active' : '') + '" data-idx="' + i + '">' +
@@ -1709,11 +1673,10 @@ function openPanelModal(code) {
     document.getElementById('pmPrev').style.display = showNav ? '' : 'none';
     document.getElementById('pmNext').style.display = showNav ? '' : 'none';
 
-    // title / name
     document.getElementById('pmTitle').textContent = p.title;
     document.getElementById('pmName').textContent = p.name;
 
-    // size table (Length, Width, Thickness shown as first thickness)
+    // Thickness shown here is always the first of the board's real options.
     var firstThick = p.thicknesses ? p.thicknesses[0] : '–';
     var sizeBody = document.querySelector('#pmSizeTable tbody');
     sizeBody.innerHTML =
@@ -1721,10 +1684,8 @@ function openPanelModal(code) {
         '<tr><td class="left">Width:</td><td class="right">' + p.width + ' mm</td></tr>' +
         '<tr><td class="left">Thickness:</td><td class="right">' + firstThick + ' mm</td></tr>';
 
-    // description
     document.getElementById('pmDesc').innerHTML = p.desc.replace(/\n/g, '<br>');
 
-    // B side description (show section only if provided)
     var bsideSection = document.getElementById('pmBsideSection');
     if (p.bside) {
         bsideSection.style.display = '';
@@ -1733,17 +1694,16 @@ function openPanelModal(code) {
         bsideSection.style.display = 'none';
     }
 
-    // characteristics
     document.getElementById('pmChars').innerHTML = p.chars.replace(/\n/g, '<br>');
 
-    // machining — real per-board flags (wp-admin Board Details)
+    // Real per-board flags (wp-admin Board Details), not a mock object.
     var machining = p.machining || {};
     document.getElementById('pmMachCut').textContent = machining.cut_to_size ? 'Yes' : 'No';
     document.getElementById('pmMachEdge').textContent = machining.edgebanding ? 'Yes' : 'No';
     document.getElementById('pmMachCnc').textContent = machining.cnc ? 'Yes' : 'No';
 
-    // downloads — one link per real uploaded file, plus the
-    // manufacturer link only if a URL was actually set
+    // One link per real uploaded file, plus the manufacturer link only if
+    // a URL was actually set.
     var dlEl = document.getElementById('pmDownloads');
     var dlHtml = (p.downloads || []).map(function (d) {
         return '<a class="pm-download-link" href="' + d.url + '" target="_blank" rel="noopener">' + SVG_PDF + (d.label || 'Download') + '</a>';
@@ -1753,7 +1713,6 @@ function openPanelModal(code) {
     }
     dlEl.innerHTML = dlHtml;
 
-    // thicknesses — fixed nested-label: use div wrapper
     var thickEl = document.getElementById('pmThicknesses');
     thickEl.innerHTML = (p.thicknesses || [18]).map(function (t, i) {
         var id = 'pmThick_' + code + '_' + t;
@@ -1763,7 +1722,6 @@ function openPanelModal(code) {
             '</div>';
     }).join('');
 
-    // pricing table
     var pricingBody = document.querySelector('.pricing-levels__table tbody');
     pricingBody.innerHTML =
         '<tr><td class="pricing-levels__label">Full sheet price</td><td class="price-val">' + (p.price_sheet || '–') + '</td></tr>' +
