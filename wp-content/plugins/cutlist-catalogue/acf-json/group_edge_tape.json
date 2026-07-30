@@ -1,0 +1,67 @@
+{
+    "key": "group_edge_tape_fields",
+    "title": "Edge Tape Details",
+    "fields": [
+        {
+            "key": "field_edge_tape_code",
+            "label": "Tape code",
+            "name": "tape_code",
+            "type": "text",
+            "instructions": "e.g. G1-22, M1-42, V1-22",
+            "required": 1
+        },
+        {
+            "key": "field_edge_tape_product_name",
+            "label": "Product name",
+            "name": "product_name",
+            "type": "text",
+            "instructions": "e.g. Gloss ABS edging",
+            "required": 1
+        },
+        {
+            "key": "field_edge_tape_size",
+            "label": "Size",
+            "name": "size",
+            "type": "text",
+            "instructions": "e.g. 22mm x 1mm",
+            "required": 1
+        },
+        {
+            "key": "field_edge_tape_unit_price",
+            "label": "Unit price",
+            "name": "unit_price",
+            "type": "number",
+            "step": "0.01",
+            "instructions": "Price per metre",
+            "required": 1
+        },
+        {
+            "key": "field_edge_tape_boards",
+            "label": "Matches boards",
+            "name": "boards",
+            "type": "relationship",
+            "instructions": "Which decor(s) this tape is colour/pattern-matched to. Leave empty for a standalone tape (e.g. a plain solid colour) not tied to a specific decor.",
+            "post_type": ["board"],
+            "filters": ["search"],
+            "return_format": "id"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "edge_tape"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1
+}

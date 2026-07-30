@@ -1,0 +1,996 @@
+    <div class="cb-topbar" id="cbTopbar" style="display:none">
+        <a href="basket.html" class="cb-topbar-btn cb-topbar-view">View basket</a>
+        <a href="checkout/address/index.html" class="cb-topbar-btn cb-topbar-checkout">Checkout</a>
+    </div>
+    <div class="header">
+        <div class="tabs">
+            <a href="cut-edge-spray.html" class="tab active"><div>Cut, Edge &amp; Spray</div><strong>&pound;0.00</strong></a>
+            <a href="cnc-machining.html" class="tab"><div>CNC Machining</div><strong>&pound;0.00</strong></a>
+            <a href="sliding-doors.html" class="tab"><div>Sliding Doors</div><strong>&pound;0.00</strong></a>
+            <a href="hinged-doors.html" class="tab"><div>Hinged Doors</div><strong>&pound;0.00</strong></a>
+            <a href="furniture-fittings.html" class="tab"><div>Furniture Fittings</div><strong>&pound;0.00</strong></a>
+        </div>
+    </div>
+    <div class="container tab-panel active" data-panel="cutspray">
+        <div class="section-title">
+            <h2>Cutting list</h2>
+            <div class="toggle">
+                <span class="toggle-label">Collapse</span>
+                <span class="arrow"></span>
+            </div>
+        </div>
+        <div class="table-area">
+            <table>
+                <tr class="header-row">
+                    <th>#</th>
+                    <th>Material decor code / name</th>
+                    <th>Thick<br>[mm]</th>
+                    <th>Length<br>[mm]</th>
+                    <th>Width<br>[mm]</th>
+                    <th>Qty</th>
+                    <th>Part description</th>
+                    <th colspan="4" class="edging">
+                        Edgebanding details
+                        <br><br>
+                        <table style="width:100%;border-spacing:20px 0">
+                            <tr>
+                                <td>L1</td>
+                                <td>L2</td>
+                                <td>W1</td>
+                                <td>W2</td>
+                            </tr>
+                        </table>
+                    </th>
+                    <th>Additional<br>machining</th>
+                    <th>Spray<br>finishing</th>
+                    <th>Grain<br>match</th>
+                    <th class="text-right">Actions</th>
+                </tr>
+                <!-- ROW -->
+                <tr>
+                    <td class="rownum">1</td>
+                    <td class="decor">
+                        <input placeholder="Enter decor code or name">
+                    </td>
+                    <td class="small thick">
+                        <select disabled>
+                            <option value="">Select</option>
+                            <option value="19">19</option>
+                            <option value="38">38</option>
+                        </select>
+                    </td>
+                    <td class="small"><input></td>
+                    <td class="small"><input></td>
+                    <td class="qty"><input></td>
+                    <td class="desc"><input></td>
+                    <td class="small edging-input" data-edge="L1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="L2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="machining">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="spray">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="grain">
+                        <input type="checkbox" disabled>
+                    </td>
+                    <td class="actions">
+                        <div class="actions-inner">
+                            <span class="icon move" title="Move row">
+                                <svg width="19" height="19" viewBox="0 0 32 32">
+                                    <path fill="currentColor"
+                                        d="M4 20h11v6.17l-2.59-2.58L11 25l5 5 5-5-1.41-1.41L17 26.17V20h11v-2H4v2zM11 7l1.41 1.41L15 5.83V12H4v2h24v-2H17V5.83l2.59 2.58L21 7l-5-5-5 5z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon edit" title="Edit row">
+                                <svg width="19" height="19" viewBox="0 0 1000 1000">
+                                    <path fill="currentColor"
+                                        d="M231.1 915L87 770.9l626-626L857.1 289l-626 626zm-80.5-144.1l80.5 80.5L793.5 289 713 208.5 150.6 770.9zM64 938l22.3-156.2 133.9 133.8L64 938zm54.1-60.8L117 885l7.8-1.1-6.7-6.7zM845.5 272.5l-116-116L816 70l116 116.1-86.5 86.4zm-52.4-116l52.4 52.4 22.9-22.9-52.4-52.4-22.9 22.9z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon view" title="View row">
+                                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round">
+                                    <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                                    <line x1="21" y1="21" x2="15.5" y2="15.5"></line>
+                                </svg>
+                            </span>
+                            <span class="delete" title="Delete row">×</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="rownum">2</td>
+                    <td class="decor">
+                        <input placeholder="Enter decor code or name">
+                    </td>
+                    <td class="small thick">
+                        <select disabled>
+                            <option value="">Select</option>
+                            <option value="19">19</option>
+                            <option value="38">38</option>
+                        </select>
+                    </td>
+                    <td class="small"><input></td>
+                    <td class="small"><input></td>
+                    <td class="qty"><input></td>
+                    <td class="desc"><input></td>
+                    <td class="small edging-input" data-edge="L1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="L2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="machining">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="spray">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="grain">
+                        <input type="checkbox" disabled>
+                    </td>
+                    <td class="actions">
+                        <div class="actions-inner">
+                            <span class="icon move" title="Move row">
+                                <svg width="19" height="19" viewBox="0 0 32 32">
+                                    <path fill="currentColor"
+                                        d="M4 20h11v6.17l-2.59-2.58L11 25l5 5 5-5-1.41-1.41L17 26.17V20h11v-2H4v2zM11 7l1.41 1.41L15 5.83V12H4v2h24v-2H17V5.83l2.59 2.58L21 7l-5-5-5 5z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon edit" title="Edit row">
+                                <svg width="19" height="19" viewBox="0 0 1000 1000">
+                                    <path fill="currentColor"
+                                        d="M231.1 915L87 770.9l626-626L857.1 289l-626 626zm-80.5-144.1l80.5 80.5L793.5 289 713 208.5 150.6 770.9zM64 938l22.3-156.2 133.9 133.8L64 938zm54.1-60.8L117 885l7.8-1.1-6.7-6.7zM845.5 272.5l-116-116L816 70l116 116.1-86.5 86.4zm-52.4-116l52.4 52.4 22.9-22.9-52.4-52.4-22.9 22.9z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon view" title="View row">
+                                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round">
+                                    <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                                    <line x1="21" y1="21" x2="15.5" y2="15.5"></line>
+                                </svg>
+                            </span>
+                            <span class="delete" title="Delete row">×</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="rownum">3</td>
+                    <td class="decor">
+                        <input placeholder="Enter decor code or name">
+                    </td>
+                    <td class="small thick">
+                        <select disabled>
+                            <option value="">Select</option>
+                            <option value="19">19</option>
+                            <option value="38">38</option>
+                        </select>
+                    </td>
+                    <td class="small"><input></td>
+                    <td class="small"><input></td>
+                    <td class="qty"><input></td>
+                    <td class="desc"><input></td>
+                    <td class="small edging-input" data-edge="L1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="L2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W1">
+                        <input disabled readonly>
+                    </td>
+                    <td class="small edging-input" data-edge="W2">
+                        <input disabled readonly>
+                    </td>
+                    <td class="machining">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="spray">
+                        <button class="add-btn" type="button">Add</button>
+                    </td>
+                    <td class="grain">
+                        <input type="checkbox" disabled>
+                    </td>
+                    <td class="actions">
+                        <div class="actions-inner">
+                            <span class="icon move" title="Move row">
+                                <svg width="19" height="19" viewBox="0 0 32 32">
+                                    <path fill="currentColor"
+                                        d="M4 20h11v6.17l-2.59-2.58L11 25l5 5 5-5-1.41-1.41L17 26.17V20h11v-2H4v2zM11 7l1.41 1.41L15 5.83V12H4v2h24v-2H17V5.83l2.59 2.58L21 7l-5-5-5 5z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon edit" title="Edit row">
+                                <svg width="19" height="19" viewBox="0 0 1000 1000">
+                                    <path fill="currentColor"
+                                        d="M231.1 915L87 770.9l626-626L857.1 289l-626 626zm-80.5-144.1l80.5 80.5L793.5 289 713 208.5 150.6 770.9zM64 938l22.3-156.2 133.9 133.8L64 938zm54.1-60.8L117 885l7.8-1.1-6.7-6.7zM845.5 272.5l-116-116L816 70l116 116.1-86.5 86.4zm-52.4-116l52.4 52.4 22.9-22.9-52.4-52.4-22.9 22.9z">
+                                    </path>
+                                </svg>
+                            </span>
+                            <span class="icon view" title="View row">
+                                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round">
+                                    <circle cx="10.5" cy="10.5" r="6.5"></circle>
+                                    <line x1="21" y1="21" x2="15.5" y2="15.5"></line>
+                                </svg>
+                            </span>
+                            <span class="delete" title="Delete row">×</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <div class="btn-area">
+                <button id="addRowBtn">Add more rows</button>
+                <button style="width:257px">
+                    Upload cutting list
+                </button>
+                <button style="width:257px" disabled>
+                    Download cutting list
+                </button>
+            </div>
+        </div>
+
+        <!-- GRAIN MATCHING DETAILS — shown when a grain-match checkbox is ticked -->
+        <div class="grain-details" id="grainMatchSection" style="display:none;">
+            <h2>Grain matching details</h2>
+            <div class="grain-notice">
+                A drawing detailing grain matching cluster is required. Please upload it below before proceeding to the checkout.<br>
+                Mark the panels with "Grain matching" with the letters as A, B or C and so on. Provide a description of how the grain matching should be done.
+            </div>
+            <div class="grain-cols">
+                <div class="grain-col">
+                    <h3>Grain matching files</h3>
+                    <div class="grain-dropzone" id="grainDropzone">
+                        Drag and drop your files here, or click below
+                        to select files to upload.<br>
+                        Maximum size: 5 MB per file 30 MB total<br>
+                        Supported formats: JPEG, PNG, GIF, PDF
+                        <br>
+                        <a id="grainAddFiles">Add your files</a>
+                        <input type="file" id="grainFileInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf" style="display:none;">
+                        <div class="grain-file-list" id="grainFileList"></div>
+                    </div>
+                </div>
+                <div class="grain-col">
+                    <h3>Grain matching information</h3>
+                    <textarea class="grain-info-textarea" id="grainInfoText" placeholder="Type here"></textarea>
+                </div>
+                <div class="grain-col">
+                    <h3>Help</h3>
+                    <div class="grain-help-box">
+                        <div class="grain-direction">grain direction</div>
+                        <div class="grain-diagram">
+                            <div class="grain-cell big">A</div>
+                            <div class="grain-mid">
+                                <div class="grain-cell">B</div>
+                                <div class="grain-cell">B</div>
+                                <div class="grain-cell">B</div>
+                            </div>
+                            <div class="grain-cell big">A</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="closed">
+            <div class="section-title">
+                <h2>Full sheets</h2>
+                <div class="toggle">
+                    <span class="toggle-label">Collapse</span>
+                    <span class="arrow"></span>
+                </div>
+            </div>
+            <div class="table-area" id="fsTableArea">
+                <table id="fsTable">
+                    <tr class="header-row">
+                        <th>#</th>
+                        <th>Material decor code / name</th>
+                        <th>Thick<br>[mm]</th>
+                        <th>Length<br>[mm]</th>
+                        <th>Width<br>[mm]</th>
+                        <th>Brand</th>
+                        <th>Qty</th>
+                        <th class="text-right">Actions</th>
+                    </tr>
+                    <tr class="fs-row">
+                        <td class="rownum">1</td>
+                        <td class="decor"><input placeholder="Enter decor code or name"></td>
+                        <td class="small thick">
+                            <select disabled>
+                                <option value="">–</option>
+                                <option value="8">8</option>
+                                <option value="12">12</option>
+                                <option value="16">16</option>
+                                <option value="18">18</option>
+                                <option value="25">25</option>
+                                <option value="38">38</option>
+                            </select>
+                        </td>
+                        <td class="small fs-length"><input disabled placeholder="0"></td>
+                        <td class="small fs-width"><input disabled placeholder="0"></td>
+                        <td class="fs-brand">–</td>
+                        <td class="qty"><input disabled></td>
+                        <td class="actions">
+                            <div class="actions-inner">
+                                <span class="delete" title="Delete row">×</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="fs-row">
+                        <td class="rownum">2</td>
+                        <td class="decor"><input placeholder="Enter decor code or name"></td>
+                        <td class="small thick">
+                            <select disabled>
+                                <option value="">–</option>
+                                <option value="8">8</option>
+                                <option value="12">12</option>
+                                <option value="16">16</option>
+                                <option value="18">18</option>
+                                <option value="25">25</option>
+                                <option value="38">38</option>
+                            </select>
+                        </td>
+                        <td class="small fs-length"><input disabled placeholder="0"></td>
+                        <td class="small fs-width"><input disabled placeholder="0"></td>
+                        <td class="fs-brand">–</td>
+                        <td class="qty"><input disabled></td>
+                        <td class="actions">
+                            <div class="actions-inner">
+                                <span class="delete" title="Delete row">×</span>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+                <div class="btn-area">
+                    <button id="addFsRowBtn">Add a row</button>
+                </div>
+            </div>
+            <div class="section-title">
+                <h2>Edging tape</h2>
+                <div class="toggle">
+                    <span class="toggle-label">Expand</span>
+                    <span class="arrow down"></span>
+                </div>
+            </div>
+            <div class="table-area" id="etTableArea" style="display:none">
+                <table id="etTable">
+                    <colgroup>
+                        <col class="col-index">
+                        <col class="col-tape">
+                        <col class="col-name">
+                        <col class="col-size">
+                        <col class="col-space-1">
+                        <col class="col-qty-wide">
+                        <col class="col-space-2">
+                        <col class="col-actions">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="th-index">#</th>
+                            <th class="text-left">Edging decor code</th>
+                            <th class="text-left">Product name &ndash; decor name</th>
+                            <th class="text-left">Size<br>[mm]</th>
+                            <th class="text-left"></th>
+                            <th class="text-left">Qty<br>[m]</th>
+                            <th class="text-left"></th>
+                            <th class="text-right th-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="etTbody">
+                        <tr class="et-row editable">
+                            <td class="td-index">1</td>
+                            <td colspan="3">
+                                <div class="Select2 isEmpty Select2--has-arrow">
+                                    <div class="Select2__input-wrapper">
+                                        <span class="Select2__input"></span>
+                                        <span class="Select2__placeholder">Select edging tape</span>
+                                        <span class="Select2__arrow">
+                                            <svg height="20" width="20" viewBox="0 0 20 20" aria-hidden="true"
+                                                focusable="false">
+                                                <path
+                                                    d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z"
+                                                    fill="#888" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="Select2__dropdown"></div>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Min 5" value=""
+                                    disabled></td>
+                            <td></td>
+                            <td class="text-right">
+                                <button class="button-remove" type="button" title="Remove row">
+                                    <svg width="16" height="16" viewBox="0 0 16 16">
+                                        <path d="M2 2l12 12M14 2L2 14" stroke="#cc2222" stroke-width="2.5"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="et-row editable">
+                            <td class="td-index">2</td>
+                            <td colspan="3">
+                                <div class="Select2 isEmpty Select2--has-arrow">
+                                    <div class="Select2__input-wrapper">
+                                        <span class="Select2__input"></span>
+                                        <span class="Select2__placeholder">Select edging tape</span>
+                                        <span class="Select2__arrow">
+                                            <svg height="20" width="20" viewBox="0 0 20 20" aria-hidden="true"
+                                                focusable="false">
+                                                <path
+                                                    d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z"
+                                                    fill="#888" />
+                                            </svg>
+                                        </span>
+                                    </div>
+                                    <div class="Select2__dropdown"></div>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Min 5" value=""
+                                    disabled></td>
+                            <td></td>
+                            <td class="text-right">
+                                <button class="button-remove" type="button" title="Remove row">
+                                    <svg width="16" height="16" viewBox="0 0 16 16">
+                                        <path d="M2 2l12 12M14 2L2 14" stroke="#cc2222" stroke-width="2.5"
+                                            stroke-linecap="round" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="6" class="text-left"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <div class="relative table-bottom-buttons" style="margin-top:10px">
+                    <button id="addEtRowBtn" style="width:215px" disabled>Add a row</button>
+                </div>
+            </div>
+        </div>
+        <!-- Update basket showbox -->
+        <div class="update-basket-showbox" id="updateBasketShowbox">
+            <div class="update-basket-inner">
+                <h2>Please update your basket</h2>
+                <p>Click the button below</p>
+                <button id="updateBasketBtn" disabled>Update basket</button>
+            </div>
+        </div>
+        <!-- =========================================
+CUT, EDGE & SPRAY SUMMARY
+========================================= -->
+
+<section class="summary-section" id="summarySection" style="display:none;">
+<h2 class="summary-title">Cut, edge &amp; spray summary</h2>
+
+<div class="summary-card">
+<div class="summary-header">
+<div class="summary-header-left"><span>Sheets to be cut</span><strong>£848.80</strong></div>
+<div class="summary-header-right">
+    <span>Cutting plans x2</span>
+
+    <button class="summary-toggle" type="button">
+        Details
+        <span class="summary-arrow">▼</span>
+    </button>
+</div>
+</div>
+<div class="summary-body  is-open">
+<h3>Select offcuts</h3>
+<p class="summary-note">If there are any offcuts, you can mark them here to be included with your order free of charge.</p>
+<div class="plans">
+<div class="plan">
+<div>Plan 1</div>
+<div class="box"><div class="panel"></div><div class="offcut">Offcut</div></div>
+<p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
+<div class="sheet"><strong>x2</strong><span>sheets</span></div>
+</div>
+<div class="plan">
+<div>Plan 2</div>
+<div class="box"><div class="panel"></div><div class="offcut">Offcut</div></div>
+<p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
+<div class="sheet"><strong>x2</strong><span>sheets</span></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="summary-card">
+<div class="summary-header"><div class="summary-header-left"><span>Edgebanding</span><strong>£89.12</strong></div>
+<div class="summary-header-right">
+
+    <button class="summary-toggle" type="button">
+        Details
+        <span class="summary-arrow">▼</span>
+    </button>
+
+</div>
+</div>
+<div class="summary-body">
+<table><tr><th>Qty</th><th>Product code</th><th>Product name</th><th>Tape size</th><th>Unit price</th><th>Line total</th></tr>
+<tr><td>16</td><td>M1-42</td><td>Matt ABS edging - Brown Abano Ash</td><td>42x1mm</td><td>£5.57</td><td>£89.12</td></tr></table>
+<div class="total"><strong>This section: £89.12</strong><div>With VAT: £106.94</div></div>
+</div></div>
+
+<div class="summary-card">
+<div class="summary-header"><div class="summary-header-left"><span>Additional services</span><strong>£115.50</strong></div>
+<div class="summary-header-right">
+
+    <button class="summary-toggle" type="button">
+        Details
+        <span class="summary-arrow">▼</span>
+    </button>
+
+</div>
+</div>
+<div class="summary-body">
+<table><tr><th>Qty</th><th>Service code</th><th>Service</th><th>Description</th><th>Unit price</th><th>Line total</th></tr>
+<tr><td>2</td><td>BND-FS</td><td>Bonding</td><td>Bonding of two panels</td><td>£57.75</td><td>£115.50</td></tr></table>
+<div class="total"><strong>This section: £115.50</strong><div>With VAT: £138.60</div></div>
+</div></div>
+
+<div class="grand">
+<div class="price">Total: £1,053.42</div>
+<div class="vat">With VAT: £1,264.10</div>
+</div>
+
+</div>
+
+      
+    </div>
+    <!-- PANEL MODAL (More info) -->
+    <div class="panel-modal-overlay" id="panelModalOverlay">
+        <div class="panel-reveal">
+            <button class="panel-close" id="panelModalClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 50 50">
+                    <polygon fill="currentColor" points="42.7,46.2 4,7.5 8,3.6 46.6,42.2" />
+                    <polygon fill="currentColor" points="8,46.2 4,42.2 42.7,3.6 46.6,7.5" />
+                </svg>
+            </button>
+            <div class="panel-modal-inner">
+                <!-- LEFT -->
+                <div class="column-gallery">
+                    <div class="panel-product-code" id="pmProductCode">Product code: –</div>
+                    <div class="pm-gallery">
+                        <div class="pm-gallery-slides" id="pmSlides"></div>
+                        <button class="pm-gallery-nav pm-gallery-nav-prev" id="pmPrev" type="button">&#8249;</button>
+                        <button class="pm-gallery-nav pm-gallery-nav-next" id="pmNext" type="button">&#8250;</button>
+                    </div>
+                    <div class="pm-gallery-thumbs" id="pmThumbs"></div>
+                    <div class="panel-title" id="pmTitle"></div>
+                    <div class="panel-name" id="pmName"></div>
+                    <p class="panel-modal__label">Product size</p>
+                    <table class="panel-table" id="pmSizeTable">
+                        <tbody></tbody>
+                    </table>
+                    <p class="panel-modal__label">Product machining</p>
+                    <table class="panel-table">
+                        <tbody>
+                            <tr>
+                                <td class="left">Cut to size:</td>
+                                <td class="right">Yes</td>
+                            </tr>
+                            <tr>
+                                <td class="left">Edgebanding:</td>
+                                <td class="right">Yes</td>
+                            </tr>
+                            <tr>
+                                <td class="left">CNC machining:</td>
+                                <td class="right">Yes</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <!-- RIGHT -->
+                <div class="column-description">
+                    <div class="SimpleTabs__tabs">
+                        <button class="SimpleTabs__tab-btn active" data-tab="desc" type="button">Description</button>
+                        <button class="SimpleTabs__tab-btn" data-tab="faq" type="button">FAQ</button>
+                    </div>
+                    <div class="SimpleTabs__tab-content">
+                        <div class="active" id="pmTabDesc">
+                            <p class="panel-modal__label" style="margin-top:0">Product description</p>
+                            <div class="panel-modal__product-description" id="pmDesc"></div>
+                            <div id="pmBsideSection">
+                                <p class="panel-modal__label">B side description</p>
+                                <div class="panel-modal__product-description" id="pmBside"></div>
+                            </div>
+                            <p class="panel-modal__label">Product characteristics</p>
+                            <div class="panel-modal__product-description" id="pmChars"></div>
+                            <div class="pm-downloads" id="pmDownloads"></div>
+                        </div>
+                        <div id="pmTabFaq">
+                            <p class="panel-modal__label" style="margin-top:0">FAQ</p>
+                            <div class="panel-modal__product-description">No FAQ available for this product.</div>
+                        </div>
+                    </div>
+                    <p class="pm-thickness-label">Available thicknesses [mm]:</p>
+                    <div class="pm-thickness-options" id="pmThicknesses"></div>
+                    <table class="pricing-levels__table">
+                        <tbody>
+                            <tr>
+                                <td class="pricing-levels__label">Full sheet price</td>
+                                <td class="price-val">–</td>
+                            </tr>
+                            <tr>
+                                <td class="pricing-levels__label">Sheet price with cutting (up to 20 pieces per sheet)
+                                </td>
+                                <td class="price-val">–</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- PANEL SUMMARY MODAL -->
+    <div class="panel-modal-overlay panel-summary-overlay" id="panelSummaryModalOverlay">
+        <div class="panel-reveal panel-summary-modal">
+            <button class="panel-close" id="panelSummaryModalClose" type="button" aria-label="Close">
+                <svg viewBox="0 0 50 50">
+                    <polygon fill="currentColor" points="42.7,46.2 4,7.5 8,3.6 46.6,42.2" />
+                    <polygon fill="currentColor" points="8,46.2 4,42.2 42.7,3.6 46.6,7.5" />
+                </svg>
+            </button>
+            <div class="panel-summary-header">
+                <h2>Panel Summary</h2>
+            </div>
+      <div class="panel-summary-body">
+
+    <div class="panel-summary-left">
+
+        <div id="panelSummaryDrawingContainer"></div>
+
+        <div class="grain-widget" id="grainWidget"></div>
+
+        <div class="zoom-controls">
+            <button class="zoom-btn" id="panelZoomIn">+</button>
+            <button class="zoom-btn" id="panelZoomOut">−</button>
+        </div>
+
+        <div class="front-indicator">
+            <span>Panel Shows</span>
+            <strong>FRONT</strong>
+        </div>
+
+    </div>
+
+    <div class="panel-summary-right">
+        <div id="panelSummarySidebar"></div>
+    </div>
+
+</div>
+        </div>
+    </div>
+    <div class="decor-popup" id="decorPopup">
+        <div class="supplier-tabs">
+            <div class="supplier-tab active" data-tab="egger">
+                Egger
+            </div>
+            <div class="supplier-tab" data-tab="kronospan">
+                Kronospan
+            </div>
+            <div class="supplier-tab" data-tab="xylo">
+                Xylo Surfaces
+            </div>
+            <div class="supplier-tab" data-tab="cleaf">
+                Cleaf
+            </div>
+            <div class="supplier-tab" data-tab="saviola">
+                Saviola
+            </div>
+            <div class="supplier-tab" data-tab="swiss">
+                Swiss Krono
+            </div>
+            <div class="supplier-tab" data-tab="alvic">
+                Alvic
+            </div>
+        </div>
+        <div class="product-list active" id="egger">
+            <div class="product-row" data-size="2800x2070" data-brand="Egger">
+                <span>H1227-TM12</span>
+                <span>Brown Abano Ash</span>
+                <span class="prod-size">2800 x 2070</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2070" data-brand="Egger">
+                <span>H1228-TM12</span>
+                <span>Anthracite Abano Ash</span>
+                <span class="prod-size">2800 x 2070</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2070" data-brand="Egger">
+                <span>H3041-TM12</span>
+                <span>Natural Eucalyptus</span>
+                <span class="prod-size">2800 x 2070</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2070" data-brand="Egger">
+                <span>U201-TM</span>
+                <span>Pebble Grey</span>
+                <span class="prod-size">2800 x 2070</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2070" data-brand="Egger">
+                <span>U250-TM</span>
+                <span>Caramel Beige</span>
+                <span class="prod-size">2800 x 2070</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+        </div>
+        <div class="product-list" id="kronospan">
+            <div class="product-row" data-size="2800x2050" data-brand="Kronospan">
+                <span>0171-MG</span>
+                <span>Slate Grey</span>
+                <span class="prod-size">2800 x 2050</span>
+                <span>Chipboard</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2050" data-brand="Kronospan">
+                <span>K101</span>
+                <span>White Oak</span>
+                <span class="prod-size">2800 x 2050</span>
+                <span>MDF Board</span>
+                <span class="more">More info</span>
+            </div>
+            <div class="product-row" data-size="2800x2050" data-brand="Kronospan">
+                <span>K202</span>
+                <span>Dark Walnut</span>
+                <span class="prod-size">2800 x 2050</span>
+                <span>MDF Board</span>
+                <span class="more">More info</span>
+            </div>
+        </div>
+        <div class="product-list" id="xylo">
+            <div class="product-row" data-size="2440x1220" data-brand="Xylo Surfaces">
+                <span>X551</span>
+                <span>Natural Pine</span>
+                <span class="prod-size">2440 x 1220</span>
+                <span>Plywood</span>
+                <span class="more">More info</span>
+            </div>
+        </div>
+    </div>
+    <div class="edge-popup" id="edgePopup">
+        <div class="edge-popup-header">
+            <span id="edgeTitle">L1</span>
+            <span class="edge-popup-close" id="edgePopupClose">&times;</span>
+        </div>
+        <div class="edge-diagram">
+            <div class="edge-dim-top" id="edgeDimTop">200</div>
+            <div class="edge-diagram-frame">
+                <span class="edge-highlight top" id="edgeHighlightL1"></span>
+                <span class="edge-highlight bottom" id="edgeHighlightL2"></span>
+                <span class="edge-highlight left" id="edgeHighlightW1"></span>
+                <span class="edge-highlight right" id="edgeHighlightW2"></span>
+                <div class="edge-diagram-row">
+                    <span class="edge-dim-side" id="edgeDimLeft">200</span>
+                    <div class="edge-diagram-box">
+                        <span class="edge-grain-arrow">&#8596;</span>
+                    </div>
+                    <span class="edge-dim-side" id="edgeDimRight">200</span>
+                </div>
+            </div>
+            <div class="edge-grain-caption">Length oriented grain</div>
+        </div>
+        <div class="edge-bottom-label">L2</div>
+        <div class="edge-tabs" id="edgeTabs">
+            <div class="edge-tab" data-edge="L1">
+                <div>L1</div>
+                <div class="edge-tab-value">-</div>
+            </div>
+            <div class="edge-tab" data-edge="L2">
+                <div>L2</div>
+                <div class="edge-tab-value">-</div>
+            </div>
+            <div class="edge-tab" data-edge="W1">
+                <div>W1</div>
+                <div class="edge-tab-value">-</div>
+            </div>
+            <div class="edge-tab" data-edge="W2">
+                <div>W2</div>
+                <div class="edge-tab-value">-</div>
+            </div>
+        </div>
+        <button type="button" class="edge-summary" id="edgeSummaryBtn">
+            <div class="edge-summary-code" id="edgeSummaryCode">M1-22 / H1227-TM12</div>
+            <div class="edge-summary-desc">1mm Matt ABS edging</div>
+        </button>
+        <div class="edge-finish-options" id="edgeFinishOptions">
+            <div class="edge-finish-option" data-finish="radius">
+                <div class="edge-finish-icon radius"></div>
+                <div>Radius<br>edge finish</div>
+            </div>
+            <div class="edge-finish-option" data-finish="square">
+                <div class="edge-finish-icon square"></div>
+                <div>Square<br>edge finish</div>
+            </div>
+        </div>
+        <a href="https://cworkshop.co.uk/services/panel-edgebanding/" target="_blank" rel="noopener noreferrer"
+            class="edge-finishing-link">Edge finishing options explained &#8599;</a>
+        <div class="edge-mode-toggle" id="edgeModeToggle">
+            <button type="button" class="mode-btn active" data-mode="standard">Standard</button>
+            <button type="button" class="mode-btn" data-mode="expert">Expert</button>
+        </div>
+    </div>
+    <div class="machining-overlay" id="machiningOverlay">
+        <div class="machining-modal" id="machiningModal">
+            <div class="machining-context-bar">
+                <span class="ctx-field ctx-rownum" id="mRownum">1</span>
+                <span class="ctx-field ctx-decor" id="mDecor">-</span>
+                <span class="ctx-field ctx-small" id="mThick">-</span>
+                <span class="ctx-field ctx-small" id="mLength">-</span>
+                <span class="ctx-field ctx-small" id="mWidth">-</span>
+                <span class="ctx-field ctx-small" id="mQty">-</span>
+                <span class="ctx-field ctx-desc" id="mDesc">-</span>
+                <span class="ctx-field ctx-edge" id="mL1">-</span>
+                <span class="ctx-field ctx-edge" id="mL2">-</span>
+                <span class="ctx-field ctx-edge" id="mW1">-</span>
+                <span class="ctx-field ctx-edge" id="mW2">-</span>
+                <span class="machining-context-title">Machining details</span>
+                <span class="machining-context-close" id="machiningClose">&times;</span>
+            </div>
+            <div class="machining-body">
+                <div class="machining-sidebar">
+                    <select class="machining-select" disabled>
+                        <option>Select machining option</option>
+                    </select>
+                    <div class="machining-option-group">
+                        <div class="machining-option-header">Panel shaping</div>
+                        <div class="machining-option-item" data-option="angled-cut">Angled cut</div>
+                    </div>
+                    <div class="machining-option-group">
+                        <div class="machining-option-header">Surface shaping</div>
+                        <div class="machining-option-item" data-option="groove">Groove</div>
+                        <div class="machining-option-item disabled" data-option="j-handle">J handle</div>
+                    </div>
+                    <div class="machining-option-group">
+                        <div class="machining-option-header">Hinge holes</div>
+                        <div class="machining-option-item" data-option="blum-screw-on">Blum 35mm Screw-On</div>
+                        <div class="machining-option-item" data-option="blum-inserta">Blum 35mm INSERTA</div>
+                    </div>
+                    <div class="machining-option-group">
+                        <div class="machining-option-header">Shelf holes</div>
+                        <div class="machining-option-item" data-option="hole-5mm">5mm &#8960; diameter hole</div>
+                        <div class="machining-option-item" data-option="hole-7-5mm">7.5mm &#8960; diameter hole</div>
+                    </div>
+                </div>
+                <div class="machining-canvas">
+                    <div class="machining-grain">
+                        <div class="machining-grain-label">Grain direction</div>
+                        <div class="machining-grain-box">
+                            <span class="edge-grain-arrow">&#8596;</span>
+                        </div>
+                    </div>
+                    <div class="machining-diagram" id="machiningDiagram">
+                        <div class="machining-edge-label edge-top">L1</div>
+                        <div class="machining-edge-label edge-left">W1</div>
+                        <div class="machining-panel" id="machiningPanel"></div>
+                        <div class="machining-edge-label edge-right">W2</div>
+                        <div class="machining-edge-label edge-bottom">L2</div>
+                        <div class="machining-dim-line vertical">
+                            <span class="machining-dim-value" id="mDimWidth">2000 mm</span>
+                        </div>
+                        <div class="machining-dim-line horizontal">
+                            <span class="machining-dim-value" id="mDimLength">2000 mm</span>
+                        </div>
+                    </div>
+                    <div class="machining-panel-shows">
+                        <div class="machining-grain-label">Panel shows</div>
+                        <div class="machining-face-box" id="machiningFaceBox">
+                            <div>FRONT</div>
+                            <div>FACE</div>
+                        </div>
+                    </div>
+                    <div class="machining-zoom">
+                        <button type="button" id="machiningZoomIn">+</button>
+                        <button type="button" id="machiningZoomOut">-</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SPRAY FINISHING OVERLAY (reuses the machining modal styles) -->
+    <div class="machining-overlay" id="sprayOverlay">
+        <div class="machining-modal" id="sprayModal">
+            <div class="machining-context-bar">
+                <span class="ctx-field ctx-rownum" id="sRownum">1</span>
+                <span class="ctx-field ctx-decor" id="sDecor">-</span>
+                <span class="ctx-field ctx-small" id="sThick">-</span>
+                <span class="ctx-field ctx-small" id="sLength">-</span>
+                <span class="ctx-field ctx-small" id="sWidth">-</span>
+                <span class="ctx-field ctx-small" id="sQty">-</span>
+                <span class="ctx-field ctx-desc" id="sDesc">-</span>
+                <span class="ctx-field ctx-edge" id="sL1">-</span>
+                <span class="ctx-field ctx-edge" id="sL2">-</span>
+                <span class="ctx-field ctx-edge" id="sW1">-</span>
+                <span class="ctx-field ctx-edge" id="sW2">-</span>
+                <span class="machining-context-title">Spray finishing details</span>
+                <span class="machining-context-close" id="sprayClose">&times;</span>
+            </div>
+            <div class="machining-body">
+                <div class="machining-sidebar spray-sidebar">
+                    <select class="machining-select" id="spraySelect" style="color:#333;">
+                        <option value="">Select spray finishing option</option>
+                        <option value="white-primer">White primer</option>
+                        <option value="solid-colour">Solid colour paint</option>
+                        <option value="clear-lacquer">Clear lacquer</option>
+                    </select>
+                    <div id="spraySidebarBody"></div>
+                    <div class="spray-total-row">
+                        <span>Total panel spray price:</span>
+                        <strong id="sprayTotal">&pound;0.00</strong>
+                    </div>
+                </div>
+                <div class="machining-canvas">
+                    <div class="machining-grain">
+                        <div class="machining-grain-label">Spray area</div>
+                        <div class="spray-area-box">
+                            <div class="spray-area-value" id="sprayAreaValue">-</div>
+                            <div>SQ. M.</div>
+                        </div>
+                    </div>
+                    <div class="machining-diagram" id="sprayDiagram">
+                        <div class="machining-edge-label edge-top">L1</div>
+                        <div class="machining-edge-label edge-left">W1</div>
+                        <div class="machining-panel" id="sprayPanel"></div>
+                        <div class="machining-edge-label edge-right">W2</div>
+                        <div class="machining-edge-label edge-bottom">L2</div>
+                        <div class="machining-dim-line vertical">
+                            <span class="machining-dim-value" id="sDimWidth">2000 mm</span>
+                        </div>
+                        <div class="machining-dim-line horizontal">
+                            <span class="machining-dim-value" id="sDimLength">2000 mm</span>
+                        </div>
+                    </div>
+                    <div class="machining-panel-shows">
+                        <div class="machining-grain-label">Panel shows</div>
+                        <div class="machining-face-box" id="sprayFaceBox">
+                            <div>FRONT</div>
+                            <div>FACE</div>
+                        </div>
+                        <button type="button" class="spray-rotate-btn" id="sprayRotate">Rotate</button>
+                    </div>
+                    <div class="machining-zoom">
+                        <button type="button" id="sprayZoomIn">+</button>
+                        <button type="button" id="sprayZoomOut">-</button>
+                    </div>
+                    <button type="button" class="spray-save-btn" id="spraySave">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+

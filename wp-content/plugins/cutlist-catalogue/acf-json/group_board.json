@@ -1,0 +1,178 @@
+{
+    "key": "group_board_fields",
+    "title": "Board Details",
+    "fields": [
+        {
+            "key": "field_board_decor_code",
+            "label": "Decor code",
+            "name": "decor_code",
+            "type": "text",
+            "instructions": "Manufacturer's decor/product code, e.g. H1227-TM12",
+            "required": 1
+        },
+        {
+            "key": "field_board_decor_name",
+            "label": "Decor name",
+            "name": "decor_name",
+            "type": "text",
+            "instructions": "e.g. Brown Abano Ash"
+        },
+        {
+            "key": "field_board_core",
+            "label": "Core",
+            "name": "core",
+            "type": "select",
+            "instructions": "The board's core material",
+            "choices": {
+                "Chipboard": "Chipboard",
+                "MDF Board": "MDF Board",
+                "Plywood": "Plywood"
+            },
+            "default_value": "",
+            "allow_null": 1,
+            "ui": 1
+        },
+        {
+            "key": "field_board_length_mm",
+            "label": "Length (mm)",
+            "name": "length_mm",
+            "type": "number",
+            "required": 1
+        },
+        {
+            "key": "field_board_width_mm",
+            "label": "Width (mm)",
+            "name": "width_mm",
+            "type": "number",
+            "required": 1
+        },
+        {
+            "key": "field_board_machining_heading",
+            "label": "Machining",
+            "name": "",
+            "type": "message",
+            "message": "",
+            "new_lines": "",
+            "wrapper": {
+                "class": "sdpoc-section-heading"
+            }
+        },
+        {
+            "key": "field_board_cut_to_size",
+            "label": "Cut to size",
+            "name": "machining_cut_to_size",
+            "type": "true_false",
+            "ui": 1,
+            "default_value": 0
+        },
+        {
+            "key": "field_board_edgebanding",
+            "label": "Edgebanding",
+            "name": "machining_edgebanding",
+            "type": "true_false",
+            "ui": 1,
+            "default_value": 0
+        },
+        {
+            "key": "field_board_cnc_machining",
+            "label": "CNC machining",
+            "name": "machining_cnc",
+            "type": "true_false",
+            "ui": 1,
+            "default_value": 0
+        },
+        {
+            "key": "field_board_pricing_heading",
+            "label": "Pricing",
+            "name": "",
+            "type": "message",
+            "message": "",
+            "new_lines": "",
+            "wrapper": {
+                "class": "sdpoc-section-heading"
+            }
+        },
+        {
+            "key": "field_board_thickness_mm",
+            "label": "Thickness (mm)",
+            "name": "thickness_mm",
+            "type": "number"
+        },
+        {
+            "key": "field_board_full_sheet_price",
+            "label": "Full sheet price",
+            "name": "full_sheet_price",
+            "type": "number",
+            "step": "0.01",
+            "instructions": "Cutting-list price will be added later once the pricing formula is decided.",
+            "required": 1
+        },
+        {
+            "key": "field_board_details_heading",
+            "label": "Details",
+            "name": "",
+            "type": "message",
+            "message": "",
+            "new_lines": "",
+            "wrapper": {
+                "class": "sdpoc-section-heading"
+            }
+        },
+        {
+            "key": "field_board_description",
+            "label": "Product description",
+            "name": "description",
+            "type": "wysiwyg",
+            "tabs": "visual",
+            "media_upload": 0
+        },
+        {
+            "key": "field_board_b_side_description",
+            "label": "B side description",
+            "name": "b_side_description",
+            "type": "textarea",
+            "rows": 2
+        },
+        {
+            "key": "field_board_characteristics",
+            "label": "Product characteristics",
+            "name": "characteristics",
+            "type": "textarea",
+            "instructions": "One per line, as \"Label: Value\" — e.g. Core: Chipboard",
+            "rows": 6,
+            "new_lines": ""
+        },
+        {
+            "key": "field_board_downloads",
+            "label": "Downloads",
+            "name": "downloads",
+            "type": "file",
+            "return_format": "array",
+            "library": "all"
+        },
+        {
+            "key": "field_board_manufacturer_url",
+            "label": "Manufacturer's product page",
+            "name": "manufacturer_url",
+            "type": "url"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "board"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1
+}
