@@ -897,9 +897,9 @@ CUT, EDGE & SPRAY SUMMARY
                 <div class="machining-sidebar spray-sidebar">
                     <select class="machining-select" id="spraySelect" style="color:#333;">
                         <option value=""><?php esc_html_e('Select spray finishing option', 'cutlist-catalogue'); ?></option>
-                        <option value="white-primer"><?php esc_html_e('White primer', 'cutlist-catalogue'); ?></option>
-                        <option value="solid-colour"><?php esc_html_e('Solid colour paint', 'cutlist-catalogue'); ?></option>
-                        <option value="clear-lacquer"><?php esc_html_e('Clear lacquer', 'cutlist-catalogue'); ?></option>
+                        <?php foreach ($spray_finishes as $finish) : ?>
+                            <option value="<?php echo esc_attr($finish['slug']); ?>"><?php echo esc_html($finish['label']); ?></option>
+                        <?php endforeach; ?>
                     </select>
                     <div id="spraySidebarBody"></div>
                     <div class="spray-total-row">

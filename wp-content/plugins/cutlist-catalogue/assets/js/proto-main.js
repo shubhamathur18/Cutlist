@@ -2294,9 +2294,12 @@ machiningOverlay.addEventListener("click", function (e) {
 
 
 // MACHINING OPTION DROPDOWN
-// Closed by default showing a "Select machining option" trigger; opens on
-// click, and picking an item swaps the trigger for a selected-value row
-// with an Add button next to it.
+// The sidebar's option list (Panel shaping / Surface shaping / ...)
+// now behaves as an actual dropdown: closed by default showing a
+// "Select machining option" trigger, opens on click, and picking an
+// item swaps the trigger for a selected-value row with an Add
+// button next to it (wiring up what "Add" actually does is a later
+// step).
 
 var machiningSelectWrap = document.getElementById("machiningSelectWrap");
 var machiningSelectTrigger = document.getElementById("machiningSelectTrigger");
@@ -3302,10 +3305,10 @@ document.getElementById("sprayZoomOut").addEventListener("click", function () {
 });
 
 
-// SPRAY FINISHING OPTIONS — from the Spray Finish CPT (wp-admin), not
-// hardcoded. window.cutlistSprayFinishes is keyed by slug here to rebuild
-// the shape this used to be hardcoded as, so renderSpraySidebar() etc. below
-// need no changes.
+// SPRAY FINISHING OPTIONS — Spray Finish CPT (wp-admin), not hardcoded.
+// window.cutlistSprayFinishes (see cutlist_format_spray_finish() in
+// rest-endpoints.php) is keyed by slug here to rebuild the exact shape this
+// file used to hardcode, so renderSpraySidebar() etc. below need no changes.
 
 var SPRAY_OPTIONS = {};
 (window.cutlistSprayFinishes || []).forEach(function (f) {
