@@ -194,6 +194,64 @@
             "ui_off_text": ""
         },
         {
+            "key": "field_board_finishing_heading",
+            "label": "Finishing",
+            "name": "",
+            "aria-label": "",
+            "type": "message",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "sdpoc-section-heading",
+                "id": ""
+            },
+            "message": "",
+            "new_lines": "",
+            "esc_html": 0
+        },
+        {
+            "key": "field_board_spray_finishing",
+            "label": "Spray finishing",
+            "name": "spray_finishing",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Shows an \"Add\" button for Spray finishing on this board's cutting-list rows.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "ui": 1,
+            "default_value": 0,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": ""
+        },
+        {
+            "key": "field_board_grain_match",
+            "label": "Grain match",
+            "name": "grain_match",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Enables the Grain match checkbox on this board's cutting-list rows.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "ui": 1,
+            "default_value": 0,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": ""
+        },
+        {
             "key": "field_board_pricing_heading",
             "label": "Pricing",
             "name": "",

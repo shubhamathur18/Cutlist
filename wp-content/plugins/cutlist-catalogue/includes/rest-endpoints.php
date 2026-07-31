@@ -34,6 +34,12 @@ add_action('rest_api_init', function () {
 		'callback' => 'cutlist_rest_get_edge_tapes',
 		'permission_callback' => '__return_true',
 	]);
+
+	register_rest_route('cutlist/v1', '/spray-finishes', [
+		'methods' => 'GET',
+		'callback' => 'cutlist_rest_get_spray_finishes',
+		'permission_callback' => '__return_true',
+	]);
 });
 
 function cutlist_rest_get_boards(WP_REST_Request $request) {
@@ -112,6 +118,55 @@ function cutlist_format_edge_tape($post) {
 	];
 }
 
+function cutlist_rest_get_spray_finishes(WP_REST_Request $request) {
+	$posts = get_posts([
+		'post_type' => 'spray_finish',
+		'numberposts' => -1,
+		'post_status' => 'publish',
+		'orderby' => 'menu_order title',
+		'order' => 'ASC',
+	]);
+
+	return array_values(array_map('cutlist_format_spray_finish', $posts));
+}
+
+// "Finishes" is a plain textarea (ACF Repeater is PRO-only), one row per
+// line as "Title | Sub-label | Price" — same one-line-per-row convention
+// already used for Board's "characteristics" field above.
+function cutlist_format_spray_finish($post) {
+	$finishes = [];
+	foreach (preg_split('/\r\n|\r|\n/', get_field('finishes', $post->ID) ?: '') as $line) {
+		$parts = array_map('trim', explode('|', $line));
+		if (!isset($parts[0]) || $parts[0] === '') {
+			continue;
+		}
+		$finishes[] = [
+			'title' => $parts[0],
+			'sub' => $parts[1] ?? '',
+			'price' => isset($parts[2]) ? (float) $parts[2] : 0,
+		];
+	}
+
+	$b_side_text = get_field('b_side_text', $post->ID);
+	$b_option = $b_side_text ? [
+		'text' => $b_side_text,
+		'price' => (float) get_field('b_side_price', $post->ID),
+	] : null;
+
+	return [
+		'id' => $post->ID,
+		// post_name (the URL slug) doubles as the option's stable key —
+		// same role the hardcoded object keys ("white-primer", ...) used
+		// to play, just admin-controlled now via the post's own slug.
+		'slug' => $post->post_name,
+		'label' => $post->post_title,
+		'panelFill' => get_field('panel_fill_colour', $post->ID) ?: '#dddddd',
+		'paintFields' => (bool) get_field('show_paint_fields', $post->ID),
+		'finishes' => $finishes,
+		'bOption' => $b_option,
+	];
+}
+
 function cutlist_format_board($post) {
 	$brand_terms = get_the_terms($post->ID, 'board_brand');
 	$brand = ($brand_terms && !is_wp_error($brand_terms)) ? $brand_terms[0]->name : null;
@@ -167,6 +222,8 @@ function cutlist_format_board($post) {
 			'edgebanding' => (bool) get_field('machining_edgebanding', $post->ID),
 			'cnc' => (bool) get_field('machining_cnc', $post->ID),
 		],
+		'spray_finishing' => (bool) get_field('spray_finishing', $post->ID),
+		'grain_match' => (bool) get_field('grain_match', $post->ID),
 		'description' => get_field('description', $post->ID),
 		'b_side_description' => get_field('b_side_description', $post->ID),
 		'characteristics' => $characteristics,

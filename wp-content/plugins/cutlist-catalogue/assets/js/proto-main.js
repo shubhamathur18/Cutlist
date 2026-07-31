@@ -1525,10 +1525,12 @@ document.querySelectorAll(".product-row")
             }
 
 
-            // Grain matching is only offered for H1228-TM12 (Anthracite Abano Ash)
+            // Which boards offer grain matching / spray finishing is set per
+            // board in wp-admin (Board Details → Finishing), not hardcoded
+            // to specific decor codes.
             var grainCheckbox = currentRow.querySelector(".grain input");
             if (grainCheckbox) {
-                var isGrainDecor = code.indexOf("H1228-TM12") === 0;
+                var isGrainDecor = !!(selectedBoard && selectedBoard.grainMatch);
                 currentRow.classList.toggle("grain-allowed", isGrainDecor);
                 grainCheckbox.disabled = !isGrainDecor;
                 if (!isGrainDecor && grainCheckbox.checked) {
@@ -1537,10 +1539,9 @@ document.querySelectorAll(".product-row")
                 updateGrainSection();
             }
 
-            // Spray finishing is only offered for H3041-TM12 (Natural Eucalyptus)
             var sprayBtn = currentRow.querySelector(".spray .add-btn");
             if (sprayBtn) {
-                sprayBtn.classList.toggle("visible", code.indexOf("H3041-TM12") === 0);
+                sprayBtn.classList.toggle("visible", !!(selectedBoard && selectedBoard.sprayFinishing));
             }
 
             let { lengthInput, widthInput } = getDimInputs(currentRow);

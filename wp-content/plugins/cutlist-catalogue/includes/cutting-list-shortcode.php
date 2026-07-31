@@ -82,6 +82,23 @@ function cutlist_proto_get_edge_tape_options() {
 }
 
 /**
+ * Every published Spray Finish, in the shape proto-main.js's SPRAY_OPTIONS
+ * object used to be hardcoded as (see cutlist_format_spray_finish() in
+ * rest-endpoints.php) — the front end keys this array by `slug` to rebuild
+ * that same object at runtime.
+ */
+function cutlist_proto_get_spray_finishes() {
+	$posts = get_posts([
+		'post_type' => 'spray_finish',
+		'numberposts' => -1,
+		'post_status' => 'publish',
+		'orderby' => 'menu_order title',
+		'order' => 'ASC',
+	]);
+	return array_map('cutlist_format_spray_finish', $posts);
+}
+
+/**
  * Supplier-tabs + product-list markup for #decorPopup, grouped by brand —
  * structurally identical to the prototype's hardcoded version (same
  * classes/data-attributes) so the existing inline JS (supplier-tab
@@ -173,6 +190,8 @@ function cutlist_proto_build_pm_products($boards) {
 			'price_cut' => '–',
 			'slides' => $slides,
 			'machining' => $board['machining'],
+			'sprayFinishing' => $board['spray_finishing'],
+			'grainMatch' => $board['grain_match'],
 			'downloads' => $board['downloads'],
 			'manufacturer_url' => $board['manufacturer_url'] ?: '',
 		];
@@ -182,6 +201,7 @@ function cutlist_proto_build_pm_products($boards) {
 
 add_shortcode('cutlist_table', function () {
 	$boards = cutlist_proto_get_boards();
+	$spray_finishes = cutlist_proto_get_spray_finishes();
 
 	wp_enqueue_style(
 		'cutlist-proto-css',
@@ -192,13 +212,14 @@ add_shortcode('cutlist_table', function () {
 
 	// A real PHP template (not a static HTML asset string-replaced at
 	// runtime) so it can use translation functions, conditionals, etc.
-	// directly — $boards is in scope for it via this include.
+	// directly — $boards/$spray_finishes are in scope for it via this include.
 	ob_start();
 	include CUTLIST_CATALOGUE_PATH . 'templates/cutlist-table.php';
 	$body = ob_get_clean();
 
 	$pm_products_json = wp_json_encode(cutlist_proto_build_pm_products($boards));
 	$edge_tapes_json = wp_json_encode(cutlist_proto_get_edge_tape_options());
+	$spray_finishes_json = wp_json_encode($spray_finishes);
 
 	// JS must go through wp_enqueue_script/wp_add_inline_script, never be
 	// echoed inline inside the shortcode's returned HTML: content returned
@@ -236,7 +257,8 @@ add_shortcode('cutlist_table', function () {
 	wp_add_inline_script(
 		'cutlist-proto-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .
-			'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';',
+			'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
+			'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';',
 		'before'
 	);
 	wp_add_inline_script(

@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 
 add_action('init', 'cutlist_register_post_types');
 add_action('init', 'cutlist_register_taxonomies');
+add_action('init', 'cutlist_seed_default_spray_finishes', 20);
 
 function cutlist_register_post_types() {
 
@@ -57,6 +58,30 @@ function cutlist_register_post_types() {
 		'has_archive' => false,
 		'rewrite' => false,
 	]);
+
+	// `spray_finish`: the options offered in the Spray Finishing overlay —
+	// previously a hardcoded SPRAY_OPTIONS object in proto-main.js. Each
+	// post is one finish type (White primer, Solid colour paint, ...); its
+	// post_title is used directly as the customer-facing label, so there's
+	// no separate "label" field to keep in sync. 'page-attributes' gives it
+	// a Menu order field so admins can control the picker's display order.
+	register_post_type('spray_finish', [
+		'label' => __('Spray Finishes', 'cutlist-catalogue'),
+		'labels' => [
+			'name' => __('Spray Finishes', 'cutlist-catalogue'),
+			'singular_name' => __('Spray Finish', 'cutlist-catalogue'),
+			'add_new_item' => __('Add New Spray Finish', 'cutlist-catalogue'),
+			'edit_item' => __('Edit Spray Finish', 'cutlist-catalogue'),
+			'search_items' => __('Search Spray Finishes', 'cutlist-catalogue'),
+			'all_items' => __('All Spray Finishes', 'cutlist-catalogue'),
+		],
+		'public' => true,
+		'show_in_rest' => false,
+		'menu_icon' => 'dashicons-art',
+		'supports' => ['title', 'page-attributes'],
+		'has_archive' => false,
+		'rewrite' => false,
+	]);
 }
 
 function cutlist_register_taxonomies() {
@@ -90,6 +115,61 @@ function cutlist_register_taxonomies() {
 		'hierarchical' => false,
 		'show_admin_column' => true,
 	]);
+}
+
+// Runs once: if no Spray Finish posts exist yet (a fresh install, or this
+// site right after the CPT was introduced), seed the three finishes that
+// used to be hardcoded so the Spray Finishing overlay doesn't suddenly go
+// empty. Does nothing once at least one post exists — from then on the
+// list is entirely wp-admin's to manage.
+function cutlist_seed_default_spray_finishes() {
+	if (!post_type_exists('spray_finish') || wp_count_posts('spray_finish')->publish > 0) {
+		return;
+	}
+
+	$defaults = [
+		[
+			'title' => 'White primer',
+			'panel_fill_colour' => '#c9d6e8',
+			'show_paint_fields' => 0,
+			'finishes' => "White primer | | 25.00",
+			'b_side_text' => '',
+			'b_side_price' => '',
+		],
+		[
+			'title' => 'Solid colour paint',
+			'panel_fill_colour' => '#dcc8dc',
+			'show_paint_fields' => 1,
+			'finishes' => "Satin finish | colour, 25% sheen | 60.35\nMatt finish | colour, 5% sheen | 62.95",
+			'b_side_text' => 'Spray B side with white primer only',
+			'b_side_price' => '25.00',
+		],
+		[
+			'title' => 'Clear lacquer',
+			'panel_fill_colour' => '#cfe3d6',
+			'show_paint_fields' => 0,
+			'finishes' => "Satin finish | clear lacquer, 25% sheen | 40.95\nMatt finish | clear lacquer, 5% sheen | 41.95",
+			'b_side_text' => 'Spray B side with clear sealant only',
+			'b_side_price' => '20.00',
+		],
+	];
+
+	foreach ($defaults as $i => $d) {
+		$post_id = wp_insert_post([
+			'post_type' => 'spray_finish',
+			'post_title' => $d['title'],
+			'post_status' => 'publish',
+			'menu_order' => $i,
+		]);
+		if (!$post_id || is_wp_error($post_id)) {
+			continue;
+		}
+		update_field('panel_fill_colour', $d['panel_fill_colour'], $post_id);
+		update_field('show_paint_fields', $d['show_paint_fields'], $post_id);
+		update_field('finishes', $d['finishes'], $post_id);
+		update_field('b_side_text', $d['b_side_text'], $post_id);
+		update_field('b_side_price', $d['b_side_price'], $post_id);
+	}
 }
 
 // ---- Admin list usability ----
@@ -237,6 +317,38 @@ add_action('manage_edge_tape_posts_custom_column', function ($column, $post_id) 
 	if ($column === 'sdpoc_tape_price') {
 		$price = get_field('unit_price', $post_id);
 		echo $price ? cutlist_format_price_html($price) : '—';
+	}
+}, 10, 2);
+
+// "Panel colour" + "Finishes" columns for the Spray Finishes list.
+add_filter('manage_spray_finish_posts_columns', function ($columns) {
+	$new = [];
+	foreach ($columns as $key => $label) {
+		$new[$key] = $label;
+		if ($key === 'title') {
+			$new['sdpoc_spray_colour'] = __('Panel colour', 'cutlist-catalogue');
+			$new['sdpoc_spray_finishes'] = __('Finishes', 'cutlist-catalogue');
+		}
+	}
+	return $new;
+});
+
+add_action('manage_spray_finish_posts_custom_column', function ($column, $post_id) {
+	if ($column === 'sdpoc_spray_colour') {
+		$colour = get_field('panel_fill_colour', $post_id);
+		echo $colour
+			? '<span style="display:inline-block;width:16px;height:16px;border:1px solid #ccc;vertical-align:middle;background:' . esc_attr($colour) . '"></span> ' . esc_html($colour)
+			: '—';
+		return;
+	}
+
+	if ($column === 'sdpoc_spray_finishes') {
+		$lines = preg_split('/\r\n|\r|\n/', get_field('finishes', $post_id) ?: '');
+		$titles = array_filter(array_map(function ($line) {
+			$parts = explode('|', $line);
+			return trim($parts[0]);
+		}, $lines));
+		echo $titles ? esc_html(implode(', ', $titles)) : '—';
 	}
 }, 10, 2);
 

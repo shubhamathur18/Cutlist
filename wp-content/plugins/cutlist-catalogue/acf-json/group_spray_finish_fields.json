@@ -1,0 +1,135 @@
+{
+    "key": "group_spray_finish_fields",
+    "title": "Spray Finish Details",
+    "fields": [
+        {
+            "key": "field_spray_finish_panel_colour",
+            "label": "Panel preview colour",
+            "name": "panel_fill_colour",
+            "aria-label": "",
+            "type": "color_picker",
+            "instructions": "Used to tint the diagram panel in the Spray overlay when this finish is selected.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "enable_opacity": 0,
+            "return_format": "string"
+        },
+        {
+            "key": "field_spray_finish_paint_fields",
+            "label": "Show brand \/ colour fields",
+            "name": "show_paint_fields",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Enable if this finish lets the customer specify a paint brand and colour (e.g. Solid colour paint). Leave off for finishes with no colour choice (e.g. Clear lacquer).",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "ui": 1,
+            "default_value": 0,
+            "message": "",
+            "ui_on_text": "",
+            "ui_off_text": ""
+        },
+        {
+            "key": "field_spray_finish_finishes",
+            "label": "Finishes",
+            "name": "finishes",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "One per line, as \"Title | Sub-label | Price\" — e.g. Satin finish | colour, 25% sheen | 60.35. Leave the sub-label blank if not needed: \"White primer | | 25.00\". Price is per sq.m.",
+            "required": 1,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 4,
+            "new_lines": "",
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": ""
+        },
+        {
+            "key": "field_spray_finish_bside_text",
+            "label": "B side only option text",
+            "name": "b_side_text",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "Optional — e.g. \"Spray B side with white primer only\". Leave blank if this finish has no B-side-only option.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_spray_finish_bside_price",
+            "label": "B side only price",
+            "name": "b_side_price",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Price per sq.m. for the B-side-only option above.",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_spray_finish_bside_text",
+                        "operator": "!=empty"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "step": "0.01",
+            "default_value": "",
+            "min": "",
+            "max": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "spray_finish"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1,
+    "display_title": "",
+    "allow_ai_access": false,
+    "ai_description": "",
+    "modified": 1785412000
+}
