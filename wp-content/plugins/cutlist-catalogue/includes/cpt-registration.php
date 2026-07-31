@@ -1,8 +1,10 @@
 <?php
 /**
- * `board`: the decorative board catalogue. Its own CPT (not folded into
- * a shared "option" bucket) because it's the large/growing list — many
- * manufacturers, many decors, each with its own thickness/pricing table.
+ * Custom post types for the catalogue: `board` (the decorative board
+ * catalogue), `edge_tape` (edge banding), and `spray_finish` (Spray
+ * Finishing overlay options). Each is its own CPT rather than a shared
+ * "option" bucket, since they're independently growing lists with their
+ * own fields.
  */
 
 if (!defined('ABSPATH')) {

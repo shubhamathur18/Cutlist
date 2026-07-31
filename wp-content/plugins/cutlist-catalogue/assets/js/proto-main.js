@@ -1,13 +1,7 @@
-// These overlays are position:absolute/fixed and expect their
-// coordinates (set via getBoundingClientRect() + window.scrollY)
-// to be relative to the whole document. In the original static
-// prototype they were direct children of <body>, so that held.
-// Embedded in WordPress, they instead land inside the theme's
-// <main class="...wp-block-group-is-layout-constrained">, which
-// the theme sets to position:relative — making IT the containing
-// block instead, and throwing off every popup's position. Moving
-// them back to be direct children of <body> restores the
-// prototype's original behaviour.
+// These overlays are position:fixed/absolute and expect document-relative
+// coordinates, which breaks if a WordPress theme wrapper sets
+// position:relative on an ancestor — moving them to be direct children of
+// <body> avoids that.
 ['decorPopup', 'edgePopup', 'machiningOverlay', 'sprayOverlay', 'panelModalOverlay', 'panelSummaryModalOverlay'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) document.body.appendChild(el);
@@ -79,11 +73,9 @@ function toggleInvalid(input) {
 }
 
 
-// Sheet-size cap: a part can't be cut larger than the selected
-// board's own length/width (minus the 40mm cutting margin stored
-// on the row as data-max-length/data-max-width when a decor is
-// picked). Shows the same red-border + pink tooltip treatment as
-// the reference design.
+// A part can't be cut larger than the selected board's own length/width
+// (minus the 40mm cutting margin, stored as data-max-length/data-max-width
+// when a decor is picked).
 function checkMaxDimension(input, row) {
     var isLength = getDimInputs(row).lengthInput === input;
     var max = isLength ? row.dataset.maxLength : row.dataset.maxWidth;
@@ -258,14 +250,8 @@ function closeEdgePopup() {
 }
 
 
-// Both the Machining and Spray overlays lay their diagram out on a
-// CSS grid whose centre cell (the panel itself) was a fixed
-// 320x320 square — so unlike the Panel Summary drawing, the box
-// never reflected the row's real length/width, just its dimension
-// labels. This scales that centre cell the same way Panel Summary
-// scales its SVG rect: proportional to the real length/width,
-// capped to a 320x320 envelope so it still fits the fixed diagram
-// grid around it.
+// Scales the Machining/Spray diagram grid's centre cell proportionally to
+// the row's real length/width, capped to a 320x320 envelope.
 function scaleMachiningDiagramPanel(diagramEl, lengthValue, widthValue) {
     if (!diagramEl) return;
 
@@ -333,25 +319,18 @@ function openMachiningOverlay(row) {
     loadMachiningAppliedItems(row);
     renderMachiningAppliedList();
 
-    // .machining-overlay is display:none until "open" is added — the Konva
-    // stage's container needs actual layout (not display:none) the first
-    // time it's constructed, so the overlay must already be visible before
-    // the first redrawMachiningCanvas() call creates it.
+    // Must open before the first redrawMachiningCanvas() call — Konva's
+    // stage needs actual layout, not display:none, to construct correctly.
     machiningOverlay.classList.add("open");
     redrawMachiningCanvas();
     fitMachiningDiagramToContainer();
 
 }
 
-// The Konva stage has a fixed 500x460 design size (all the layout math in
-// redrawMachiningCanvas/updateMachiningNotch is tuned against that), but
-// .machining-canvas' actual on-screen size depends on the browser window —
-// if it's smaller than 500x460, the diagram overflows and the canvas
-// scrolls instead of showing the whole drawing. Scale the whole diagram
-// down (via the same transform the zoom buttons already use) to whatever
-// actually fits, instead of guessing a fixed size that only works for one
-// window size. machiningZoom becomes the new baseline the zoom buttons
-// scale further from, not always starting back at 1.
+// The Konva stage is a fixed 500x460 design size, but .machining-canvas'
+// on-screen size varies — scale the whole diagram down to fit instead of
+// overflowing into a scrollbar. machiningZoom becomes the zoom buttons' new
+// baseline rather than always starting back at 1.
 function fitMachiningDiagramToContainer() {
     // Scoped to machiningOverlay, not a bare document-wide selector — the
     // Spray overlay reuses the same .machining-canvas class.
@@ -605,9 +584,8 @@ fsTable.addEventListener("click", function (e) {
 
 // EDGING TAPE TABLE
 
-// Edge Tape catalogue (wp-admin), flattened server-side into one
-// row per (tape, matched board) pair — see
-// cutlist_proto_get_edge_tape_options() in cutting-list-shortcode.php.
+// Flattened server-side into one row per (tape, matched board) pair — see
+// cutlist_proto_get_edge_tape_options().
 var etTapes = window.cutlistEdgeTapes || [];
 
 var SVG_ARROW = '<svg height="20" width="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z" fill="#888"/></svg>';
@@ -622,10 +600,7 @@ function etOptionHTML(t, selected) {
         '</div></div></div>';
 }
 
-// Only offer a tape once its matched board (see "Matches boards" on
-// the Edge Tape in wp-admin) has actually been added to the
-// Cutting list above — an edge tape for a decor nobody selected has
-// nothing to be applied to.
+// Only offer a tape once its matched board is actually on the cutting list.
 function etCuttingListDecorCodes() {
     var codes = new Set();
     table.querySelectorAll('tr:not(.header-row) .decor input').forEach(function (input) {
@@ -651,9 +626,8 @@ function etAllOptionsHTML(selectedCode) {
     }).join('');
 }
 
-// Re-render every edging-tape dropdown against the current cutting
-// list selection; a row whose chosen tape no longer matches any
-// selected board is reset rather than left pointing at a hidden option.
+// A row whose chosen tape no longer matches any selected board is reset
+// rather than left pointing at a hidden option.
 function etRefreshDropdowns() {
     document.querySelectorAll('#etTbody tr.et-row').forEach(function (row) {
         var sel = row.querySelector('.Select2');
@@ -934,11 +908,8 @@ function summaryMoney(n) {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Packs as many copies of one panel size as will fit into a grid on a single
-// sheet (to scale), so repeated parts are shown cut from the same board
-// instead of each getting its own sheet. Whatever doesn't fit in the grid,
-// plus any grid cells left empty by a partial last row, is drawn as labelled
-// offcut.
+// Packs as many copies of one panel size as fit into a grid on a single
+// sheet (to scale); whatever doesn't fit is drawn as labelled offcut.
 function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth) {
 
     sheetLength = sheetLength || SHEET_LENGTH;
@@ -1459,10 +1430,8 @@ document.querySelectorAll(".product-row")
                 thickSelectEl.value = selectedBoard.thicknesses[0];
             }
 
-            // Cutting margin: the sheet's own length/width minus
-            // 40mm is the largest part that can actually be cut
-            // from it. Stored on the row so the input handler
-            // below can validate as the user types.
+            // Largest part cuttable from this sheet (length/width minus
+            // 40mm), stored so the input handler can validate as-you-type.
             if (selectedBoard && selectedBoard.length && selectedBoard.width) {
                 currentRow.dataset.maxLength = selectedBoard.length - 40;
                 currentRow.dataset.maxWidth = selectedBoard.width - 40;
@@ -1617,9 +1586,7 @@ grainDropzone.addEventListener("drop", function (e) {
 
 // PANEL MODAL (More info)
 
-// Product data for the decor popup + "More info" modal is rendered
-// server-side from the real Board catalogue (wp-admin), instead of
-// the prototype's hardcoded mock object.
+// Rendered server-side from the real Board catalogue, not a mock object.
 var pmProducts = window.cutlistPmProducts || {};
 
 var pmSlideIdx = 0;
@@ -1938,10 +1905,8 @@ function panelSummaryEdgeBadge(key, value, cx, cy) {
         '<text class="panel-edge-badge-label" x="' + cx + '" y="' + (cy + 3) + '" text-anchor="middle">' + key + '</text>';
 }
 
-// The panel is drawn to scale from the row's real length/width — a
-// 2000×600 row renders as a wide rectangle, not a fixed square like
-// the Machining/Spray overlays use, so the drawing genuinely
-// reflects the cutting-list data rather than being illustrative.
+// Drawn to scale from the row's real length/width, not a fixed square
+// like the Machining/Spray overlays use.
 function buildPanelSummaryDrawing(data) {
     var length = parseFloat(data.length);
     var width = parseFloat(data.width);
@@ -2059,10 +2024,7 @@ function buildPanelSummaryEdgingText(data) {
     }).join(', ');
 }
 
-// Reads the same row.dataset.machiningData the old drawing overlay
-// used to plot shapes from — the Machining overlay's options don't
-// persist a selection back onto the row yet, so in practice this
-// renders the "no machining" fallback until that's wired up.
+// Reads row.dataset.machiningData, written by saveMachiningAppliedItems().
 function buildPanelSummaryMachiningText(data) {
     if (!data.machining || !data.machining.length) return 'No additional machining';
 
@@ -2317,15 +2279,11 @@ document.getElementById("machiningClose")
 machiningOverlay.addEventListener("click", function (e) {
 
     // Must be a direct-target check (e.target === machiningOverlay), not
-    // e.target.closest(".machining-modal") — several buttons inside the
-    // applied-items list (view/finish toggles, edging options) call
-    // renderMachiningAppliedList() synchronously on click, which replaces
-    // the list's innerHTML and detaches the clicked element from the DOM
-    // *before* this click event finishes bubbling up here. closest() on a
-    // detached node can't walk back up to .machining-modal and wrongly
-    // finds no match, closing the overlay on a click that was actually
-    // inside it. e.target itself stays a stable reference regardless of
-    // later DOM mutations, so comparing it directly is immune to that.
+    // e.target.closest(".machining-modal"): several buttons in the
+    // applied-items list re-render its innerHTML synchronously on click,
+    // detaching the clicked element before this event finishes bubbling —
+    // closest() on a detached node can't find .machining-modal and wrongly
+    // closes the overlay. e.target itself stays a stable reference.
     if (e.target === machiningOverlay) {
 
         closeMachiningOverlay();
@@ -2336,12 +2294,9 @@ machiningOverlay.addEventListener("click", function (e) {
 
 
 // MACHINING OPTION DROPDOWN
-// The sidebar's option list (Panel shaping / Surface shaping / ...)
-// now behaves as an actual dropdown: closed by default showing a
-// "Select machining option" trigger, opens on click, and picking an
-// item swaps the trigger for a selected-value row with an Add
-// button next to it (wiring up what "Add" actually does is a later
-// step).
+// Closed by default showing a "Select machining option" trigger; opens on
+// click, and picking an item swaps the trigger for a selected-value row
+// with an Add button next to it.
 
 var machiningSelectWrap = document.getElementById("machiningSelectWrap");
 var machiningSelectTrigger = document.getElementById("machiningSelectTrigger");
@@ -2404,15 +2359,11 @@ if (machiningSelectWrap) {
 }
 
 // APPLIED MACHINING OPTIONS
-// What "Add" does: pushes the currently-picked option onto a per-row list
-// rendered as a chip. "Angled cut" gets a full detail panel (corner picker,
-// offset-from-far-edge inputs, an edging-tape picker scoped to this row's
-// board, radius/square finish, an A/B view toggle, and a preview); other
-// options just get a plain removable chip since only Angled cut's behaviour
-// has been specified so far. Saving an Angled cut writes it onto the row
-// (row.dataset.machiningData) in the same shape
-// buildPanelSummaryMachiningText() already expects, so it shows up in the
-// Panel Summary "Surface shaping summary" too.
+// "Add" pushes the picked option onto a per-row list rendered as a chip.
+// "Angled cut" gets a full detail panel (corner, offsets, edging, finish,
+// A/B view); other options just get a plain removable chip. Saving an
+// Angled cut writes it to row.dataset.machiningData, which also feeds
+// Panel Summary's "Surface shaping summary".
 
 var machiningCurrentRow = null;
 var machiningAppliedItems = [];
@@ -2439,33 +2390,20 @@ function loadMachiningAppliedItems(row) {
     }
 }
 
-// Konva-based technical drawing for the Machining panel — replaces the
-// earlier plain-<canvas> version. Shapes are created once (initMachiningStage)
-// and updated in place on every redraw rather than cleared and rebuilt from
-// scratch; that persistence is what lets the Angled-cut corner handle be
-// dragged smoothly (Konva's own hit-testing/drag system), which a
-// redraw-from-scratch canvas can't do without hand-rolling pointer tracking.
-// The Spray overlay keeps its existing div-based diagram unchanged, since
-// its panel also carries a live colour-fill preview (see
-// updateSprayVisuals()) that isn't part of this feature.
-// maxW/maxH are equal (a square envelope) so an equal length/width board
-// always renders as a true visual square, not just a mathematically-equal
-// rectW/rectH inside an asymmetric layout. Stacking order moving outward
-// from the board edge is: callout (position label, ~10px out) -> badge
-// (L1/L2/W1/W2, badgeOffset) -> ruler+text (rulerOffset + ~18px text). Each
-// gap must clear the previous element's own footprint (callout box height/
-// width, badge's 16px radius) or the callout and badge visibly collide —
-// see updateMachiningPositionLabel's ~10px near offset. x/y/maxW/maxH are
-// sized so the ruler+text stack still stays inside the 500x460 canvas on
-// every side, whichever edge the ruler ends up flipped to.
+// Konva-based technical drawing for the Machining panel. Shapes are created
+// once (initMachiningStage) and updated in place on every redraw, which is
+// what makes the hLabel/vLabel position callouts smoothly draggable.
+//
+// maxW/maxH are equal so an equal length/width board renders as a true
+// square. Stacking order outward from the board edge is: callout (badge
+// -10px) -> badge (badgeOffset) -> ruler+text (rulerOffset). Each gap must
+// clear the previous element's own footprint or they visibly collide.
 var MACHINING_CANVAS_CFG = { x: 120, y: 120, maxW: 220, maxH: 220, badgeOffset: 62, rulerOffset: 88 };
 
-// Fallback inset (px) used only when an angled-cut item has no offsetH/
-// offsetV yet (nothing dragged or typed in). The real valid mm range for a
-// configured cut is 0 to length-1 / width-1 (see machiningCurrentDims() and
-// the offset inputs' data-min/data-max) — that's enforced in mm space, not
-// by clamping this pixel value, since a fixed pixel epsilon distorts
-// disproportionately on a large board with a small px/mm ratio.
+// Fallback inset (px), used only when an angled-cut item has no offsetH/
+// offsetV yet. The real 0..length-1/width-1 range is enforced in mm space
+// elsewhere, not by clamping this pixel value — a fixed pixel epsilon
+// distorts disproportionately on a large board with a small px/mm ratio.
 var MACHINING_MIN_INSET = 2;
 
 var machiningStage = null;
@@ -2484,11 +2422,9 @@ function buildMachiningBadge(label) {
     return group;
 }
 
-// A dimension ruler that's either a single span (no cut on this edge — one
-// tick at each end, one centered label) or, when the Angled cut lands on
-// this edge, split at the real cut position into two independently
-// labeled segments (see splitAt in updateMachiningDimLine) — matching the
-// "250mm | 1750mm" two-segment style from the reference.
+// A dimension ruler: a single centered-label span normally, or split at the
+// cut position into two independently labeled segments when the Angled cut
+// lands on this edge (see splitAt in updateMachiningDimLine).
 function buildMachiningDimLine() {
     var group = new Konva.Group();
     var line = new Konva.Line({ stroke: "#777", strokeWidth: 1 });
@@ -2508,12 +2444,9 @@ function positionMachiningDimText(textNode, x, y, vertical) {
     textNode.position({ x: x, y: y });
 }
 
-// sign: +1 on the ruler's default side (bottom for length, right for
-// width) — text sits further out (down/right), beyond the ruler line, away
-// from the board. -1 when the ruler has flipped to the cut's side (top for
-// L1, left for W1) — "further out" is the opposite direction there, so the
-// text offset must flip too, or it lands back past the badge toward the
-// board instead of staying outside the ruler line where it belongs.
+// sign: +1 on the ruler's default side (bottom/right), -1 when flipped to
+// the cut's side (top/left) — "further out" is the opposite direction
+// there, so the text offset must flip too or it lands back toward the board.
 function updateMachiningDimLine(dl, x1, y1, x2, y2, vertical, splitAt, labelA, labelB, sign) {
     dl.line.points([x1, y1, x2, y2]);
     var tick = 5;
@@ -2551,10 +2484,9 @@ function updateMachiningDimLine(dl, x1, y1, x2, y2, vertical, splitAt, labelA, l
     }
 }
 
-// A small clickable "1900"-style callout (see buildMachiningPositionLabel/
-// updateMachiningPositionLabel) showing the live cut position on each edge
-// — clicking one opens promptMachiningPositionEdit() so the position can be
-// typed directly instead of only being draggable.
+// A small clickable callout showing the live cut position on each edge —
+// clicking opens promptMachiningPositionEdit() to type it directly instead
+// of only dragging.
 function buildMachiningPositionLabel() {
     var group = new Konva.Group({ visible: false });
     var bg = new Konva.Rect({ fill: "#fff", stroke: "#2b78c8", strokeWidth: 1 });
@@ -2566,10 +2498,8 @@ function buildMachiningPositionLabel() {
     return { group: group, bg: bg, arrow: arrow, text: text };
 }
 
-// vertical: true for the "From L2" (width-axis) label — points right,
-// stacked to the left of the cut point; false for "From W2" (length-axis)
-// — points down, stacked above the cut point. Matches the arrow-callout
-// style from the reference screenshot.
+// vertical: true for the width-axis label (points right, left of the cut
+// point); false for the length-axis label (points down, above it).
 function updateMachiningPositionLabel(lbl, value, px, py, vertical) {
     lbl.text.text(Math.round(value) + "");
     var w = lbl.text.width();
@@ -2591,10 +2521,9 @@ function updateMachiningPositionLabel(lbl, value, px, py, vertical) {
 }
 
 // Konva has no native text editing, so a real <input> is floated over the
-// clicked label (positioned from the shape's canvas-space bounds, scaled
-// by the ratio between the stage's declared size and its actual on-screen
-// CSS size so this stays correct under the +/- zoom, which scales
-// #machiningDiagram via CSS transform rather than stage.scale()).
+// clicked label, scaled by stage-declared-size vs on-screen CSS size so it
+// stays correct under the +/- zoom (a CSS transform on #machiningDiagram,
+// not stage.scale()).
 function promptMachiningPositionEdit(shape, currentValue, min, max, onCommit) {
     var containerRect = machiningStage.container().getBoundingClientRect();
     var cssScale = containerRect.width / machiningStage.width();
@@ -2654,19 +2583,13 @@ function initMachiningStage() {
         badgeW2: buildMachiningBadge("W2"),
         dimLength: buildMachiningDimLine(),
         dimWidth: buildMachiningDimLine(),
-        // strokeWidth 6 (wider than the panel's own 2px border) so this
-        // also paints over the outer half of the panel's green stroke along
-        // the two edge stubs leading into the cut corner — the fill alone
-        // only covers the interior, leaving a sliver of the old border
-        // visible right on the boundary line otherwise.
+        // strokeWidth 6 (wider than the panel's 2px border) so the fill also
+        // covers the old border's outer half along the cut's edge stubs.
         notchFill: new Konva.Line({ closed: true, fill: "#dceafd", stroke: "#dceafd", strokeWidth: 6, visible: false }),
         notchLine: new Konva.Line({ stroke: "#5da344", strokeWidth: 2, visible: false }),
-        // A bar rotated to the cut line's real angle (not a fixed 45°
-        // diamond) — its width/height/rotation are recomputed every redraw
-        // in updateMachiningNotch() to actually track the cut, since the
-        // two offsets aren't always equal. Not draggable — adjusting the
-        // cut is done via the position-callout arrows below, not by
-        // dragging this bar from its midpoint.
+        // Rotated to the cut's real angle, resized every redraw in
+        // updateMachiningNotch(). Not draggable — the position-callout
+        // arrows below handle that.
         handle: new Konva.Rect({
             fill: "#fff", stroke: "#2b78c8", strokeWidth: 1.5,
             visible: false
@@ -2708,11 +2631,9 @@ function initMachiningStage() {
         });
     });
 
-    // The cut position is adjusted by dragging each callout's arrow along
-    // its own edge — horizontal-only for the length/hLabel arrow, vertical
-    // -only for the width/vLabel arrow — not by dragging the diagonal bar
-    // from its midpoint. dragBoundFunc reads the live geometry each move so
-    // it stays correct as the row/corner/panel size changes between opens.
+    // Dragging each callout's arrow along its own edge (not the diagonal
+    // bar) adjusts the cut position; dragBoundFunc reads live geometry each
+    // move so it stays correct as the row/corner/panel size changes.
     machiningShapes.hLabel.arrow.draggable(true);
     machiningShapes.hLabel.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
@@ -2724,12 +2645,8 @@ function initMachiningStage() {
         var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
         if (!geo || !item || !(geo.length > 0)) return;
 
-        // dragBoundFunc above already clamps the arrow's x to [geo.x,
-        // geo.right], so insetH is already within [0, rectW] — the mm
-        // clamp below is what enforces the real 0..length-1 range, no
-        // separate pixel-space clamp needed (one used to be here, but a
-        // fixed pixel epsilon distorts disproportionately on large boards
-        // with a small px/mm ratio — see MACHINING_MIN_INSET).
+        // dragBoundFunc already clamps the arrow's x to [geo.x, geo.right],
+        // so the mm clamp below is enough to enforce 0..length-1.
         var insetH = geo.dirX * (machiningShapes.hLabel.arrow.x() - geo.cornerCx);
         var nearH = insetH * (geo.length / geo.rectW);
         item.offsetH = Math.max(0, Math.min(geo.length - 1, Math.round(geo.length - nearH)));
@@ -2753,9 +2670,7 @@ function initMachiningStage() {
         var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
         if (!geo || !item || !(geo.width > 0)) return;
 
-        // See the matching comment in the hLabel handler above — dragBoundFunc
-        // already bounds insetV to [0, rectH], the mm clamp below enforces
-        // the real 0..width-1 range.
+        // Same reasoning as the hLabel handler above, for the width axis.
         var insetV = geo.dirY * (machiningShapes.vLabel.arrow.y() - geo.cornerCy);
         var nearV = insetV * (geo.width / geo.rectH);
         item.offsetV = Math.max(0, Math.min(geo.width - 1, Math.round(geo.width - nearV)));
@@ -2789,11 +2704,9 @@ function updateMachiningNotch(angledCut, geo) {
         return;
     }
 
-    // "B side" view swaps which length badge (L1/L2) renders at the top —
-    // see redrawMachiningCanvas's badge-position swap — so a cut tagged for
-    // the L1 corner must render at the top only when that swap agrees
-    // (L1 still visually "up"); XOR'd against the raw L1 check below so
-    // the cut always stays next to whichever badge it actually belongs to.
+    // "B side" swaps which length badge renders at the top (see
+    // redrawMachiningCanvas) — XOR'd below so the cut stays next to
+    // whichever badge it actually belongs to.
     var flipLength = angledCut.view === "B";
 
     var cornerL = angledCut.corner.split("-")[0]; // "L1" | "L2"
@@ -2808,28 +2721,19 @@ function updateMachiningNotch(angledCut, geo) {
     geo.cornerCy = cornerCy;
     geo.dirX = dirX;
     geo.dirY = dirY;
-    // The length/width rulers move to sit on whichever side this cut is
-    // actually on (see redrawMachiningCanvas), matching the reference where
-    // the split ruler appears right next to the cut, not always at the
-    // default bottom/right.
     geo.cornerL = cornerL;
     geo.cornerW = cornerW;
     geo.lengthAtTop = lengthAtTop;
 
-    // Real near-edge distance (total minus the "From {far edge}" offset),
-    // scaled to the same px/mm ratio as the panel rect — so the cut line
-    // sits exactly where it actually would on the real board.
+    // Near-edge distance = total minus the "From {far edge}" offset, scaled
+    // to the panel rect's px/mm ratio.
     var offsetH = parseFloat(angledCut.offsetH);
     var offsetV = parseFloat(angledCut.offsetV);
     var nearH = (!isNaN(offsetH) && geo.length > 0) ? Math.max(0, geo.length - offsetH) : null;
     var nearV = (!isNaN(offsetV) && geo.width > 0) ? Math.max(0, geo.width - offsetV) : null;
-    // offsetH/offsetV are already clamped to [0, length-1]/[0, width-1]
-    // wherever they're set (offset inputs' data-min/data-max, the drag
-    // handlers above), so nearH/nearV are already within [1, length]/
-    // [1, width] — converting straight to px here (no extra pixel-space
-    // clamp) is what lets the rendered position actually reach both ends
-    // of that real range, instead of a fixed pixel epsilon eating several
-    // mm off each end on a large board with a small px/mm ratio.
+    // offsetH/offsetV are already clamped to their valid mm range elsewhere,
+    // so converting straight to px (no extra pixel-space clamp) is what lets
+    // the rendered position reach both ends of that range on any board size.
     var insetH = nearH != null ? nearH * (geo.rectW / geo.length) : MACHINING_MIN_INSET;
     var insetV = nearV != null ? nearV * (geo.rectH / geo.width) : MACHINING_MIN_INSET;
 
@@ -2839,24 +2743,18 @@ function updateMachiningNotch(angledCut, geo) {
     geo.splitLenAt = ptOnLEdge.x;
     geo.splitWidAt = ptOnWEdge.y;
 
-    // The cut corner is genuinely removed from the board — the fill paints
-    // over that triangle in the canvas background colour so it reads as
-    // material actually cut away, not just a line drawn on top of an
-    // intact panel.
+    // The corner is painted over with the canvas background colour so it
+    // reads as material actually cut away, not just a line on an intact panel.
     machiningShapes.notchFill.points([cornerCx, cornerCy, ptOnLEdge.x, ptOnLEdge.y, ptOnWEdge.x, ptOnWEdge.y]);
     machiningShapes.notchFill.visible(true);
 
-    // The new cut edge itself is drawn by the handle band below (a thick
-    // band the full length of the cut reads better than a thin line), so
-    // the plain notchLine stroke stays hidden — showing both would double
-    // up as two overlapping edges.
+    // The handle band below is the visible cut edge, so the plain
+    // notchLine stroke stays hidden to avoid doubling up.
     machiningShapes.notchLine.points([ptOnLEdge.x, ptOnLEdge.y, ptOnWEdge.x, ptOnWEdge.y]);
     machiningShapes.notchLine.visible(false);
 
-    // The handle is a band spanning the *entire* cut line (not just a short
-    // marker at its midpoint), rotated to the cut's real angle (equal
-    // insets give 45°, but they usually aren't equal) — this is what reads
-    // as the visible "cut edge" now that notchLine is hidden.
+    // Spans the entire cut line (not just its midpoint), rotated to the
+    // cut's real angle — the two insets aren't always equal.
     var dxPx = ptOnWEdge.x - ptOnLEdge.x;
     var dyPx = ptOnWEdge.y - ptOnLEdge.y;
     var cutPixLen = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
@@ -2875,9 +2773,8 @@ function updateMachiningNotch(angledCut, geo) {
     machiningShapes.handle.rotation(angleDeg);
     machiningShapes.handle.visible(true);
 
-    // Real diagonal cut length (Pythagoras on the two real mm distances,
-    // not the pixel line — stays correct even if rectW/rectH end up at
-    // different px/mm ratios from clamping on a very elongated panel).
+    // Pythagoras on the real mm distances, not the pixel line — stays
+    // correct even if rectW/rectH end up at different px/mm ratios.
     var nearH_mm = nearH != null ? nearH : (geo.length > 0 ? insetH * (geo.length / geo.rectW) : insetH);
     var nearV_mm = nearV != null ? nearV : (geo.width > 0 ? insetV * (geo.width / geo.rectH) : insetV);
     var cutLengthMm = Math.round(Math.sqrt(nearH_mm * nearH_mm + nearV_mm * nearV_mm));
@@ -2885,9 +2782,8 @@ function updateMachiningNotch(angledCut, geo) {
     machiningShapes.cutLengthLabel.position({ x: midX + dirX * 14, y: midY + dirY * 26 });
     machiningShapes.cutLengthLabel.visible(true);
 
-    // Live position callouts — show the saved offset once one exists,
-    // otherwise the position the (still unconfigured) default/dragged inset
-    // currently represents, so the numbers always match what's drawn.
+    // Shows the saved offset once one exists, else the position the
+    // default/dragged inset currently represents.
     var displayH = !isNaN(offsetH) ? offsetH : (geo.length > 0 ? geo.length - insetH * (geo.length / geo.rectW) : insetH);
     var displayV = !isNaN(offsetV) ? offsetV : (geo.width > 0 ? geo.width - insetV * (geo.width / geo.rectH) : insetV);
     updateMachiningPositionLabel(machiningShapes.hLabel, displayH, ptOnLEdge.x, ptOnLEdge.y, false);
@@ -2923,11 +2819,8 @@ function redrawMachiningCanvas() {
     machiningShapes.panel.position({ x: x, y: y });
     machiningShapes.panel.size({ width: rectW, height: rectH });
 
-    // "A side" (default) shows L1 at the top; "B side" swaps L1/L2 so L2
-    // renders at the top instead — a flipped view of the same board, kept
-    // in sync with the angled-cut item's own A/B toggle (see the
-    // data-view buttons in buildMachiningAppliedItemHTML) and the "Panel
-    // shows" face box below.
+    // "A side" (default) shows L1 at the top; "B side" swaps L1/L2 — kept in
+    // sync with the item's A/B toggle and the "Panel shows" face box below.
     var flipLength = !!(angledItem && angledItem.view === "B");
 
     // Badge centres sit cfg.badgeOffset outside the board edge, not on the
@@ -2944,9 +2837,7 @@ function redrawMachiningCanvas() {
     machiningLastGeometry = { x: x, y: y, right: right, bottom: bottom, rectW: rectW, rectH: rectH, length: length, width: width };
     var geo = machiningLastGeometry;
 
-    // Notch first — it decides which side (geo.cornerL/cornerW) and pixel
-    // position (geo.splitLenAt/splitWidAt) the rulers below need to split
-    // at, defaulting to L2/W2 with no split when there's no Angled cut.
+    // Notch first — decides which side/position the rulers below split at.
     updateMachiningNotch(angledItem, geo);
 
     var lengthRulerY = geo.lengthAtTop ? (y - cfg.rulerOffset) : (bottom + cfg.rulerOffset);
@@ -3240,9 +3131,8 @@ if (machiningAppliedList) {
 
     });
 
-    // Offset inputs only update the in-memory item, not the DOM/dataset —
-    // re-rendering on every keystroke would steal focus mid-typing. They
-    // get persisted on the next render-triggering action, or on Save.
+    // Only updates the in-memory item, not the DOM — re-rendering on every
+    // keystroke would steal focus mid-typing. Persisted on Save instead.
     machiningAppliedList.addEventListener("input", function (e) {
 
         var itemEl = e.target.closest(".machining-applied-item");
@@ -3259,9 +3149,8 @@ if (machiningAppliedList) {
 
     });
 
-    // On leaving an offset field, clamp it into its data-min/data-max
-    // range (bound to the row's real length/width — see machiningAppliedItemHTML)
-    // and redraw so the canvas reflects the corrected value immediately.
+    // Clamp into data-min/data-max on blur and redraw so the canvas
+    // reflects the corrected value immediately.
     machiningAppliedList.addEventListener("focusout", function (e) {
 
         if (!e.target.classList.contains("machining-offset-input")) return;
@@ -3413,39 +3302,21 @@ document.getElementById("sprayZoomOut").addEventListener("click", function () {
 });
 
 
-// SPRAY FINISHING OPTIONS (demo prices per sq.m.)
+// SPRAY FINISHING OPTIONS — from the Spray Finish CPT (wp-admin), not
+// hardcoded. window.cutlistSprayFinishes is keyed by slug here to rebuild
+// the shape this used to be hardcoded as, so renderSpraySidebar() etc. below
+// need no changes.
 
-var SPRAY_OPTIONS = {
-    "white-primer": {
-        label: "White primer",
-        panelFill: "#c9d6e8",
-        finishes: [
-            { title: "White primer", sub: "", price: 25.00 }
-        ],
-        paintFields: false,
-        bOption: null
-    },
-    "solid-colour": {
-        label: "Solid colour paint",
-        panelFill: "#dcc8dc",
-        finishes: [
-            { title: "Satin finish", sub: "colour<br>25% sheen", price: 60.35 },
-            { title: "Matt finish", sub: "colour<br>5% sheen", price: 62.95 }
-        ],
-        paintFields: true,
-        bOption: { text: "Spray B side with white primer only", price: 25.00 }
-    },
-    "clear-lacquer": {
-        label: "Clear lacquer",
-        panelFill: "#cfe3d6",
-        finishes: [
-            { title: "Satin finish", sub: "clear lacquer<br>25% sheen", price: 40.95 },
-            { title: "Matt finish", sub: "clear lacquer<br>5% sheen", price: 41.95 }
-        ],
-        paintFields: false,
-        bOption: { text: "Spray B side with clear sealant only", price: 20.00 }
-    }
-};
+var SPRAY_OPTIONS = {};
+(window.cutlistSprayFinishes || []).forEach(function (f) {
+    SPRAY_OPTIONS[f.slug] = {
+        label: f.label,
+        panelFill: f.panelFill,
+        finishes: f.finishes,
+        paintFields: f.paintFields,
+        bOption: f.bOption
+    };
+});
 
 var SPRAY_BRANDS = ["Farrow & Ball", "Dulux", "Little Greene", "RAL Classic"];
 
@@ -3552,6 +3423,15 @@ function updateSprayVisuals() {
     }
 
     var cfg = SPRAY_OPTIONS[sprayState.option];
+    if (!cfg) {
+        // No matching finish (removed in wp-admin, or a stale cached slug)
+        // — fail visibly instead of throwing on cfg.finishes below, which
+        // would silently freeze the total.
+        areaEl.textContent = "-";
+        totalEl.textContent = sprayMoney(0);
+        panel.style.background = "";
+        return;
+    }
     var panelArea = sprayPanelArea();
     var sides = (sprayState.sides.A ? 1 : 0) + (sprayState.sides.B ? 1 : 0);
     var area = panelArea * sides;
@@ -3560,7 +3440,10 @@ function updateSprayVisuals() {
     if (cfg.bOption && sprayState.bOnly) total += panelArea * cfg.bOption.price;
 
     areaEl.textContent = area ? area.toFixed(2) : "-";
-    totalEl.textContent = sprayMoney(total);
+    // A real "£0.00" (finish picked, area genuinely 0) reads as a broken
+    // price rather than "the row has no Length/Width yet" — show "-" for
+    // that case instead of a misleading zero-pound total.
+    totalEl.textContent = area ? sprayMoney(total) : "-";
     panel.style.background = cfg.panelFill;
 
 }
