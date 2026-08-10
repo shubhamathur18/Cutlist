@@ -40,6 +40,12 @@ add_action('rest_api_init', function () {
 		'callback' => 'cutlist_rest_get_spray_finishes',
 		'permission_callback' => '__return_true',
 	]);
+
+	register_rest_route('cutlist/v1', '/machining-options', [
+		'methods' => 'GET',
+		'callback' => 'cutlist_rest_get_machining_options',
+		'permission_callback' => '__return_true',
+	]);
 });
 
 function cutlist_rest_get_boards(WP_REST_Request $request) {
@@ -108,13 +114,60 @@ function cutlist_format_edge_tape($post) {
 		];
 	}, $board_ids);
 
+	// Tapes saved before these two fields existed have no stored value, so
+	// get_field() returns null rather than the field's default. Treating
+	// null as true keeps those tapes offering both finishes exactly as they
+	// did before — only an explicit "No" in wp-admin turns one off.
+	$radius = get_field('radius_edge_finish', $post->ID);
+	$square = get_field('square_edge_finish', $post->ID);
+
 	return [
 		'id' => $post->ID,
 		'tape_code' => get_field('tape_code', $post->ID),
 		'product_name' => get_field('product_name', $post->ID),
 		'size' => get_field('size', $post->ID),
 		'unit_price' => (float) get_field('unit_price', $post->ID),
+		'radius_edge_finish' => ($radius === null ? true : (bool) $radius),
+		'square_edge_finish' => ($square === null ? true : (bool) $square),
 		'boards' => $boards,
+	];
+}
+
+function cutlist_rest_get_machining_options(WP_REST_Request $request) {
+	return array_values(array_map('cutlist_format_machining_option', cutlist_get_machining_option_posts()));
+}
+
+// Ordered the way the dropdown renders them: group first (so a group's
+// items stay together), then menu_order within the group.
+function cutlist_get_machining_option_posts() {
+	return get_posts([
+		'post_type' => 'machining_option',
+		'numberposts' => -1,
+		'post_status' => 'publish',
+		'orderby' => 'menu_order title',
+		'order' => 'ASC',
+	]);
+}
+
+function cutlist_format_machining_option($post) {
+	$terms = get_the_terms($post->ID, 'machining_group');
+	$group = ($terms && !is_wp_error($terms)) ? $terms[0]->name : '';
+
+	// `available` predates nothing, but an option saved before the field
+	// existed returns null — treat that as available so a missing value
+	// never silently removes an option from the dropdown.
+	$available = get_field('available', $post->ID);
+
+	return [
+		'id' => $post->ID,
+		// post_name is the stable key rows store in machiningApplied, and
+		// what the behaviour switch in proto-main.js branches on.
+		'slug' => $post->post_name,
+		'label' => $post->post_title,
+		'group' => $group,
+		'behaviour' => get_field('behaviour', $post->ID) ?: 'simple',
+		'available' => ($available === null ? true : (bool) $available),
+		'price' => (float) get_field('price', $post->ID),
 	];
 }
 
@@ -222,6 +275,13 @@ function cutlist_format_board($post) {
 			'edgebanding' => (bool) get_field('machining_edgebanding', $post->ID),
 			'cnc' => (bool) get_field('machining_cnc', $post->ID),
 		],
+		// Machining Option slugs this decor can't take. Slugs rather than
+		// post IDs so the front end can compare straight against the
+		// data-option values it already uses.
+		'machining_excluded' => array_values(array_filter(array_map(function ($id) {
+			$option = get_post($id);
+			return $option ? $option->post_name : null;
+		}, get_field('machining_excluded', $post->ID) ?: []))),
 		'spray_finishing' => (bool) get_field('spray_finishing', $post->ID),
 		'grain_match' => (bool) get_field('grain_match', $post->ID),
 		'description' => get_field('description', $post->ID),

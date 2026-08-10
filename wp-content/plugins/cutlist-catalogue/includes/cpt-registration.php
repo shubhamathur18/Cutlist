@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 add_action('init', 'cutlist_register_post_types');
 add_action('init', 'cutlist_register_taxonomies');
 add_action('init', 'cutlist_seed_default_spray_finishes', 20);
+add_action('init', 'cutlist_seed_default_machining_options', 20);
 
 function cutlist_register_post_types() {
 
@@ -84,6 +85,33 @@ function cutlist_register_post_types() {
 		'has_archive' => false,
 		'rewrite' => false,
 	]);
+
+	// Machining options — the "Additional machining" dropdown. Was hardcoded
+	// markup in templates/cutlist-table.php; now a catalogue so options can
+	// be added, renamed, reordered, priced and switched off from wp-admin.
+	//
+	// Note what admin does NOT control: each option's *behaviour* (its
+	// parameters, detail panel and drawing) is implemented in code and
+	// chosen via the "behaviour" field. A new option can reuse any
+	// implemented behaviour; a genuinely new kind of machining still needs
+	// a developer.
+	register_post_type('machining_option', [
+		'label' => __('Machining Options', 'cutlist-catalogue'),
+		'labels' => [
+			'name' => __('Machining Options', 'cutlist-catalogue'),
+			'singular_name' => __('Machining Option', 'cutlist-catalogue'),
+			'add_new_item' => __('Add New Machining Option', 'cutlist-catalogue'),
+			'edit_item' => __('Edit Machining Option', 'cutlist-catalogue'),
+			'search_items' => __('Search Machining Options', 'cutlist-catalogue'),
+			'all_items' => __('All Machining Options', 'cutlist-catalogue'),
+		],
+		'public' => true,
+		'show_in_rest' => false,
+		'menu_icon' => 'dashicons-hammer',
+		'supports' => ['title', 'page-attributes'],
+		'has_archive' => false,
+		'rewrite' => false,
+	]);
 }
 
 function cutlist_register_taxonomies() {
@@ -117,6 +145,112 @@ function cutlist_register_taxonomies() {
 		'hierarchical' => false,
 		'show_admin_column' => true,
 	]);
+
+	// Groups the machining dropdown ("Panel shaping", "Hinge holes", ...).
+	// A taxonomy rather than a fixed list so admin can add a new heading
+	// without a code change. Ordering within a group comes from the
+	// option's own menu_order.
+	register_taxonomy('machining_group', 'machining_option', [
+		'label' => __('Machining Group', 'cutlist-catalogue'),
+		'labels' => [
+			'name' => __('Machining Groups', 'cutlist-catalogue'),
+			'singular_name' => __('Machining Group', 'cutlist-catalogue'),
+		],
+		'public' => true,
+		'show_in_rest' => true,
+		'hierarchical' => true,
+		'show_admin_column' => true,
+	]);
+}
+
+// Same idea as the spray finish seeding below: fill the Machining Options
+// catalogue with the seven entries that used to be hardcoded in
+// templates/cutlist-table.php, so the dropdown doesn't go empty the moment
+// it starts reading from the CPT.
+//
+// The slugs here are load-bearing. Rows store their applied machining as
+// {option: "<slug>"} in row.dataset.machiningApplied, so these must match
+// the old data-option values exactly or previously saved cutting lists
+// stop resolving. post_name is passed explicitly rather than left to
+// WordPress to derive from the title ("5mm ⌀ diameter hole" would not
+// sanitise to "hole-5mm").
+function cutlist_seed_default_machining_options() {
+	if (!post_type_exists('machining_option') || wp_count_posts('machining_option')->publish > 0) {
+		return;
+	}
+
+	$defaults = [
+		[
+			'slug' => 'angled-cut',
+			'title' => 'Angled cut',
+			'group' => 'Panel shaping',
+			'behaviour' => 'angled-cut',
+			'available' => 1,
+		],
+		[
+			'slug' => 'groove',
+			'title' => 'Groove',
+			'group' => 'Surface shaping',
+			'behaviour' => 'groove',
+			'available' => 1,
+		],
+		[
+			// Carried over switched off — it was hardcoded with a "disabled"
+			// class, and that state now lives here instead of in markup.
+			'slug' => 'j-handle',
+			'title' => 'J handle',
+			'group' => 'Surface shaping',
+			'behaviour' => 'simple',
+			'available' => 0,
+		],
+		[
+			'slug' => 'blum-screw-on',
+			'title' => 'Blum 35mm Screw-On',
+			'group' => 'Hinge holes',
+			'behaviour' => 'hinge-holes',
+			'available' => 1,
+		],
+		[
+			'slug' => 'blum-inserta',
+			'title' => 'Blum 35mm INSERTA',
+			'group' => 'Hinge holes',
+			'behaviour' => 'hinge-holes',
+			'available' => 1,
+		],
+		[
+			'slug' => 'hole-5mm',
+			'title' => '5mm ⌀ diameter hole',
+			'group' => 'Shelf holes',
+			'behaviour' => 'shelf-holes',
+			'available' => 1,
+		],
+		[
+			'slug' => 'hole-7-5mm',
+			'title' => '7.5mm ⌀ diameter hole',
+			'group' => 'Shelf holes',
+			'behaviour' => 'simple',
+			'available' => 1,
+		],
+	];
+
+	foreach ($defaults as $i => $d) {
+		$post_id = wp_insert_post([
+			'post_type' => 'machining_option',
+			'post_title' => $d['title'],
+			'post_name' => $d['slug'],
+			'post_status' => 'publish',
+			'menu_order' => $i,
+		]);
+		if (!$post_id || is_wp_error($post_id)) {
+			continue;
+		}
+
+		wp_set_object_terms($post_id, $d['group'], 'machining_group');
+
+		update_field('behaviour', $d['behaviour'], $post_id);
+		update_field('available', $d['available'], $post_id);
+		update_field('price', 0, $post_id);
+	}
 }
 
 // Runs once: if no Spray Finish posts exist yet (a fresh install, or this

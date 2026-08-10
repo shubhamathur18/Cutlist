@@ -85,6 +85,46 @@
             "append": ""
         },
         {
+            "key": "field_edge_tape_radius_edge_finish",
+            "label": "Radius edge finish",
+            "name": "radius_edge_finish",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Can this tape be finished with a radius (rounded) edge?",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 1,
+            "ui": 1,
+            "ui_on_text": "Yes",
+            "ui_off_text": "No"
+        },
+        {
+            "key": "field_edge_tape_square_edge_finish",
+            "label": "Square edge finish",
+            "name": "square_edge_finish",
+            "aria-label": "",
+            "type": "true_false",
+            "instructions": "Can this tape be finished with a square edge?",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 1,
+            "ui": 1,
+            "ui_on_text": "Yes",
+            "ui_off_text": "No"
+        },
+        {
             "key": "field_edge_tape_boards",
             "label": "Matches boards",
             "name": "boards",
@@ -133,5 +173,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1785235263
+    "modified": 1785930970
 }

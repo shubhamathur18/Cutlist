@@ -39,30 +39,31 @@ if (!defined('ABSPATH')) {
         </div>
         <div class="table-area">
             <table>
+                <!-- Two-tier header: L1/L2/W1/W2 are real cells in this
+                     table (not a nested one), so each sits in the same
+                     column as the input below it and stays aligned however
+                     the columns size themselves. Both rows keep the
+                     .header-row class — every JS row query excludes rows by
+                     that class rather than by position. -->
                 <tr class="header-row">
-                    <th>#</th>
-                    <th><?php esc_html_e('Material decor code / name', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Thick', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Length', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Width', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Qty', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Part description', 'cutlist-catalogue'); ?></th>
-                    <th colspan="4" class="edging">
-                        <?php esc_html_e('Edgebanding details', 'cutlist-catalogue'); ?>
-                        <br><br>
-                        <table style="width:100%;border-spacing:20px 0">
-                            <tr>
-                                <td>L1</td>
-                                <td>L2</td>
-                                <td>W1</td>
-                                <td>W2</td>
-                            </tr>
-                        </table>
-                    </th>
-                    <th><?php esc_html_e('Additional', 'cutlist-catalogue'); ?><br><?php esc_html_e('machining', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Spray', 'cutlist-catalogue'); ?><br><?php esc_html_e('finishing', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Grain', 'cutlist-catalogue'); ?><br><?php esc_html_e('match', 'cutlist-catalogue'); ?></th>
-                    <th class="text-right"><?php esc_html_e('Actions', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2">#</th>
+                    <th rowspan="2"><?php esc_html_e('Material decor code / name', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2"><?php esc_html_e('Thick', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th rowspan="2"><?php esc_html_e('Length', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th rowspan="2"><?php esc_html_e('Width', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th rowspan="2"><?php esc_html_e('Qty', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2"><?php esc_html_e('Part description', 'cutlist-catalogue'); ?></th>
+                    <th colspan="4" class="edging edging-group"><?php esc_html_e('Edgebanding details', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2"><?php esc_html_e('Additional', 'cutlist-catalogue'); ?><br><?php esc_html_e('machining', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2"><?php esc_html_e('Spray', 'cutlist-catalogue'); ?><br><?php esc_html_e('finishing', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2"><?php esc_html_e('Grain', 'cutlist-catalogue'); ?><br><?php esc_html_e('match', 'cutlist-catalogue'); ?></th>
+                    <th rowspan="2" class="text-right"><?php esc_html_e('Actions', 'cutlist-catalogue'); ?></th>
+                </tr>
+                <tr class="header-row">
+                    <th class="edging edging-col">L1</th>
+                    <th class="edging edging-col">L2</th>
+                    <th class="edging edging-col">W1</th>
+                    <th class="edging edging-col">W2</th>
                 </tr>
                 <!-- ROW -->
                 <tr>
@@ -101,6 +102,7 @@ if (!defined('ABSPATH')) {
                     </td>
                     <td class="grain">
                         <input type="checkbox" disabled>
+                        <span class="grain-letter"></span>
                     </td>
                     <td class="actions">
                         <div class="actions-inner">
@@ -165,6 +167,7 @@ if (!defined('ABSPATH')) {
                     </td>
                     <td class="grain">
                         <input type="checkbox" disabled>
+                        <span class="grain-letter"></span>
                     </td>
                     <td class="actions">
                         <div class="actions-inner">
@@ -229,6 +232,7 @@ if (!defined('ABSPATH')) {
                     </td>
                     <td class="grain">
                         <input type="checkbox" disabled>
+                        <span class="grain-letter"></span>
                     </td>
                     <td class="actions">
                         <div class="actions-inner">
@@ -297,6 +301,7 @@ if (!defined('ABSPATH')) {
                     <h3><?php esc_html_e('Help', 'cutlist-catalogue'); ?></h3>
                     <div class="grain-help-box">
                         <div class="grain-direction"><?php esc_html_e('grain direction', 'cutlist-catalogue'); ?></div>
+                        <div class="grain-arrow-line"></div>
                         <div class="grain-diagram">
                             <div class="grain-cell big">A</div>
                             <div class="grain-mid">
@@ -305,6 +310,11 @@ if (!defined('ABSPATH')) {
                                 <div class="grain-cell">B</div>
                             </div>
                             <div class="grain-cell big">A</div>
+                        </div>
+                        <div class="grain-labels">
+                            <span class="grain-label big"><?php esc_html_e('DOOR', 'cutlist-catalogue'); ?></span>
+                            <span class="grain-label"><?php esc_html_e('DRAWERS', 'cutlist-catalogue'); ?></span>
+                            <span class="grain-label big"><?php esc_html_e('DOOR', 'cutlist-catalogue'); ?></span>
                         </div>
                     </div>
                 </div>
@@ -394,13 +404,18 @@ if (!defined('ABSPATH')) {
             <div class="table-area" id="etTableArea" style="display:none">
                 <table id="etTable">
                     <colgroup>
+                    <!-- One col per cell: index | (tape+name+size, spanned
+                         by the picker) | spacer | Qty | Unit price | Actions.
+                         There used to be a 9th col here against only 8
+                         cells, which shifted Unit price into the 12px
+                         spacer and left a dead 64px column past Actions —
+                         the table then stopped short of the section rule. -->
                         <col class="col-index">
                         <col class="col-tape">
                         <col class="col-name">
                         <col class="col-size">
                         <col class="col-space-1">
                         <col class="col-qty-wide">
-                        <col class="col-space-2">
                         <col class="col-qty-wide">
                         <col class="col-actions">
                     </colgroup>
@@ -441,12 +456,7 @@ if (!defined('ABSPATH')) {
                                     disabled></td>
                             <td class="et-unit-price">&ndash;</td>
                             <td class="text-right">
-                                <button class="button-remove" type="button" title="<?php esc_attr_e('Remove row', 'cutlist-catalogue'); ?>">
-                                    <svg width="16" height="16" viewBox="0 0 16 16">
-                                        <path d="M2 2l12 12M14 2L2 14" stroke="#cc2222" stroke-width="2.5"
-                                            stroke-linecap="round" />
-                                    </svg>
-                                </button>
+                                <span class="delete" title="<?php esc_attr_e('Remove row', 'cutlist-catalogue'); ?>">&times;</span>
                             </td>
                         </tr>
                         <tr class="et-row editable">
@@ -473,12 +483,7 @@ if (!defined('ABSPATH')) {
                                     disabled></td>
                             <td class="et-unit-price">&ndash;</td>
                             <td class="text-right">
-                                <button class="button-remove" type="button" title="<?php esc_attr_e('Remove row', 'cutlist-catalogue'); ?>">
-                                    <svg width="16" height="16" viewBox="0 0 16 16">
-                                        <path d="M2 2l12 12M14 2L2 14" stroke="#cc2222" stroke-width="2.5"
-                                            stroke-linecap="round" />
-                                    </svg>
-                                </button>
+                                <span class="delete" title="<?php esc_attr_e('Remove row', 'cutlist-catalogue'); ?>">&times;</span>
                             </td>
                         </tr>
                     </tbody>
@@ -730,28 +735,43 @@ CUT, EDGE & SPRAY SUMMARY
         <?php echo cutlist_proto_render_decor_popup_inner($boards); ?>
     </div>
     <div class="edge-popup" id="edgePopup">
-        <div class="edge-popup-header">
-            <span id="edgeTitle">L1</span>
-            <span class="edge-popup-close" id="edgePopupClose">&times;</span>
-        </div>
+        <!-- No header bar: the four edge labels (L1 top, L2 bottom, W1
+             left, W2 right) all sit on the same flat background around the
+             panel, and the one you're editing highlights. The close button
+             floats in the corner rather than living in a title row. -->
+        <span class="edge-popup-close" id="edgePopupClose">&times;</span>
+        <!-- W1/W2 flank the panel and L2 sits under it, as edge labels on
+             the popup background; only the panel's own dimensions and the
+             grain arrow live inside the white card. -->
         <div class="edge-diagram">
-            <div class="edge-dim-top" id="edgeDimTop">200</div>
-            <div class="edge-diagram-frame">
-                <span class="edge-highlight top" id="edgeHighlightL1"></span>
-                <span class="edge-highlight bottom" id="edgeHighlightL2"></span>
-                <span class="edge-highlight left" id="edgeHighlightW1"></span>
-                <span class="edge-highlight right" id="edgeHighlightW2"></span>
-                <div class="edge-diagram-row">
-                    <span class="edge-dim-side" id="edgeDimLeft">200</span>
-                    <div class="edge-diagram-box">
-                        <span class="edge-grain-arrow">&#8596;</span>
+            <div class="edge-top-label edge-face-label" data-face="L1">L1</div>
+            <div class="edge-diagram-row">
+                <span class="edge-side-label edge-face-label" data-face="W1">W1</span>
+                <div class="edge-diagram-card" id="edgeDiagramCard">
+                    <span class="edge-highlight top" id="edgeHighlightL1"></span>
+                    <span class="edge-highlight bottom" id="edgeHighlightL2"></span>
+                    <span class="edge-highlight left" id="edgeHighlightW1"></span>
+                    <span class="edge-highlight right" id="edgeHighlightW2"></span>
+                    <div class="edge-dim-top" id="edgeDimTop">2000</div>
+                    <div class="edge-card-body">
+                        <span class="edge-dim-side" id="edgeDimLeft">2000</span>
+                        <span class="edge-grain-arrow" aria-hidden="true">
+                            <svg width="74" height="18" viewBox="0 0 74 18" focusable="false">
+                                <g stroke="#333" stroke-width="1.3" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 6H70" />
+                                    <path d="M10 2.5 4 6l6 3.5" />
+                                    <path d="M70 12H4" />
+                                    <path d="M64 8.5 70 12l-6 3.5" />
+                                </g>
+                            </svg>
+                        </span>
                     </div>
-                    <span class="edge-dim-side" id="edgeDimRight">200</span>
+                    <div class="edge-grain-caption"><?php esc_html_e('Length oriented grain', 'cutlist-catalogue'); ?></div>
                 </div>
+                <span class="edge-side-label edge-face-label" data-face="W2">W2</span>
             </div>
-            <div class="edge-grain-caption"><?php esc_html_e('Length oriented grain', 'cutlist-catalogue'); ?></div>
+            <div class="edge-bottom-label edge-face-label" data-face="L2">L2</div>
         </div>
-        <div class="edge-bottom-label">L2</div>
         <div class="edge-tabs" id="edgeTabs">
             <div class="edge-tab" data-edge="L1">
                 <div>L1</div>
@@ -771,8 +791,8 @@ CUT, EDGE & SPRAY SUMMARY
             </div>
         </div>
         <button type="button" class="edge-summary" id="edgeSummaryBtn">
-            <div class="edge-summary-code" id="edgeSummaryCode">M1-22 / H1227-TM12</div>
-            <div class="edge-summary-desc">1mm Matt ABS edging</div>
+            <div class="edge-summary-code" id="edgeSummaryCode">&ndash;</div>
+            <div class="edge-summary-desc" id="edgeSummaryDesc"><?php esc_html_e('No matching edging tape', 'cutlist-catalogue'); ?></div>
         </button>
         <div class="edge-finish-options" id="edgeFinishOptions">
             <div class="edge-finish-option" data-finish="radius">
@@ -823,27 +843,10 @@ CUT, EDGE & SPRAY SUMMARY
                             <div class="machining-selected-value" id="machiningSelectedValue" role="button" tabindex="0"></div>
                             <button type="button" class="machining-add-btn" id="machiningAddBtn"><?php esc_html_e('Add', 'cutlist-catalogue'); ?></button>
                         </div>
-                        <div class="machining-option-dropdown" id="machiningOptionDropdown">
-                            <div class="machining-option-group">
-                                <div class="machining-option-header"><?php esc_html_e('Panel shaping', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item" data-option="angled-cut"><?php esc_html_e('Angled cut', 'cutlist-catalogue'); ?></div>
-                            </div>
-                            <div class="machining-option-group">
-                                <div class="machining-option-header"><?php esc_html_e('Surface shaping', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item" data-option="groove"><?php esc_html_e('Groove', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item disabled" data-option="j-handle"><?php esc_html_e('J handle', 'cutlist-catalogue'); ?></div>
-                            </div>
-                            <div class="machining-option-group">
-                                <div class="machining-option-header"><?php esc_html_e('Hinge holes', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item" data-option="blum-screw-on">Blum 35mm Screw-On</div>
-                                <div class="machining-option-item" data-option="blum-inserta">Blum 35mm INSERTA</div>
-                            </div>
-                            <div class="machining-option-group">
-                                <div class="machining-option-header"><?php esc_html_e('Shelf holes', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item" data-option="hole-5mm">5mm &#8960; <?php esc_html_e('diameter hole', 'cutlist-catalogue'); ?></div>
-                                <div class="machining-option-item" data-option="hole-7-5mm">7.5mm &#8960; <?php esc_html_e('diameter hole', 'cutlist-catalogue'); ?></div>
-                            </div>
-                        </div>
+                        <!-- Built at runtime from window.cutlistMachiningOptions
+                             (the Machining Option CPT) — see
+                             renderMachiningOptionDropdown() in proto-main.js. -->
+                        <div class="machining-option-dropdown" id="machiningOptionDropdown"></div>
                     </div>
                     <div class="machining-applied-list" id="machiningAppliedList"></div>
                 </div>

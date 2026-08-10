@@ -75,6 +75,10 @@ function cutlist_proto_get_edge_tape_options() {
 				// front end only offers a tape option once its matched board
 				// has actually been added to the cutting list.
 				'decorCode' => $board['decor_code'],
+				// Which edge finishes this tape supports, for the Radius /
+				// Square toggle shown on an angled cut.
+				'radiusEdgeFinish' => $tape['radius_edge_finish'],
+				'squareEdgeFinish' => $tape['square_edge_finish'],
 			];
 		}
 	}
@@ -190,6 +194,7 @@ function cutlist_proto_build_pm_products($boards) {
 			'price_cut' => '–',
 			'slides' => $slides,
 			'machining' => $board['machining'],
+			'machiningExcluded' => $board['machining_excluded'],
 			'sprayFinishing' => $board['spray_finishing'],
 			'grainMatch' => $board['grain_match'],
 			'downloads' => $board['downloads'],
@@ -220,6 +225,9 @@ add_shortcode('cutlist_table', function () {
 	$pm_products_json = wp_json_encode(cutlist_proto_build_pm_products($boards));
 	$edge_tapes_json = wp_json_encode(cutlist_proto_get_edge_tape_options());
 	$spray_finishes_json = wp_json_encode($spray_finishes);
+	$machining_options_json = wp_json_encode(
+		array_map('cutlist_format_machining_option', cutlist_get_machining_option_posts())
+	);
 
 	// JS must go through wp_enqueue_script/wp_add_inline_script, never be
 	// echoed inline inside the shortcode's returned HTML: content returned
@@ -258,7 +266,8 @@ add_shortcode('cutlist_table', function () {
 		'cutlist-proto-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .
 			'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
-			'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';',
+			'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';' .
+			'window.cutlistMachiningOptions = ' . $machining_options_json . ';',
 		'before'
 	);
 	wp_add_inline_script(

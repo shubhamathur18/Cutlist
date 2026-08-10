@@ -8,7 +8,7 @@
             "name": "decor_code",
             "aria-label": "",
             "type": "text",
-            "instructions": "Manufacturer's decor\/product code, e.g. H1227-TM12",
+            "instructions": "Manufacturer's decor/product code, e.g. H1227-TM12",
             "required": 1,
             "conditional_logic": false,
             "wrapper": {
@@ -192,6 +192,33 @@
             "message": "",
             "ui_on_text": "",
             "ui_off_text": ""
+        },
+        {
+            "key": "field_board_machining_excluded",
+            "label": "Machining options not available",
+            "name": "machining_excluded",
+            "aria-label": "",
+            "type": "relationship",
+            "instructions": "Machining this decor can't take. Anything not listed stays available. To switch an option off for every board instead, untick its own 'Available' toggle under Machining Options.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "post_type": [
+                "machining_option"
+            ],
+            "filters": [
+                "search"
+            ],
+            "return_format": "id",
+            "taxonomy": [],
+            "min": 0,
+            "max": 0,
+            "elements": [],
+            "bidirectional_target": []
         },
         {
             "key": "field_board_finishing_heading",
@@ -450,5 +477,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1785224367
+    "modified": 1786016509
 }

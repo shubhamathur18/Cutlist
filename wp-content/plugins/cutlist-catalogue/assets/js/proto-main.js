@@ -12,11 +12,11 @@ const popup = document.getElementById("decorPopup");
 const table = document.querySelector(".table-area table");
 
 const edgePopup = document.getElementById("edgePopup");
-const edgeTitle = document.getElementById("edgeTitle");
 const edgeDimTop = document.getElementById("edgeDimTop");
 const edgeDimLeft = document.getElementById("edgeDimLeft");
-const edgeDimRight = document.getElementById("edgeDimRight");
+const edgeDiagramCard = document.getElementById("edgeDiagramCard");
 const edgeSummaryCode = document.getElementById("edgeSummaryCode");
+const edgeSummaryDesc = document.getElementById("edgeSummaryDesc");
 const edgeSummaryBtn = document.getElementById("edgeSummaryBtn");
 const edgeTabs = document.getElementById("edgeTabs");
 const edgeFinishOptions = document.getElementById("edgeFinishOptions");
@@ -30,7 +30,37 @@ const edgeHighlights = {
 };
 
 const edgeState = new WeakMap();
-const TAPE_CODE = "M1";
+
+// The edging tape matched to a row's decor, from the Edge Tape CPT — was a
+// hardcoded "M1" before. A row whose decor has no matched tape gets null,
+// and the popup shows that rather than inventing a code.
+function edgeTapeForRow(row) {
+    if (!row || !window.cutlistEdgeTapes) return null;
+    const decorInput = row.querySelector(".decor input");
+    const decorCode = decorInput && decorInput.value
+        ? decorInput.value.split(" - ")[0].trim()
+        : "";
+    if (!decorCode) return null;
+    return window.cutlistEdgeTapes
+        .filter(t => t.decorCode === decorCode)[0] || null;
+}
+
+// "M1-42 / H1227-TM12" -> "M1": just the tape family, dropping both the
+// matched decor and the size suffix. The edge tabs and the narrow
+// cutting-list edge inputs only have room for that much.
+function edgeTapeShortCode(tape) {
+    if (!tape) return "";
+    return String(tape.code).split("/")[0].split("-")[0].trim();
+}
+
+// "22mm x 1mm" + "Matt ABS edging - Brown Abano Ash" -> "1mm Matt ABS
+// edging" — thickness plus product name, matching the reference design.
+function edgeTapeDescription(tape) {
+    if (!tape) return "";
+    const thickness = String(tape.size || "").split(/\s*x\s*/i)[1] || "";
+    const product = String(tape.name || "").split(" - ")[0].trim();
+    return (thickness ? thickness + " " : "") + product;
+}
 
 let activeEdgeRow = null;
 let activeEdge = null;
@@ -172,10 +202,56 @@ function renderEdgePopup() {
 
     edgeDimTop.textContent = lengthInput && lengthInput.value ? lengthInput.value : "-";
     edgeDimLeft.textContent = widthInput && widthInput.value ? widthInput.value : "-";
-    edgeDimRight.textContent = widthInput && widthInput.value ? widthInput.value : "-";
 
-    let decorText = decorInput && decorInput.value ? decorInput.value : "-";
-    edgeSummaryCode.textContent = "M1-22 / " + decorText.split(" - ")[0];
+    // Draw the panel to shape. Length runs along the L1/L2 edges
+    // (horizontal), width along W1/W2 (vertical), so the drawn box has the
+    // real board's proportions rather than a fixed rectangle.
+    //
+    // Both sides are sized here rather than via CSS aspect-ratio: the box
+    // has to stay inside the popup AND stay big enough for the dimension
+    // text, and those two limits pull in opposite directions. Start from
+    // the full width, and if that makes it too tall, drive from the height
+    // instead and let the width shrink — that keeps the ratio exact for
+    // everything up to roughly 1:2.5 either way, instead of silently
+    // flattening tall panels into squares.
+    let lengthMm = parseFloat(lengthInput && lengthInput.value);
+    let widthMm = parseFloat(widthInput && widthInput.value);
+
+    if (lengthMm > 0 && widthMm > 0) {
+        const MAX_W = 196, MIN_W = 132, MAX_H = 236, MIN_H = 92;
+        let ratio = lengthMm / widthMm;          // drawn width ÷ drawn height
+        let w = MAX_W;
+        let h = w / ratio;
+
+        if (h > MAX_H) {
+            h = MAX_H;
+            w = Math.max(MIN_W, h * ratio);
+        } else if (h < MIN_H) {
+            h = MIN_H;
+            w = Math.min(MAX_W, h * ratio);
+        }
+
+        edgeDiagramCard.style.width = Math.round(w) + "px";
+        edgeDiagramCard.style.height = Math.round(h) + "px";
+    } else {
+        edgeDiagramCard.style.width = "";
+        edgeDiagramCard.style.height = "";
+    }
+
+    // Highlight whichever edge is being edited — L1 is the header, L2 the
+    // caption under the diagram, W1/W2 either side of it.
+    edgePopup.querySelectorAll(".edge-face-label").forEach(label => {
+        label.classList.toggle("active", label.dataset.face === activeEdge);
+    });
+
+    let tape = edgeTapeForRow(activeEdgeRow);
+    let shortCode = edgeTapeShortCode(tape);
+
+    edgeSummaryCode.textContent = tape ? tape.code : "–";
+    edgeSummaryDesc.textContent = tape
+        ? edgeTapeDescription(tape)
+        : "No matching edging tape";
+    edgeSummaryBtn.disabled = !tape;
 
     edgeTabs.querySelectorAll(".edge-tab").forEach(tab => {
 
@@ -184,7 +260,7 @@ function renderEdgePopup() {
         tab.classList.toggle("active", edge === activeEdge);
 
         tab.querySelector(".edge-tab-value").textContent =
-            state[edge] ? TAPE_CODE : "-";
+            state[edge] ? shortCode : "-";
 
     });
 
@@ -194,9 +270,30 @@ function renderEdgePopup() {
 
     });
 
+    // The tape button reads as selected (bordered) whenever the edge being
+    // edited actually has tape on it, so switching tabs shows each edge's
+    // own state rather than resetting to unselected.
+    let tapeApplied = !!state[activeEdge];
+    edgeSummaryBtn.classList.toggle("selected", tapeApplied);
+
+    // A finish only becomes selectable once the tape has been applied to
+    // this edge — before that there's nothing to finish, so both options
+    // stay disabled regardless of what the tape supports. After that, only
+    // the finishes the tape is available in (Edge Tape CPT) are usable.
+    let allowed = machiningTapeFinishes(tape ? tape.code : "");
+
     edgeFinishOptions.querySelectorAll(".edge-finish-option").forEach(opt => {
 
-        opt.classList.toggle("selected", opt.dataset.finish === state[activeEdge]);
+        let supported = !!tape && allowed[opt.dataset.finish] !== false;
+        let usable = tapeApplied && supported;
+
+        opt.classList.toggle("disabled", !usable);
+        opt.setAttribute("aria-disabled", usable ? "false" : "true");
+        opt.title = supported
+            ? (tapeApplied ? "" : "Select the edging tape above first")
+            : "This edging tape isn't available with a " + opt.dataset.finish + " edge finish";
+
+        opt.classList.toggle("selected", usable && opt.dataset.finish === state[activeEdge]);
 
     });
 
@@ -208,17 +305,35 @@ function openEdgePopup(row, edge, anchorEl) {
     activeEdgeRow = row;
     activeEdge = edge;
 
-    edgeTitle.textContent = edge;
-    edgeSummaryBtn.classList.remove("selected");
-
+    // The summary's selected state is derived from the edge's own data in
+    // renderEdgePopup(), so it must not be cleared here — doing so showed
+    // an already-taped edge as untaped every time the popup reopened.
     renderEdgePopup();
 
-    let position = anchorEl.getBoundingClientRect();
-
-    edgePopup.style.left = position.left + "px";
-    edgePopup.style.top = (position.bottom + window.scrollY) + "px";
-
+    // Show it before measuring: the height isn't fixed — the panel drawing
+    // is sized per row — so it can only be read once the popup is laid out.
+    // Hidden rather than transparent so the pre-positioned frame never
+    // flashes at the old location.
+    edgePopup.style.visibility = "hidden";
     edgePopup.style.display = "block";
+
+    let anchor = anchorEl.getBoundingClientRect();
+    // Centre against the whole cell, not just the input inside it.
+    let cell = (anchorEl.closest(".edging-input") || anchorEl).getBoundingClientRect();
+    let popupHeight = edgePopup.offsetHeight;
+
+    let top = cell.top + window.scrollY + (cell.height / 2) - (popupHeight / 2);
+
+    // Centring pushes the popup above the fold for rows near the top of
+    // the page, so keep it within the viewport — preferring the top edge
+    // when the popup is taller than the window.
+    let minTop = window.scrollY + 8;
+    let maxTop = window.scrollY + window.innerHeight - popupHeight - 8;
+    top = maxTop > minTop ? Math.min(Math.max(top, minTop), maxTop) : minTop;
+
+    edgePopup.style.left = anchor.left + "px";
+    edgePopup.style.top = top + "px";
+    edgePopup.style.visibility = "";
 
 }
 
@@ -228,6 +343,7 @@ function closeEdgePopup() {
     if (activeEdgeRow) {
 
         let state = getEdgeState(activeEdgeRow);
+        let shortCode = edgeTapeShortCode(edgeTapeForRow(activeEdgeRow));
 
         activeEdgeRow.querySelectorAll(".edging-input").forEach(td => {
 
@@ -236,7 +352,7 @@ function closeEdgePopup() {
 
             if (!input || input.disabled) return;
 
-            input.value = state[edge] ? TAPE_CODE : "";
+            input.value = state[edge] ? shortCode : "";
 
         });
 
@@ -317,6 +433,12 @@ function openMachiningOverlay(row) {
 
     machiningCurrentRow = row;
     loadMachiningAppliedItems(row);
+
+    // Availability depends on the row (decor, capabilities, thickness), so
+    // the dropdown is rebuilt per row rather than once at load.
+    renderMachiningOptionDropdown();
+    pruneDisallowedMachiningItems();
+
     renderMachiningAppliedList();
 
     // Must open before the first redrawMachiningCanvas() call — Konva's
@@ -672,7 +794,7 @@ function etBuildRow() {
         '<td></td>' +
         '<td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Min 5" value="" disabled></td>' +
         '<td class="et-unit-price">&ndash;</td>' +
-        '<td class="text-right"><button class="button-remove" type="button" title="Remove row">' + SVG_CROSS + '</button></td>';
+        '<td class="text-right"><span class="delete" title="Remove row">&times;</span></td>';
     return tr;
 }
 
@@ -737,7 +859,10 @@ document.getElementById('etTableArea').addEventListener('click', function (e) {
         return;
     }
 
-    var removeBtn = e.target.closest('.button-remove');
+    // Now a span.delete, matching the cutting list's × — this listener is
+    // bound to #etTableArea, so it can't collide with the cutting list's
+    // own .delete handler (bound to that table).
+    var removeBtn = e.target.closest('.delete');
     if (removeBtn) {
         removeBtn.closest('tr').remove();
         etRenumber();
@@ -1268,6 +1393,13 @@ table.addEventListener("click", function (e) {
 
         deleteBtn.closest("tr").remove();
 
+        // The insert-row / add-section overlay is a body-level element
+        // positioned over whichever row is hovered, so removing that row
+        // doesn't hide it — and no mouseout fires for an element that no
+        // longer exists, leaving it stranded until some other row is
+        // hovered. Hide it explicitly instead.
+        clHideOverlay();
+
         renumberRows();
         etRefreshDropdowns();
 
@@ -1542,13 +1674,62 @@ function updateGrainSection() {
     grainSection.style.display = anyChecked ? "" : "none";
 }
 
+// Rows are lettered A, B, C... in the order their Grain match checkbox was
+// actually ticked (not table position) — so the letter tells you "this was
+// the Nth board I picked for matching", matching the grain direction
+// diagram's A/B roles for the reader. grainCheckedOrder tracks that click
+// order; unchecking or deleting a row re-letters the rest with no gaps.
+var grainCheckedOrder = [];
+
+function grainLetterFor(index) {
+    var n = index + 1;
+    var letters = "";
+    while (n > 0) {
+        var rem = (n - 1) % 26;
+        letters = String.fromCharCode(65 + rem) + letters;
+        n = Math.floor((n - 1) / 26);
+    }
+    return letters;
+}
+
+function updateGrainLetters() {
+    grainCheckedOrder = grainCheckedOrder.filter(function (row) {
+        return row.isConnected && row.querySelector(".grain input").checked;
+    });
+
+    table.querySelectorAll(".grain input:checked").forEach(function (cb) {
+        var row = cb.closest("tr");
+        if (grainCheckedOrder.indexOf(row) === -1) grainCheckedOrder.push(row);
+    });
+
+    table.querySelectorAll(".grain-letter").forEach(function (badge) {
+        badge.textContent = "";
+        badge.classList.remove("visible");
+    });
+
+    grainCheckedOrder.forEach(function (row, i) {
+        var badge = row.querySelector(".grain-letter");
+        if (!badge) return;
+        badge.textContent = grainLetterFor(i);
+        badge.classList.add("visible");
+    });
+}
+
 table.addEventListener("change", function (e) {
-    if (e.target.closest(".grain")) updateGrainSection();
+    if (e.target.closest(".grain")) {
+        updateGrainSection();
+        updateGrainLetters();
+    }
 });
 
 // Deleting a row can remove the last ticked checkbox
 table.addEventListener("click", function (e) {
-    if (e.target.closest(".delete")) setTimeout(updateGrainSection);
+    if (e.target.closest(".delete")) {
+        setTimeout(function () {
+            updateGrainSection();
+            updateGrainLetters();
+        });
+    }
 });
 
 document.getElementById("grainAddFiles").addEventListener("click", function () {
@@ -2211,26 +2392,42 @@ edgeTabs.addEventListener("click", function (e) {
 
     if (!tab || !activeEdgeRow) return;
 
-    let edge = tab.dataset.edge;
-
-    activeEdge = edge;
-
-    if (edgeSummaryBtn.classList.contains("selected")) {
-
-        let state = getEdgeState(activeEdgeRow);
-
-        state[edge] = state[edge] ? null : "radius";
-
-    }
+    // Switching tabs only changes which edge you're editing. It used to
+    // also apply/remove tape when the summary button carried a "selected"
+    // class, but that class now means "this edge has tape" — so reusing it
+    // as a mode flag would toggle a different edge than the one clicked.
+    activeEdge = tab.dataset.edge;
 
     renderEdgePopup();
 
 });
 
 
+// Applies (or removes) the tape on the edge currently being edited. It has
+// to re-render rather than just toggle a class: the finish options are
+// gated on whether tape is applied, so they'd otherwise stay disabled until
+// something else redrew the popup.
 edgeSummaryBtn.addEventListener("click", function () {
 
-    edgeSummaryBtn.classList.toggle("selected");
+    if (!activeEdgeRow || !activeEdge || edgeSummaryBtn.disabled) return;
+
+    let state = getEdgeState(activeEdgeRow);
+
+    if (state[activeEdge]) {
+
+        state[activeEdge] = null;
+
+    } else {
+
+        // Tape always carries a finish, so applying it picks the first one
+        // this tape is actually available in.
+        let tape = edgeTapeForRow(activeEdgeRow);
+        let allowed = machiningTapeFinishes(tape ? tape.code : "");
+        state[activeEdge] = allowed.radius ? "radius" : (allowed.square ? "square" : null);
+
+    }
+
+    renderEdgePopup();
 
 });
 
@@ -2240,6 +2437,10 @@ edgeFinishOptions.addEventListener("click", function (e) {
     let opt = e.target.closest(".edge-finish-option");
 
     if (!opt || !activeEdgeRow || !activeEdge) return;
+
+    // These are divs, not buttons, so a "disabled" one still receives
+    // clicks — it has to be rejected here.
+    if (opt.classList.contains("disabled")) return;
 
     let state = getEdgeState(activeEdgeRow);
 
@@ -2279,11 +2480,15 @@ document.getElementById("machiningClose")
 machiningOverlay.addEventListener("click", function (e) {
 
     // Must be a direct-target check (e.target === machiningOverlay), not
-    // e.target.closest(".machining-modal"): several buttons in the
-    // applied-items list re-render its innerHTML synchronously on click,
-    // detaching the clicked element before this event finishes bubbling —
-    // closest() on a detached node can't find .machining-modal and wrongly
-    // closes the overlay. e.target itself stays a stable reference.
+    // e.target.closest(".machining-modal") — several buttons inside the
+    // applied-items list (view/finish toggles, edging options) call
+    // renderMachiningAppliedList() synchronously on click, which replaces
+    // the list's innerHTML and detaches the clicked element from the DOM
+    // *before* this click event finishes bubbling up here. closest() on a
+    // detached node can't walk back up to .machining-modal and wrongly
+    // finds no match, closing the overlay on a click that was actually
+    // inside it. e.target itself stays a stable reference regardless of
+    // later DOM mutations, so comparing it directly is immune to that.
     if (e.target === machiningOverlay) {
 
         closeMachiningOverlay();
@@ -2307,6 +2512,118 @@ var machiningSelectedRow = document.getElementById("machiningSelectedRow");
 var machiningSelectedValue = document.getElementById("machiningSelectedValue");
 var machiningOptionDropdown = document.getElementById("machiningOptionDropdown");
 var machiningAddBtn = document.getElementById("machiningAddBtn");
+
+// MACHINING OPTIONS — Machining Option CPT (wp-admin), not hardcoded.
+// window.cutlistMachiningOptions (see cutlist_format_machining_option() in
+// rest-endpoints.php) replaces what used to be a static list of
+// .machining-option-item divs in the template. Everything downstream still
+// reads data-option, so the click/selection code is unchanged.
+var MACHINING_OPTIONS = window.cutlistMachiningOptions || [];
+
+function machiningOptionBySlug(slug) {
+    return MACHINING_OPTIONS.filter(function (o) { return o.slug === slug; })[0] || null;
+}
+
+// The board behind a row, looked up by decor code — same lookup the grain
+// checkbox and edging picker already use.
+function machiningBoardForRow(row) {
+    if (!row || !window.cutlistPmProducts) return null;
+    var decorInput = row.querySelector(".decor input");
+    var code = decorInput && decorInput.value
+        ? decorInput.value.split(" - ")[0].trim()
+        : "";
+    return code ? (window.cutlistPmProducts[code] || null) : null;
+}
+
+// Why an option can't be used on this row, or "" if it can. Checked in the
+// order a person would explain it: switched off entirely, then not for this
+// decor. Returning the reason (not just a boolean) is what lets the
+// dropdown say why rather than just greying out.
+//
+// Capability and min/max thickness rules were dropped from the CPT for now;
+// re-adding them means restoring those fields and adding a branch here.
+function machiningOptionBlockedReason(opt, row) {
+    if (!opt) return "";
+
+    if (opt.available === false) {
+        return "Not currently available";
+    }
+
+    var board = machiningBoardForRow(row);
+
+    if (board && (board.machiningExcluded || []).indexOf(opt.slug) !== -1) {
+        return "Not available for this decor";
+    }
+
+    return "";
+}
+
+function renderMachiningOptionDropdown() {
+    if (!machiningOptionDropdown) return;
+
+    if (!MACHINING_OPTIONS.length) {
+        machiningOptionDropdown.innerHTML =
+            '<div class="machining-option-group"><div class="machining-option-item disabled">' +
+            'No machining options yet — add one in wp-admin under Machining Options.' +
+            "</div></div>";
+        return;
+    }
+
+    // Group in first-seen order so the CPT's menu_order drives both which
+    // group comes first and the order within it, without a second sort key.
+    var groups = [];
+    var byGroup = {};
+    MACHINING_OPTIONS.forEach(function (opt) {
+        var name = opt.group || "";
+        if (!byGroup[name]) {
+            byGroup[name] = [];
+            groups.push(name);
+        }
+        byGroup[name].push(opt);
+    });
+
+    machiningOptionDropdown.innerHTML = groups.map(function (name) {
+        var header = name
+            ? '<div class="machining-option-header">' + panelSummaryEscape(name) + "</div>"
+            : "";
+        var items = byGroup[name].map(function (opt) {
+            // Greyed with the specific reason rather than hidden, so it's
+            // clear the service exists but doesn't apply to this panel.
+            var reason = machiningOptionBlockedReason(opt, machiningCurrentRow);
+            return '<div class="machining-option-item' + (reason ? " disabled" : "") + '"' +
+                ' data-option="' + panelSummaryEscape(opt.slug) + '"' +
+                (reason ? ' title="' + panelSummaryEscape(reason) + '"' : "") +
+                ">" + panelSummaryEscape(opt.label) + "</div>";
+        }).join("");
+        return '<div class="machining-option-group">' + header + items + "</div>";
+    }).join("");
+}
+
+renderMachiningOptionDropdown();
+
+// Drops applied machining the row can no longer take — after a decor or
+// thickness change, an item saved earlier may now be disallowed, and
+// without this it would stay on the row and reach the order. Mirrors what
+// the grain checkbox already does when a decor stops supporting it.
+// Returns true if anything was removed.
+function pruneDisallowedMachiningItems() {
+    if (!machiningCurrentRow || !machiningAppliedItems.length) return false;
+
+    var kept = machiningAppliedItems.filter(function (item) {
+        var opt = machiningOptionBySlug(item.option);
+        // An item whose option no longer exists in the catalogue is left
+        // alone: removing it would silently discard a saved order line
+        // just because someone deleted the option in wp-admin.
+        if (!opt) return true;
+        return !machiningOptionBlockedReason(opt, machiningCurrentRow);
+    });
+
+    if (kept.length === machiningAppliedItems.length) return false;
+
+    machiningAppliedItems = kept;
+    saveMachiningAppliedItems();
+    return true;
+}
 
 function resetMachiningOptionSelect() {
     if (!machiningSelectWrap) return;
@@ -2384,6 +2701,20 @@ function machiningCornerLabels(corner) {
     };
 }
 
+var MACHINING_GROOVE_MAX_WIDTH_MM = 50;
+var MACHINING_GROOVE_DEPTH_MARGIN_MM = 3;
+
+// The groove's two ends touch whichever edges it *doesn't* run parallel to
+// — a groove "along L1-L2" runs left-right, so its ends touch W1/W2, and
+// its position is measured from L1/L2 instead; a groove "along W1-W2" is
+// the reverse.
+function machiningGrooveLabels(edge) {
+    if (edge === "W1-W2") {
+        return { end1: "From L1", end2: "From L2", distEdges: ["W1", "W2"] };
+    }
+    return { end1: "From W1", end2: "From W2", distEdges: ["L1", "L2"] };
+}
+
 function loadMachiningAppliedItems(row) {
     var raw = row.dataset.machiningApplied || "";
     try {
@@ -2401,13 +2732,18 @@ function loadMachiningAppliedItems(row) {
 // square. Stacking order outward from the board edge is: callout (badge
 // -10px) -> badge (badgeOffset) -> ruler+text (rulerOffset). Each gap must
 // clear the previous element's own footprint or they visibly collide.
-var MACHINING_CANVAS_CFG = { x: 120, y: 120, maxW: 220, maxH: 220, badgeOffset: 62, rulerOffset: 88 };
+var MACHINING_CANVAS_CFG = { x: 120, y: 120, maxW: 160, maxH: 160, badgeOffset: 62, rulerOffset: 88 };
 
 // Fallback inset (px), used only when an angled-cut item has no offsetH/
 // offsetV yet. The real 0..length-1/width-1 range is enforced in mm space
 // elsewhere, not by clamping this pixel value — a fixed pixel epsilon
 // distorts disproportionately on a large board with a small px/mm ratio.
 var MACHINING_MIN_INSET = 2;
+
+// A new angled cut starts this far in from each edge of its corner, giving
+// a 141mm cut (100 x sqrt(2)) — a real, visible chamfer to adjust from,
+// rather than the near-zero one an unset offset would draw.
+var MACHINING_DEFAULT_CUT_LEG_MM = 100;
 
 var machiningStage = null;
 var machiningLayer = null;
@@ -2494,7 +2830,7 @@ function buildMachiningPositionLabel() {
     var group = new Konva.Group({ visible: false });
     var bg = new Konva.Rect({ fill: "#fff", stroke: "#2b78c8", strokeWidth: 1 });
     var arrow = new Konva.RegularPolygon({ sides: 3, radius: 4, fill: "#2b78c8" });
-    var text = new Konva.Text({ fontSize: 11, fontFamily: "Arial, sans-serif", fill: "#2b78c8", padding: 4 });
+    var text = new Konva.Text({ fontSize: 11, fontFamily: "Arial, sans-serif", fill: "#2b78c8", padding: 10 });
     group.add(bg, arrow, text);
     group.on("mouseenter", function () { machiningStage.container().style.cursor = "pointer"; });
     group.on("mouseleave", function () { machiningStage.container().style.cursor = "default"; });
@@ -2502,23 +2838,40 @@ function buildMachiningPositionLabel() {
 }
 
 // vertical: true for the width-axis label (points right, left of the cut
-// point); false for the length-axis label (points down, above it).
-function updateMachiningPositionLabel(lbl, value, px, py, vertical) {
+// point); false for the length-axis label (points down, above it). flip
+// mirrors the box to the opposite side (right/below instead of left/above)
+// — needed for groove endpoints, which sit at the L2/W2 edge instead of
+// the L1/W1 edge angled-cut callouts always use.
+function updateMachiningPositionLabel(lbl, value, px, py, vertical, flip) {
     lbl.text.text(Math.round(value) + "");
     var w = lbl.text.width();
     var h = lbl.text.height();
     lbl.bg.size({ width: w, height: h });
 
     if (vertical) {
-        lbl.bg.position({ x: px - w - 10, y: py - h / 2 });
-        lbl.text.position({ x: px - w - 10, y: py - h / 2 });
-        lbl.arrow.rotation(90);
-        lbl.arrow.position({ x: px - 4, y: py });
+        if (flip) {
+            lbl.bg.position({ x: px + 10, y: py - h / 2 });
+            lbl.text.position({ x: px + 10, y: py - h / 2 });
+            lbl.arrow.rotation(270);
+            lbl.arrow.position({ x: px + 4, y: py });
+        } else {
+            lbl.bg.position({ x: px - w - 10, y: py - h / 2 });
+            lbl.text.position({ x: px - w - 10, y: py - h / 2 });
+            lbl.arrow.rotation(90);
+            lbl.arrow.position({ x: px - 4, y: py });
+        }
     } else {
-        lbl.bg.position({ x: px - w / 2, y: py - h - 10 });
-        lbl.text.position({ x: px - w / 2, y: py - h - 10 });
-        lbl.arrow.rotation(180);
-        lbl.arrow.position({ x: px, y: py - 4 });
+        if (flip) {
+            lbl.bg.position({ x: px - w / 2, y: py + 10 });
+            lbl.text.position({ x: px - w / 2, y: py + 10 });
+            lbl.arrow.rotation(0);
+            lbl.arrow.position({ x: px, y: py + 4 });
+        } else {
+            lbl.bg.position({ x: px - w / 2, y: py - h - 10 });
+            lbl.text.position({ x: px - w / 2, y: py - h - 10 });
+            lbl.arrow.rotation(180);    
+            lbl.arrow.position({ x: px, y: py - 4 });
+        }
     }
     lbl.group.visible(true);
 }
@@ -2579,36 +2932,215 @@ function initMachiningStage() {
     machiningStage.add(machiningLayer);
 
     machiningShapes = {
-        panel: new Konva.Rect({ fill: "#fff", stroke: "#5da344", strokeWidth: 2 }),
+        // A closed polygon, not a Rect — an angled cut removes that corner
+        // from the panel's own outline (see updateMachiningNotch), so the
+        // border is one continuous stroke that already includes the
+        // diagonal. Nothing is painted over an intact rectangle.
+        panel: new Konva.Line({ closed: true, fill: "#fff", stroke: "#5da344", strokeWidth: 2 }),
         badgeL1: buildMachiningBadge("L1"),
         badgeL2: buildMachiningBadge("L2"),
         badgeW1: buildMachiningBadge("W1"),
         badgeW2: buildMachiningBadge("W2"),
         dimLength: buildMachiningDimLine(),
         dimWidth: buildMachiningDimLine(),
-        // strokeWidth 6 (wider than the panel's 2px border) so the fill also
-        // covers the old border's outer half along the cut's edge stubs.
-        notchFill: new Konva.Line({ closed: true, fill: "#dceafd", stroke: "#dceafd", strokeWidth: 6, visible: false }),
-        notchLine: new Konva.Line({ stroke: "#5da344", strokeWidth: 2, visible: false }),
-        // Rotated to the cut's real angle, resized every redraw in
-        // updateMachiningNotch(). Not draggable — the position-callout
-        // arrows below handle that.
-        handle: new Konva.Rect({
-            fill: "#fff", stroke: "#2b78c8", strokeWidth: 1.5,
-            visible: false
+        // Dimension band for the cut, lying just inside the board with its
+        // outer long edge sitting on the cut itself — so the panel's own
+        // diagonal border doubles as the band's fourth side. Positioned in
+        // updateMachiningNotch(), with cutLengthLabel centred inside it.
+        cutBand: new Konva.Rect({
+            fill: "#fff", stroke: "#2b78c8", strokeWidth: 1, height: 16,
+            offsetY: 8, visible: false
         }),
         cutLengthLabel: new Konva.Text({
             fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#2b78c8", visible: false
         }),
         hLabel: buildMachiningPositionLabel(),
-        vLabel: buildMachiningPositionLabel()
+        vLabel: buildMachiningPositionLabel(),
+        // Groove cut — a straight slot, not a corner notch, so it gets its
+        // own bar + labels instead of reusing the angled-cut notch shapes.
+        grooveBar: new Konva.Rect({ fill: "#c9c9c9", stroke: "#888", strokeWidth: 1, visible: false }),
+        grooveLengthLabel: new Konva.Text({
+            fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#2b78c8", visible: false
+        }),
+        grooveEnd1Label: buildMachiningPositionLabel(),
+        grooveEnd2Label: buildMachiningPositionLabel(),
+        grooveDistLabel: buildMachiningPositionLabel(),
+        // Hinge-hole markers, gap dimension line and per-hole position
+        // callouts. The hole count varies per row (2 up to ~19), so unlike
+        // the fixed shapes above this is a plain group that
+        // updateMachiningHinge() empties and rebuilds each redraw rather
+        // than a fixed set of shapes updated in place.
+        hingeGroup: new Konva.Group(),
+        // Shelf-pin rows — same rebuild-per-redraw approach as hingeGroup,
+        // for the same reason: the hole count varies with clusters,
+        // positions and the two rows.
+        shelfGroup: new Konva.Group()
     };
 
     machiningLayer.add(machiningShapes.panel);
     machiningLayer.add(machiningShapes.badgeL1, machiningShapes.badgeL2, machiningShapes.badgeW1, machiningShapes.badgeW2);
     machiningLayer.add(machiningShapes.dimLength.group, machiningShapes.dimWidth.group);
-    machiningLayer.add(machiningShapes.notchFill, machiningShapes.notchLine, machiningShapes.handle, machiningShapes.cutLengthLabel);
+    // Band first so its value label draws on top of it.
+    machiningLayer.add(machiningShapes.cutBand, machiningShapes.cutLengthLabel);
     machiningLayer.add(machiningShapes.hLabel.group, machiningShapes.vLabel.group);
+    machiningLayer.add(machiningShapes.grooveBar, machiningShapes.grooveLengthLabel);
+    machiningLayer.add(machiningShapes.grooveEnd1Label.group, machiningShapes.grooveEnd2Label.group, machiningShapes.grooveDistLabel.group);
+    machiningLayer.add(machiningShapes.hingeGroup);
+    machiningLayer.add(machiningShapes.shelfGroup);
+
+    // Click a groove callout to type its value directly, same pattern as
+    // the angled-cut hLabel/vLabel callouts above — no drag support for
+    // groove yet, typed editing only.
+    machiningShapes.grooveEnd1Label.group.on("click tap", function () {
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!item) return;
+        var dims = machiningCurrentDims();
+        var runMax = item.edge === "W1-W2"
+            ? (isNaN(dims.width) ? 9998 : dims.width - 1)
+            : (isNaN(dims.length) ? 9998 : dims.length - 1);
+        promptMachiningPositionEdit(machiningShapes.grooveEnd1Label.group, parseFloat(item.end1), 0, runMax, function (val) {
+            item.end1 = val;
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+    });
+    machiningShapes.grooveEnd2Label.group.on("click tap", function () {
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!item) return;
+        var dims = machiningCurrentDims();
+        var runMax = item.edge === "W1-W2"
+            ? (isNaN(dims.width) ? 9998 : dims.width - 1)
+            : (isNaN(dims.length) ? 9998 : dims.length - 1);
+        promptMachiningPositionEdit(machiningShapes.grooveEnd2Label.group, parseFloat(item.end2), 0, runMax, function (val) {
+            item.end2 = val;
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+    });
+    machiningShapes.grooveDistLabel.group.on("click tap", function () {
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!item) return;
+        var dims = machiningCurrentDims();
+        var distMax = item.edge === "W1-W2"
+            ? (isNaN(dims.length) ? 9998 : dims.length - 1)
+            : (isNaN(dims.width) ? 9998 : dims.width - 1);
+        promptMachiningPositionEdit(machiningShapes.grooveDistLabel.group, parseFloat(item.distance), 0, distMax, function (val) {
+            item.distance = val;
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+    });
+
+    // Dragging the endpoint arrows moves along the board edge they're
+    // anchored to (horizontal for a L1-L2 groove, vertical for W1-W2);
+    // dragBoundFunc re-checks the item's current edge on every move since
+    // it can change (via the edge toggle) while the overlay is open.
+    machiningShapes.grooveEnd1Label.arrow.draggable(true);
+    machiningShapes.grooveEnd1Label.arrow.dragBoundFunc(function (pos) {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return pos;
+        if (item.edge === "W1-W2") {
+            return { x: geo.x - 4, y: Math.max(geo.y, Math.min(geo.bottom, pos.y)) };
+        }
+        return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.bottom + 4 };
+    });
+    machiningShapes.grooveEnd1Label.arrow.on("dragmove", function () {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return;
+        var isVertical = item.edge === "W1-W2";
+        var runTotal = isVertical ? geo.width : geo.length;
+        var runPx = isVertical ? geo.rectH : geo.rectW;
+        if (!(runTotal > 0)) return;
+        // A vertical groove's end1 is measured from L1, which sits at the
+        // bottom of the canvas in the B-side view.
+        var px = isVertical
+            ? machiningPxFromL1(geo, machiningShapes.grooveEnd1Label.arrow.y(), item.view === "B")
+            : machiningShapes.grooveEnd1Label.arrow.x() - geo.x;
+        item.end1 = Math.max(0, Math.min(runTotal - 1, Math.round(px * (runTotal / runPx))));
+        updateMachiningGroove(item, geo);
+        machiningLayer.batchDraw();
+    });
+    machiningShapes.grooveEnd1Label.arrow.on("dragend", function () {
+        saveMachiningAppliedItems();
+        renderMachiningAppliedList();
+    });
+
+    machiningShapes.grooveEnd2Label.arrow.draggable(true);
+    machiningShapes.grooveEnd2Label.arrow.dragBoundFunc(function (pos) {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return pos;
+        if (item.edge === "W1-W2") {
+            return { x: geo.x - 4, y: Math.max(geo.y, Math.min(geo.bottom, pos.y)) };
+        }
+        return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.bottom + 4 };
+    });
+    machiningShapes.grooveEnd2Label.arrow.on("dragmove", function () {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return;
+        var isVertical = item.edge === "W1-W2";
+        var runTotal = isVertical ? geo.width : geo.length;
+        var runPx = isVertical ? geo.rectH : geo.rectW;
+        if (!(runTotal > 0)) return;
+        // Measured from the *far* edge (W2/L2), unlike end1 above — and L2
+        // is the one that moves to the top in the B-side view.
+        var pxFromFar = isVertical
+            ? machiningPxFromL2(geo, machiningShapes.grooveEnd2Label.arrow.y(), item.view === "B")
+            : geo.right - machiningShapes.grooveEnd2Label.arrow.x();
+        item.end2 = Math.max(0, Math.min(runTotal - 1, Math.round(pxFromFar * (runTotal / runPx))));
+        updateMachiningGroove(item, geo);
+        machiningLayer.batchDraw();
+    });
+    machiningShapes.grooveEnd2Label.arrow.on("dragend", function () {
+        saveMachiningAppliedItems();
+        renderMachiningAppliedList();
+    });
+
+    // The distance arrow moves along the *opposite* axis from the
+    // endpoints — vertical for a L1-L2 groove (it's measuring how far up/
+    // down the groove sits), horizontal for W1-W2.
+    machiningShapes.grooveDistLabel.arrow.draggable(true);
+    machiningShapes.grooveDistLabel.arrow.dragBoundFunc(function (pos) {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return pos;
+        if (item.edge === "W1-W2") {
+            return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.y - 4 };
+        }
+        return { x: geo.x - 4, y: Math.max(geo.y, Math.min(geo.bottom, pos.y)) };
+    });
+    machiningShapes.grooveDistLabel.arrow.on("dragmove", function () {
+        var geo = machiningLastGeometry;
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        if (!geo || !item) return;
+        var isVertical = item.edge === "W1-W2";
+        var crossTotal = isVertical ? geo.length : geo.width;
+        var crossPx = isVertical ? geo.rectW : geo.rectH;
+        if (!(crossTotal > 0)) return;
+        var mm;
+        if (isVertical) {
+            var xPos = machiningShapes.grooveDistLabel.arrow.x();
+            mm = item.distanceEdge === "W2" ? (geo.right - xPos) * (crossTotal / crossPx) : (xPos - geo.x) * (crossTotal / crossPx);
+        } else {
+            // Measured off L1/L2, so it follows the B-side flip.
+            var yPos = machiningShapes.grooveDistLabel.arrow.y();
+            var flipped = item.view === "B";
+            var pxFromEdge = item.distanceEdge === "L2"
+                ? machiningPxFromL2(geo, yPos, flipped)
+                : machiningPxFromL1(geo, yPos, flipped);
+            mm = pxFromEdge * (crossTotal / crossPx);
+        }
+        item.distance = Math.max(0, Math.min(crossTotal - 1, Math.round(mm)));
+        updateMachiningGroove(item, geo);
+        machiningLayer.batchDraw();
+    });
+    machiningShapes.grooveDistLabel.arrow.on("dragend", function () {
+        saveMachiningAppliedItems();
+        renderMachiningAppliedList();
+    });
 
     // Click either callout (box or arrow, no movement) to type the cut
     // position directly — commits immediately, same as a drag's dragend,
@@ -2634,6 +3166,64 @@ function initMachiningStage() {
         });
     });
 
+    // The cut length isn't stored — it's derived from the two offsets — so
+    // typing a new one scales both legs by the same factor. That keeps the
+    // cut's current angle and just slides it further in or out, which is
+    // the only reading of "make the cut 500 long" that has one answer: any
+    // other split of the two legs would give the same length at a
+    // different angle.
+    function promptMachiningCutLengthEdit() {
+        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        if (!item) return;
+
+        var dims = machiningCurrentDims();
+        if (isNaN(dims.length) || isNaN(dims.width) || dims.length <= 0 || dims.width <= 0) return;
+
+        // Distance from the cut corner along each edge — an unset offset
+        // counts as 0 so a half-filled item still has a usable angle.
+        var offH = parseFloat(item.offsetH);
+        var offV = parseFloat(item.offsetV);
+        var nearH = isNaN(offH) ? 0 : Math.max(0, dims.length - offH);
+        var nearV = isNaN(offV) ? 0 : Math.max(0, dims.width - offV);
+        var curLen = Math.sqrt(nearH * nearH + nearV * nearV);
+
+        // Cap at the point where whichever leg is proportionally longest
+        // would run past the end of its own edge.
+        var maxLen;
+        if (curLen > 0) {
+            maxLen = Math.floor(curLen * Math.min(
+                nearH > 0 ? dims.length / nearH : Infinity,
+                nearV > 0 ? dims.width / nearV : Infinity
+            ));
+        } else {
+            maxLen = Math.floor(Math.sqrt(dims.length * dims.length + dims.width * dims.width));
+        }
+
+        promptMachiningPositionEdit(machiningShapes.cutLengthLabel, Math.round(curLen), 1, maxLen, function (val) {
+            var newH, newV;
+            if (curLen > 0) {
+                var scale = val / curLen;
+                newH = nearH * scale;
+                newV = nearV * scale;
+            } else {
+                // No angle established yet, so split evenly (45 degrees).
+                newH = newV = val / Math.SQRT2;
+            }
+            item.offsetH = Math.max(0, Math.min(dims.length - 1, Math.round(dims.length - newH)));
+            item.offsetV = Math.max(0, Math.min(dims.width - 1, Math.round(dims.width - newV)));
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+    }
+
+    // The band is the click target as well as the number — the rotated
+    // 10px text on its own is a fiddly thing to hit.
+    [machiningShapes.cutLengthLabel, machiningShapes.cutBand].forEach(function (shape) {
+        shape.on("click tap", promptMachiningCutLengthEdit);
+        shape.on("mouseenter", function () { machiningStage.container().style.cursor = "pointer"; });
+        shape.on("mouseleave", function () { machiningStage.container().style.cursor = "default"; });
+    });
+
     // Dragging each callout's arrow along its own edge (not the diagonal
     // bar) adjusts the cut position; dragBoundFunc reads live geometry each
     // move so it stays correct as the row/corner/panel size changes.
@@ -2641,7 +3231,9 @@ function initMachiningStage() {
     machiningShapes.hLabel.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
         if (!geo || geo.cornerCy == null) return pos;
-        return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.cornerCy - 6 };
+        // -dirY so the arrow rides the outside of the edge (above a top
+        // edge, below a bottom one), matching where the callout renders.
+        return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.cornerCy - 6 * geo.dirY };
     });
     machiningShapes.hLabel.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
@@ -2666,7 +3258,9 @@ function initMachiningStage() {
     machiningShapes.vLabel.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
         if (!geo || geo.cornerCx == null) return pos;
-        return { x: geo.cornerCx - 6, y: Math.max(geo.y, Math.min(geo.bottom, pos.y)) };
+        // -dirX for the same reason as hLabel above: left of a left edge,
+        // right of a right one.
+        return { x: geo.cornerCx - 6 * geo.dirX, y: Math.max(geo.y, Math.min(geo.bottom, pos.y)) };
     });
     machiningShapes.vLabel.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
@@ -2687,6 +3281,44 @@ function initMachiningStage() {
     });
 }
 
+// Builds the panel outline with the cut corner removed: whichever of the
+// rect's 4 corners sits at (cornerCx, cornerCy) is dropped and replaced by
+// the two chamfer endpoints, making the diagonal a real edge of the
+// polygon. Works for any corner, not just top-left.
+function machiningCutPanelPoints(geo, cornerCx, cornerCy, ptOnLEdge, ptOnWEdge) {
+    // Clockwise from top-left, so the polygon winds consistently.
+    var corners = [
+        [geo.x, geo.y],          // top-left
+        [geo.right, geo.y],      // top-right
+        [geo.right, geo.bottom], // bottom-right
+        [geo.x, geo.bottom]      // bottom-left
+    ];
+    var cutIndex = -1;
+    for (var i = 0; i < corners.length; i++) {
+        if (corners[i][0] === cornerCx && corners[i][1] === cornerCy) { cutIndex = i; break; }
+    }
+    if (cutIndex === -1) {
+        return [geo.x, geo.y, geo.right, geo.y, geo.right, geo.bottom, geo.x, geo.bottom];
+    }
+
+    // Walking clockwise, the edge arriving at top-left/bottom-right is the
+    // vertical one, so its chamfer endpoint (the point on the W edge) comes
+    // first; at top-right/bottom-left the arriving edge is horizontal.
+    var arrivesVertical = (cutIndex === 0 || cutIndex === 2);
+    var first = arrivesVertical ? ptOnWEdge : ptOnLEdge;
+    var second = arrivesVertical ? ptOnLEdge : ptOnWEdge;
+
+    var points = [];
+    corners.forEach(function (corner, idx) {
+        if (idx === cutIndex) {
+            points.push(first.x, first.y, second.x, second.y);
+        } else {
+            points.push(corner[0], corner[1]);
+        }
+    });
+    return points;
+}
+
 function updateMachiningNotch(angledCut, geo) {
     // The length/width rulers default to the L2 (bottom) / W2 (right) side
     // — same as before this edge became cut-aware — and only move to
@@ -2698,9 +3330,9 @@ function updateMachiningNotch(angledCut, geo) {
     geo.splitWidAt = null;
 
     if (!angledCut || !angledCut.corner) {
-        machiningShapes.notchFill.visible(false);
-        machiningShapes.notchLine.visible(false);
-        machiningShapes.handle.visible(false);
+        // No cut — the panel outline is the plain full rectangle.
+        machiningShapes.panel.points([geo.x, geo.y, geo.right, geo.y, geo.right, geo.bottom, geo.x, geo.bottom]);
+        machiningShapes.cutBand.visible(false);
         machiningShapes.cutLengthLabel.visible(false);
         machiningShapes.hLabel.group.visible(false);
         machiningShapes.vLabel.group.visible(false);
@@ -2746,35 +3378,30 @@ function updateMachiningNotch(angledCut, geo) {
     geo.splitLenAt = ptOnLEdge.x;
     geo.splitWidAt = ptOnWEdge.y;
 
-    // The corner is painted over with the canvas background colour so it
-    // reads as material actually cut away, not just a line on an intact panel.
-    machiningShapes.notchFill.points([cornerCx, cornerCy, ptOnLEdge.x, ptOnLEdge.y, ptOnWEdge.x, ptOnWEdge.y]);
-    machiningShapes.notchFill.visible(true);
+    // The cut corner is removed from the panel's own outline, so the
+    // diagonal IS one of the polygon's edges — drawn by the same single
+    // border stroke as the straight sides. Nothing is painted over an
+    // intact rectangle, so there's no leftover square corner, no patch of
+    // mismatched fill, and no seam where the diagonal meets the edges.
+    machiningShapes.panel.points(machiningCutPanelPoints(geo, cornerCx, cornerCy, ptOnLEdge, ptOnWEdge));
 
-    // The handle band below is the visible cut edge, so the plain
-    // notchLine stroke stays hidden to avoid doubling up.
-    machiningShapes.notchLine.points([ptOnLEdge.x, ptOnLEdge.y, ptOnWEdge.x, ptOnWEdge.y]);
-    machiningShapes.notchLine.visible(false);
-
-    // Spans the entire cut line (not just its midpoint), rotated to the
-    // cut's real angle — the two insets aren't always equal.
+    // angleDeg/midX/midY describe the cut line for the band + label below.
     var dxPx = ptOnWEdge.x - ptOnLEdge.x;
     var dyPx = ptOnWEdge.y - ptOnLEdge.y;
-    var cutPixLen = Math.sqrt(dxPx * dxPx + dyPx * dyPx);
+    var cutPixLen = Math.sqrt(dxPx * dxPx + dyPx * dyPx) || 1;
     var angleDeg = Math.atan2(dyPx, dxPx) * 180 / Math.PI;
     var midX = (ptOnLEdge.x + ptOnWEdge.x) / 2;
     var midY = (ptOnLEdge.y + ptOnWEdge.y) / 2;
 
-    if (!machiningShapes.handle.isDragging()) {
-        machiningShapes.handle.position({ x: midX, y: midY });
+    // Unit normal to the cut, flipped to point away from the cut-off
+    // corner — i.e. into the remaining board. Which screen direction that
+    // is differs per corner, so it's derived rather than hardcoded.
+    var normX = -dyPx / cutPixLen;
+    var normY = dxPx / cutPixLen;
+    if (normX * (midX - cornerCx) + normY * (midY - cornerCy) < 0) {
+        normX = -normX;
+        normY = -normY;
     }
-    var barLen = Math.max(16, cutPixLen);
-    machiningShapes.handle.width(barLen);
-    machiningShapes.handle.height(8);
-    machiningShapes.handle.offsetX(barLen / 2);
-    machiningShapes.handle.offsetY(4);
-    machiningShapes.handle.rotation(angleDeg);
-    machiningShapes.handle.visible(true);
 
     // Pythagoras on the real mm distances, not the pixel line — stays
     // correct even if rectW/rectH end up at different px/mm ratios.
@@ -2782,17 +3409,710 @@ function updateMachiningNotch(angledCut, geo) {
     var nearV_mm = nearV != null ? nearV : (geo.width > 0 ? insetV * (geo.width / geo.rectH) : insetV);
     var cutLengthMm = Math.round(Math.sqrt(nearH_mm * nearH_mm + nearV_mm * nearV_mm));
     machiningShapes.cutLengthLabel.text(cutLengthMm + "");
-    machiningShapes.cutLengthLabel.position({ x: midX + dirX * 14, y: midY + dirY * 26 });
+    // Centre the label on its own text box so rotating it pivots in place
+    // instead of swinging around its top-left corner.
+    var labelW = machiningShapes.cutLengthLabel.width();
+    var labelH = machiningShapes.cutLengthLabel.height();
+    machiningShapes.cutLengthLabel.offsetX(labelW / 2);
+    machiningShapes.cutLengthLabel.offsetY(labelH / 2);
+
+    // Band spans the full cut, but never shrinks below what the value
+    // inside it needs — a short cut is only a few px long on screen, and a
+    // band clamped to that would be a sliver with the digits spilling out
+    // either end instead of a clean box.
+    var bandH = Math.max(16, labelH + 6);
+    var bandW = Math.max(cutPixLen, labelW + 10);
+    machiningShapes.cutBand.height(bandH);
+    machiningShapes.cutBand.offsetY(bandH / 2);
+    machiningShapes.cutBand.width(bandW);
+    machiningShapes.cutBand.offsetX(bandW / 2);
+    // Pushed half its own thickness inward, so its outer long edge lies on
+    // the cut — the panel's green diagonal border then reads as the band's
+    // fourth side, and the band sits wholly inside the board rather than
+    // straddling the edge.
+    machiningShapes.cutBand.rotation(angleDeg);
+    machiningShapes.cutBand.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
+    machiningShapes.cutBand.visible(true);
+    // Same line angle as the handle, but folded back into -90..90 so the
+    // digits never render upside-down (a line and its 180°-rotated self
+    // are the same line, so this doesn't change what it's aligned to).
+    var labelAngle = angleDeg;
+    if (labelAngle > 90) labelAngle -= 180;
+    else if (labelAngle < -90) labelAngle += 180;
+    machiningShapes.cutLengthLabel.rotation(labelAngle);
+    // Same centre as the band, so the value sits inside it.
+    machiningShapes.cutLengthLabel.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
     machiningShapes.cutLengthLabel.visible(true);
 
     // Shows the saved offset once one exists, else the position the
     // default/dragged inset currently represents.
     var displayH = !isNaN(offsetH) ? offsetH : (geo.length > 0 ? geo.length - insetH * (geo.length / geo.rectW) : insetH);
     var displayV = !isNaN(offsetV) ? offsetV : (geo.width > 0 ? geo.width - insetV * (geo.width / geo.rectH) : insetV);
-    updateMachiningPositionLabel(machiningShapes.hLabel, displayH, ptOnLEdge.x, ptOnLEdge.y, false);
-    updateMachiningPositionLabel(machiningShapes.vLabel, displayV, ptOnWEdge.x, ptOnWEdge.y, true);
+    // Each callout goes on the far side of the edge it's anchored to, so it
+    // always sits outside the board: above a top edge but below a bottom
+    // one, left of a left edge but right of a right one. dirY/dirX point
+    // *into* the board from the cut corner, so flipping on the negative
+    // case puts the box on the outside for all four corners.
+    updateMachiningPositionLabel(machiningShapes.hLabel, displayH, ptOnLEdge.x, ptOnLEdge.y, false, dirY < 0);
+    updateMachiningPositionLabel(machiningShapes.vLabel, displayV, ptOnWEdge.x, ptOnWEdge.y, true, dirX < 0);
 }
 
+// Viewing the B side shows the panel flipped top-to-bottom, so L1 and L2
+// swap ends of the canvas rect (see the badge placement in
+// redrawMachiningCanvas). Anything measured *from* L1 or L2 therefore has
+// to be read from the opposite end in that view — these four helpers are
+// the single place that flip is applied, so the drawing code below and the
+// drag handlers in initMachiningStage can't disagree about which end is
+// which. The W1/W2 axis is untouched by a top-to-bottom flip.
+function machiningYFromL1(geo, px, flipped) {
+    return flipped ? geo.bottom - px : geo.y + px;
+}
+function machiningYFromL2(geo, px, flipped) {
+    return flipped ? geo.y + px : geo.bottom - px;
+}
+function machiningPxFromL1(geo, yPos, flipped) {
+    return flipped ? geo.bottom - yPos : yPos - geo.y;
+}
+function machiningPxFromL2(geo, yPos, flipped) {
+    return flipped ? yPos - geo.y : geo.bottom - yPos;
+}
+
+// A groove is a straight slot running parallel to one pair of edges (L1-L2
+// = horizontal, W1-W2 = vertical), inset from the other pair's edges by
+// end1/end2, and offset from whichever edge distanceEdge names.
+function updateMachiningGroove(grooveItem, geo) {
+    var shapes = machiningShapes;
+
+    if (!grooveItem) {
+        shapes.grooveBar.visible(false);
+        shapes.grooveLengthLabel.visible(false);
+        shapes.grooveEnd1Label.group.visible(false);
+        shapes.grooveEnd2Label.group.visible(false);
+        shapes.grooveDistLabel.group.visible(false);
+        return;
+    }
+
+    var isVertical = grooveItem.edge === "W1-W2";
+    var runTotal = isVertical ? geo.width : geo.length;
+    var crossTotal = isVertical ? geo.length : geo.width;
+    var runPx = isVertical ? geo.rectH : geo.rectW;
+    var crossPx = isVertical ? geo.rectW : geo.rectH;
+
+    var end1Mm = parseFloat(grooveItem.end1);
+    if (isNaN(end1Mm)) end1Mm = 0;
+    var end2Mm = parseFloat(grooveItem.end2);
+    if (isNaN(end2Mm)) end2Mm = 0;
+    var distMm = parseFloat(grooveItem.distance);
+    if (isNaN(distMm)) distMm = crossTotal / 2;
+    var widthMm = parseFloat(grooveItem.width);
+    if (isNaN(widthMm) || widthMm <= 0) widthMm = 20;
+
+    if (runTotal > 0) {
+        end1Mm = Math.max(0, Math.min(runTotal - 1, end1Mm));
+        end2Mm = Math.max(0, Math.min(runTotal - 1, end2Mm));
+    }
+    if (crossTotal > 0) distMm = Math.max(0, Math.min(crossTotal - 1, distMm));
+
+    var end1Px = runTotal > 0 ? end1Mm * (runPx / runTotal) : 0;
+    var end2Px = runTotal > 0 ? end2Mm * (runPx / runTotal) : 0;
+    var distPx = crossTotal > 0 ? distMm * (crossPx / crossTotal) : crossPx / 2;
+    var thicknessPx = crossTotal > 0 ? Math.max(4, widthMm * (crossPx / crossTotal)) : 8;
+
+    var barRect, end1Pt, end2Pt, distPt;
+
+    var flipped = grooveItem.view === "B";
+
+    if (!isVertical) {
+        // Runs along the length; ends are measured from W1/W2, which a
+        // top-to-bottom flip doesn't move. Only the L1/L2 distance flips.
+        var barX1 = geo.x + end1Px;
+        var barX2 = geo.right - end2Px;
+        var barYCenter = grooveItem.distanceEdge === "L2"
+            ? machiningYFromL2(geo, distPx, flipped)
+            : machiningYFromL1(geo, distPx, flipped);
+        barRect = { x: barX1, y: barYCenter - thicknessPx / 2, width: Math.max(0, barX2 - barX1), height: thicknessPx };
+        end1Pt = { x: barX1, y: geo.bottom };
+        end2Pt = { x: barX2, y: geo.bottom };
+        distPt = { x: geo.x, y: barYCenter };
+    } else {
+        // Runs across the width, so it's the two ends that flip; the
+        // W1/W2 distance is unaffected. Flipping swaps which end is
+        // nearer the top, so the bar is built from min/max rather than
+        // assuming end1 comes first.
+        var yEnd1 = machiningYFromL1(geo, end1Px, flipped);
+        var yEnd2 = machiningYFromL2(geo, end2Px, flipped);
+        var barTop = Math.min(yEnd1, yEnd2);
+        var barBottom = Math.max(yEnd1, yEnd2);
+        var barXCenter = grooveItem.distanceEdge === "W2" ? (geo.right - distPx) : (geo.x + distPx);
+        barRect = { x: barXCenter - thicknessPx / 2, y: barTop, width: thicknessPx, height: Math.max(0, barBottom - barTop) };
+        end1Pt = { x: geo.x, y: yEnd1 };
+        end2Pt = { x: geo.x, y: yEnd2 };
+        distPt = { x: barXCenter, y: geo.y };
+    }
+
+    shapes.grooveBar.position({ x: barRect.x, y: barRect.y });
+    shapes.grooveBar.size({ width: barRect.width, height: barRect.height });
+    shapes.grooveBar.visible(true);
+
+    var runLenMm = Math.max(0, Math.round(runTotal - end1Mm - end2Mm));
+    shapes.grooveLengthLabel.text(runLenMm + "");
+    if (!isVertical) {
+        shapes.grooveLengthLabel.offsetX(shapes.grooveLengthLabel.width() / 2);
+        shapes.grooveLengthLabel.offsetY(0);
+        shapes.grooveLengthLabel.position({ x: barRect.x + barRect.width / 2, y: barRect.y + barRect.height + 6 });
+    } else {
+        shapes.grooveLengthLabel.offsetX(0);
+        shapes.grooveLengthLabel.offsetY(shapes.grooveLengthLabel.height() / 2);
+        shapes.grooveLengthLabel.position({ x: barRect.x + barRect.width + 6, y: barRect.y + barRect.height / 2 });
+    }
+    shapes.grooveLengthLabel.visible(true);
+
+    // end1/end2 sit at the L2/W2-side edge (bottom/left), so they're
+    // flipped to the opposite side from the angled-cut callouts' default.
+    updateMachiningPositionLabel(shapes.grooveEnd1Label, end1Mm, end1Pt.x, end1Pt.y, isVertical, !isVertical);
+    updateMachiningPositionLabel(shapes.grooveEnd2Label, end2Mm, end2Pt.x, end2Pt.y, isVertical, !isVertical);
+    updateMachiningPositionLabel(shapes.grooveDistLabel, distMm, distPt.x, distPt.y, !isVertical, false);
+}
+
+// Draws the hinge markers, the gap dimension line between them, and a
+// position callout per hole (box + arrow, reusing the same widget the
+// angled-cut/groove callouts use) — the canvas equivalent of the size-driven
+// hole count in the sidebar. Rebuilds hingeGroup's children from scratch
+// each call rather than updating fixed shapes in place, since the hole
+// count (and so the shape count) changes with the panel size.
+var HINGE_ACCENT = "#2b78c8";
+var HINGE_HOLE_R = 3.5;
+var HINGE_HOLE_INSET = 8;      // hole marker, clear of the panel border
+var HINGE_BRACKET_INSET = 26;  // gap bracket's run, inside the panel face
+var HINGE_GAP_TEXT_GAP = 8;    // gap number, further inside than the run
+var HINGE_TIP_GAP = 3;         // pointer tip, just clear of the edge
+var HINGE_TRI_H = 11;
+var HINGE_TRI_HALF_W = 8;
+var HINGE_BOX_GAP = 1;
+
+// Places every hinge shape for a given set of mm positions. Split out from
+// the shape *creation* below so a drag can re-run just this — rebuilding
+// the group mid-drag would destroy the very circle Konva is dragging.
+function machiningHingeLayout(refs, ctx, positions) {
+    // A point posMm along the drilled edge, offsetPx outward from it —
+    // negative offsetPx reaches back onto the panel face.
+    function pt(posMm, offsetPx) {
+        var moving = ctx.originCoord + posMm * ctx.pxPerMm;
+        var fixed = ctx.fixedCoord + ctx.outSign * offsetPx;
+        return ctx.isVertical ? { x: fixed, y: moving } : { x: moving, y: fixed };
+    }
+
+    // A point offsetAlongPx further along the edge from `p` — used for the
+    // pointer's base corners, which straddle the edge axis rather than the
+    // outward axis.
+    function alongFrom(p, offsetAlongPx) {
+        return ctx.isVertical
+            ? { x: p.x, y: p.y + offsetAlongPx }
+            : { x: p.x + offsetAlongPx, y: p.y };
+    }
+
+    var last = positions.length - 1;
+    var runA = pt(positions[0], -HINGE_BRACKET_INSET);
+    var runB = pt(positions[last], -HINGE_BRACKET_INSET);
+    refs.run.points([runA.x, runA.y, runB.x, runB.y]);
+
+    positions.forEach(function (mm, i) {
+        var legTop = pt(mm, -HINGE_BRACKET_INSET);
+        var hole = pt(mm, -HINGE_HOLE_INSET);
+        refs.legs[i].points([legTop.x, legTop.y, hole.x, hole.y]);
+        refs.holes[i].position(hole);
+
+        var tip = pt(mm, HINGE_TIP_GAP);
+        var base = pt(mm, HINGE_TIP_GAP + HINGE_TRI_H);
+        var b1 = alongFrom(base, -HINGE_TRI_HALF_W);
+        var b2 = alongFrom(base, HINGE_TRI_HALF_W);
+        refs.pointers[i].points([tip.x, tip.y, b1.x, b1.y, b2.x, b2.y]);
+
+        var txt = refs.boxTexts[i];
+        txt.text(String(Math.round(mm)));
+        var bw = txt.width();
+        var bh = txt.height();
+        var near = pt(mm, HINGE_TIP_GAP + HINGE_TRI_H + HINGE_BOX_GAP);
+        // `near` is the box's edge-facing side; step back by the full box
+        // depth on whichever edge grows toward the panel.
+        var bx = ctx.isVertical ? (ctx.outSign > 0 ? near.x : near.x - bw) : near.x - bw / 2;
+        var by = ctx.isVertical ? near.y - bh / 2 : (ctx.outSign > 0 ? near.y : near.y - bh);
+        refs.boxes[i].position({ x: bx, y: by });
+        refs.boxes[i].size({ width: bw, height: bh });
+        txt.position({ x: bx, y: by });
+    });
+
+    for (var g = 0; g < last; g++) {
+        var gapText = refs.gapTexts[g];
+        gapText.text(String(Math.round(positions[g + 1] - positions[g])));
+        gapText.offsetX(gapText.width() / 2);
+        gapText.offsetY(gapText.height() / 2);
+        gapText.position(pt((positions[g] + positions[g + 1]) / 2,
+            -(HINGE_BRACKET_INSET + HINGE_GAP_TEXT_GAP)));
+    }
+}
+
+// Makes each hole marker draggable along its edge, fenced by
+// machiningHingeBounds(). The clamp is applied twice by design:
+// dragBoundFunc stops the marker at the limit so the pointer can never
+// drag it somewhere illegal, and dragmove re-clamps the mm value it
+// derives, so a rounding step at the boundary can't slip past the rule.
+function machiningHingeBindInteractions(refs, ctx, positions, item, edgeLengthMm) {
+    // Single commit path for both drag and typed edits, so a position can
+    // only ever reach the item through the same clamp.
+    function commit(index, mm) {
+        positions[index] = machiningHingeClamp(positions, index, Math.round(mm), edgeLengthMm);
+        item.positions = positions.slice();
+        machiningHingeLayout(refs, ctx, positions);
+        machiningLayer.batchDraw();
+    }
+
+    refs.holes.forEach(function (holeShape, index) {
+        holeShape.draggable(true);
+
+        holeShape.on("mouseenter", function () {
+            machiningStage.container().style.cursor = ctx.isVertical ? "ns-resize" : "ew-resize";
+        });
+        holeShape.on("mouseleave", function () {
+            machiningStage.container().style.cursor = "default";
+        });
+
+        holeShape.dragBoundFunc(function (pos) {
+            var b = machiningHingeBounds(positions, index, edgeLengthMm);
+            var lockedFixed = ctx.fixedCoord + ctx.outSign * -HINGE_HOLE_INSET;
+            var moving = ctx.isVertical ? pos.y : pos.x;
+            moving = Math.max(ctx.originCoord + b.lo * ctx.pxPerMm,
+                Math.min(ctx.originCoord + b.hi * ctx.pxPerMm, moving));
+            return ctx.isVertical
+                ? { x: lockedFixed, y: moving }
+                : { x: moving, y: lockedFixed };
+        });
+
+        holeShape.on("dragmove", function () {
+            var moving = ctx.isVertical ? holeShape.y() : holeShape.x();
+            commit(index, (moving - ctx.originCoord) / ctx.pxPerMm);
+        });
+
+        holeShape.on("dragend", function () {
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+    });
+
+    // Clicking a position callout types the value instead of dragging for
+    // it — the precise route to the same place, with the same limits. The
+    // box and its number are separate nodes, so both carry the handler.
+    refs.boxes.forEach(function (box, index) {
+        [box, refs.boxTexts[index]].forEach(function (node) {
+            node.on("mouseenter", function () {
+                machiningStage.container().style.cursor = "pointer";
+            });
+            node.on("mouseleave", function () {
+                machiningStage.container().style.cursor = "default";
+            });
+            node.on("click tap", function () {
+                var b = machiningHingeBounds(positions, index, edgeLengthMm);
+                promptMachiningPositionEdit(box, positions[index], b.lo, b.hi, function (val) {
+                    commit(index, val);
+                    saveMachiningAppliedItems();
+                    renderMachiningAppliedList();
+                });
+            });
+        });
+    });
+}
+
+function updateMachiningHinge(hingeItem, geo) {
+    var group = machiningShapes.hingeGroup;
+    group.destroyChildren();
+
+    if (!hingeItem) {
+        group.visible(false);
+        return;
+    }
+
+    var dims = machiningCurrentDims();
+    var edge = hingeItem.edge || "L1";
+    var isVertical = (edge === "W1" || edge === "W2");
+    var edgeLengthMm = isVertical ? dims.width : dims.length;
+    var positions = machiningHingeResolvedPositions(hingeItem, edgeLengthMm);
+
+    if (!positions.length || !(geo.rectW > 0) || !(geo.rectH > 0)) {
+        group.visible(false);
+        return;
+    }
+
+    // Where the drilled edge sits, and which direction is "outward" (away
+    // from the panel face) from it — everything is placed relative to those
+    // two, so one code path serves all four edges.
+    var ctx = {
+        isVertical: isVertical,
+        fixedCoord: edge === "L1" ? geo.y : edge === "L2" ? geo.bottom
+            : edge === "W1" ? geo.x : geo.right,
+        originCoord: isVertical ? geo.y : geo.x,
+        pxPerMm: isVertical ? (geo.rectH / dims.width) : (geo.rectW / dims.length),
+        outSign: (edge === "L1" || edge === "W1") ? -1 : 1
+    };
+
+    // Gap dimension: a bracket on the panel face — one run spanning the
+    // outer holes with a leg dropping to every hole, so each gap number
+    // reads against the two holes it measures between. Position callouts
+    // sit outside: a solid pointer aimed at the hole, box behind it.
+    var refs = {
+        run: new Konva.Line({ stroke: HINGE_ACCENT, strokeWidth: 1.5 }),
+        legs: [], holes: [], pointers: [], boxes: [], boxTexts: [], gapTexts: []
+    };
+    group.add(refs.run);
+
+    positions.forEach(function () {
+        var leg = new Konva.Line({ stroke: HINGE_ACCENT, strokeWidth: 1.5 });
+        var pointer = new Konva.Line({ closed: true, fill: HINGE_ACCENT });
+        var box = new Konva.Rect({ fill: "#fff", stroke: HINGE_ACCENT, strokeWidth: 1 });
+        var boxText = new Konva.Text({
+            fontSize: 11, fontFamily: "Arial, sans-serif", fill: "#222", padding: 6
+        });
+        // Marker added last so it stays above its own leg while dragging.
+        var hole = new Konva.Circle({
+            radius: HINGE_HOLE_R, fill: "#9a9a9a", stroke: "#5f5f5f", strokeWidth: 1
+        });
+        group.add(leg, pointer, box, boxText, hole);
+
+        refs.legs.push(leg);
+        refs.pointers.push(pointer);
+        refs.boxes.push(box);
+        refs.boxTexts.push(boxText);
+        refs.holes.push(hole);
+    });
+
+    for (var g = 0; g < positions.length - 1; g++) {
+        var gapText = new Konva.Text({
+            fontSize: 11, fontStyle: "bold", fontFamily: "Arial, sans-serif",
+            fill: HINGE_ACCENT, rotation: isVertical ? -90 : 0
+        });
+        group.add(gapText);
+        refs.gapTexts.push(gapText);
+    }
+
+    machiningHingeLayout(refs, ctx, positions);
+    machiningHingeBindInteractions(refs, ctx, positions, hingeItem, edgeLengthMm);
+
+    group.visible(true);
+}
+
+// Run-axis mm of every hole, both clusters and positions flattened. The
+// first cluster begins at `start` and the last ends the same distance in
+// from the far end, with the rest spread evenly between — the same
+// symmetric-ends spacing the hinge holes use.
+// The numbers every shelf calculation starts from, parsed and floored once
+// so the callers below stay readable. `span` is the width of one cluster,
+// first hole to last.
+function machiningShelfGeom(item) {
+    var positions = Math.max(1, Math.round(machiningShelfNum(item.positions, MACHINING_SHELF_DEFAULT_POSITIONS)));
+    var step = Math.max(MACHINING_SHELF_MIN_HOLE_GAP_MM,
+        machiningShelfNum(item.step, MACHINING_SHELF_DEFAULT_STEP_MM));
+    var clusters = Math.max(1, Math.round(machiningShelfNum(item.clusters, MACHINING_SHELF_DEFAULT_CLUSTERS)));
+    return { positions: positions, step: step, clusters: clusters, span: (positions - 1) * step };
+}
+
+// The legal span for one cluster's start, given where its neighbours are.
+// Same shape as machiningHingeBounds(): the end rules and the between-
+// clusters rule are combined per cluster, so moving any one of them can
+// never push another into an illegal spot.
+function machiningShelfClusterBounds(starts, index, span, runMm) {
+    var last = starts.length - 1;
+
+    var lo = index === 0
+        ? MACHINING_SHELF_MIN_END_MM
+        : starts[index - 1] + span + MACHINING_SHELF_MIN_CLUSTER_GAP_MM;
+    var hi = index === last
+        ? runMm - MACHINING_SHELF_MIN_END_MM - span
+        : starts[index + 1] - MACHINING_SHELF_MIN_CLUSTER_GAP_MM - span;
+
+    // A run too short for this many clusters leaves no legal span — pin to
+    // the lower bound rather than let one cross its neighbour.
+    if (hi < lo) hi = lo;
+    return { lo: lo, hi: hi };
+}
+
+function machiningShelfClampCluster(starts, index, valueMm, span, runMm) {
+    var b = machiningShelfClusterBounds(starts, index, span, runMm);
+    return Math.min(b.hi, Math.max(b.lo, valueMm));
+}
+
+function machiningShelfClusterStartsValid(starts, span, runMm) {
+    return starts.every(function (v, i) {
+        if (typeof v !== "number" || !isFinite(v)) return false;
+        var b = machiningShelfClusterBounds(starts, i, span, runMm);
+        return v >= b.lo - 0.5 && v <= b.hi + 0.5;
+    });
+}
+
+// Shortest run that can hold N clusters: the end margin at both ends, each
+// cluster's own width, and the clear gap between every neighbouring pair.
+function machiningShelfMinRunFor(clusters, span) {
+    return 2 * MACHINING_SHELF_MIN_END_MM + clusters * span +
+        (clusters - 1) * MACHINING_SHELF_MIN_CLUSTER_GAP_MM;
+}
+
+// How many clusters the run can hold at all, ignoring where they currently
+// sit — this drives the count on offer in the panel.
+function machiningShelfMaxClusters(item, runMm) {
+    var g = machiningShelfGeom(item);
+    var pitch = g.span + MACHINING_SHELF_MIN_CLUSTER_GAP_MM;
+    var usable = runMm - 2 * MACHINING_SHELF_MIN_END_MM - g.span;
+    if (!(usable >= 0) || !(pitch > 0)) return 1;
+    return Math.max(1, Math.min(MACHINING_SHELF_MAX_CLUSTERS, 1 + Math.floor(usable / pitch)));
+}
+
+// Set default cluster positions with proper spacing. Used for 5mm Ø diameter hole,
+// Blum 35mm Screw-On, and Blum 35mm INSERTA.
+function machiningShelfDefaultClusterStarts(item, runMm) {
+    var g = machiningShelfGeom(item);
+    var clusters = Math.min(g.clusters, machiningShelfMaxClusters(item, runMm));
+
+    // The 100mm preferred start only applies when the run is long enough
+    // for it — on a short run it would push the cluster's far hole inside
+    // the end margin, so it gives way to the margin itself.
+    var lastAllowed = runMm - MACHINING_SHELF_MIN_END_MM - g.span;
+    var first = Math.max(MACHINING_SHELF_MIN_END_MM,
+        Math.min(MACHINING_SHELF_DEFAULT_START_MM, lastAllowed));
+    var last = Math.max(first, Math.min(lastAllowed, runMm - first - g.span));
+
+    // With the ends fixed, the remaining clusters have to fit between them
+    // at the minimum gap; pull the first end in if they don't.
+    if (clusters > 1 && (last - first) / (clusters - 1) < g.span + MACHINING_SHELF_MIN_CLUSTER_GAP_MM) {
+        first = MACHINING_SHELF_MIN_END_MM;
+        last = Math.max(first, lastAllowed);
+    }
+
+    var out = [];
+    for (var c = 0; c < clusters; c++) {
+        out.push(clusters === 1 ? first : first + c * (last - first) / (clusters - 1));
+    }
+    return out;
+}
+
+// Keep the user's dragged cluster positions if they are still valid.
+// If the settings or panel size make them invalid, use the default positions instead.
+function machiningShelfResolvedClusterStarts(item, runMm) {
+    var g = machiningShelfGeom(item);
+    var clusters = Math.min(g.clusters, machiningShelfMaxClusters(item, runMm));
+
+    // No legal arrangement exists on a run this short.
+    if (!(runMm > 0) || g.span > runMm ||
+        !(runMm >= machiningShelfMinRunFor(clusters, g.span))) {
+        return [];
+    }
+
+    var stored = item.clusterStarts;
+    if (Array.isArray(stored) && stored.length === clusters &&
+        machiningShelfClusterStartsValid(stored, g.span, runMm)) {
+        return stored.slice();
+    }
+    return machiningShelfDefaultClusterStarts(item, runMm);
+}
+
+function machiningShelfHolePositions(item, runMm) {
+    var g = machiningShelfGeom(item);
+    var out = [];
+    machiningShelfResolvedClusterStarts(item, runMm).forEach(function (base) {
+        for (var i = 0; i < g.positions; i++) out.push(base + i * g.step);
+    });
+    return out;
+}
+
+// Draw the holes, spacing, cluster positions and drag controls for each cluster.
+// Used for 5mm Ø diameter hole, Blum 35mm Screw-On, and Blum 35mm INSERTA.
+function updateMachiningShelf(shelfItem, geo) {
+    var group = machiningShapes.shelfGroup;
+    group.destroyChildren();
+
+    if (!shelfItem) {
+        group.visible(false);
+        return;
+    }
+
+    var dims = machiningCurrentDims();
+    var alongLength = (shelfItem.edge || "L1-L2") !== "W1-W2";
+    var runMm = alongLength ? dims.length : dims.width;
+    var crossMm = alongLength ? dims.width : dims.length;
+
+    var g = machiningShelfGeom(shelfItem);
+    var starts = machiningShelfResolvedClusterStarts(shelfItem, runMm);
+    var holes = machiningShelfHolePositions(shelfItem, runMm);
+    if (!holes.length || !(runMm > 0) || !(crossMm > 0) ||
+        !(geo.rectW > 0) || !(geo.rectH > 0)) {
+        group.visible(false);
+        return;
+    }
+
+    var runOrigin = alongLength ? geo.x : geo.y;
+    var runPxPerMm = alongLength ? (geo.rectW / dims.length) : (geo.rectH / dims.width);
+    var crossPxPerMm = alongLength ? (geo.rectH / dims.width) : (geo.rectW / dims.length);
+    // Row one is inset from the near edge (L1 / W1), row two from the far
+    // one (L2 / W2), so they close in from opposite sides.
+    var crossNear = alongLength ? geo.y : geo.x;
+    var crossFar = alongLength ? geo.bottom : geo.right;
+    var row1Px = crossNear + machiningShelfNum(shelfItem.row1, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm;
+    var row2Px = crossFar - machiningShelfNum(shelfItem.row2, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm;
+
+    // A point at runMm along the run, on the given absolute cross pixel.
+    function pt(mm, crossPx) {
+        var along = runOrigin + mm * runPxPerMm;
+        return alongLength ? { x: along, y: crossPx } : { x: crossPx, y: along };
+    }
+
+    // Both rows of pin holes.
+    [row1Px, row2Px].forEach(function (crossPx) {
+        holes.forEach(function (mm) {
+            var p = pt(mm, crossPx);
+            group.add(new Konva.Circle({
+                x: p.x, y: p.y, radius: 2.2,
+                fill: "#9a9a9a", stroke: "#5f5f5f16", strokeWidth: 0
+            }));
+        });
+    });
+
+    // Gap dimensions along row two: one segment per clear run between
+    // consecutive clusters, then a final one from the last hole to the far
+    // end. The line sits just inside row two with a leg dropping to each
+    // hole it measures from, the same bracket idiom as the hinge holes.
+    var BRACKET_INSET = 14;
+    var bracketCross = row2Px - BRACKET_INSET;
+
+    function addBracket(fromMm, toMm) {
+        var a = pt(fromMm, bracketCross);
+        var b = pt(toMm, bracketCross);
+        group.add(new Konva.Line({
+            points: [a.x, a.y, b.x, b.y], stroke: HINGE_ACCENT, strokeWidth: 1.5
+        }));
+        [[a, fromMm], [b, toMm]].forEach(function (pair) {
+            var leg = pt(pair[1], row2Px);
+            group.add(new Konva.Line({
+                points: [pair[0].x, pair[0].y, leg.x, leg.y],
+                stroke: HINGE_ACCENT, strokeWidth: 1.5
+            }));
+        });
+
+        var text = new Konva.Text({
+            text: String(Math.round(toMm - fromMm)), fontSize: 11, fontStyle: "bold",
+            fontFamily: "Arial, sans-serif", fill: HINGE_ACCENT,
+            rotation: alongLength ? 0 : -90
+        });
+        text.offsetX(text.width() / 2);
+        text.offsetY(text.height() / 2);
+        var mid = pt((fromMm + toMm) / 2, bracketCross);
+        text.position({
+            x: mid.x - (alongLength ? 0 : 9),
+            y: mid.y - (alongLength ? 9 : 0)
+        });
+        group.add(text);
+    }
+
+    starts.forEach(function (startMm, i) {
+        var clusterEnd = startMm + g.span;
+        // Between this cluster and the next, or from the last one to the
+        // far end of the run.
+        addBracket(clusterEnd, i < starts.length - 1 ? starts[i + 1] : runMm);
+    });
+
+    // One position callout per cluster, outside the panel past row two's
+    // edge — pointer aimed at the cluster's first hole, box behind it.
+    var calloutEdge = crossFar;
+    function outward(mm, offsetPx) {
+        var along = runOrigin + mm * runPxPerMm;
+        var cross = calloutEdge + offsetPx;
+        return alongLength ? { x: along, y: cross } : { x: cross, y: along };
+    }
+    function alongFrom(p, d) {
+        return alongLength ? { x: p.x + d, y: p.y } : { x: p.x, y: p.y + d };
+    }
+
+    function commitCluster(index, mm) {
+        starts[index] = machiningShelfClampCluster(starts, index, Math.round(mm), g.span, runMm);
+        shelfItem.clusterStarts = starts.slice();
+        updateMachiningShelf(shelfItem, geo);
+        machiningLayer.batchDraw();
+    }
+
+    starts.forEach(function (startMm, index) {
+        var tip = outward(startMm, HINGE_TIP_GAP);
+        var base = outward(startMm, HINGE_TIP_GAP + HINGE_TRI_H);
+        group.add(new Konva.Line({
+            points: [tip.x, tip.y,
+                alongFrom(base, -HINGE_TRI_HALF_W).x, alongFrom(base, -HINGE_TRI_HALF_W).y,
+                alongFrom(base, HINGE_TRI_HALF_W).x, alongFrom(base, HINGE_TRI_HALF_W).y],
+            closed: true, fill: HINGE_ACCENT
+        }));
+
+        var text = new Konva.Text({
+            text: String(Math.round(startMm)), fontSize: 11,
+            fontFamily: "Arial, sans-serif", fill: "#222", padding: 6
+        });
+        var bw = text.width();
+        var bh = text.height();
+        var near = outward(startMm, HINGE_TIP_GAP + HINGE_TRI_H + HINGE_BOX_GAP);
+        var bx = alongLength ? near.x - bw / 2 : near.x;
+        var by = alongLength ? near.y : near.y - bh / 2;
+        var box = new Konva.Rect({
+            x: bx, y: by, width: bw, height: bh,
+            fill: "#fff", stroke: HINGE_ACCENT, strokeWidth: 1
+        });
+        text.position({ x: bx, y: by });
+        group.add(box, text);
+
+        var bounds = machiningShelfClusterBounds(starts, index, g.span, runMm);
+
+        // Invisible grab area over the cluster's first hole — the hole dots
+        // are only 2.2px, too small to be a comfortable drag target.
+        var first = pt(startMm, row2Px);
+        var handle = new Konva.Circle({
+            x: first.x, y: first.y, radius: 7, fill: "transparent", draggable: true
+        });
+        handle.dragBoundFunc(function (pos) {
+            var along = alongLength ? pos.x : pos.y;
+            along = Math.max(runOrigin + bounds.lo * runPxPerMm,
+                Math.min(runOrigin + bounds.hi * runPxPerMm, along));
+            return alongLength ? { x: along, y: first.y } : { x: first.x, y: along };
+        });
+        handle.on("mouseenter", function () {
+            machiningStage.container().style.cursor = alongLength ? "ew-resize" : "ns-resize";
+        });
+        handle.on("mouseleave", function () {
+            machiningStage.container().style.cursor = "default";
+        });
+        handle.on("dragmove", function () {
+            var along = alongLength ? handle.x() : handle.y();
+            commitCluster(index, (along - runOrigin) / runPxPerMm);
+        });
+        handle.on("dragend", function () {
+            saveMachiningAppliedItems();
+            renderMachiningAppliedList();
+        });
+        group.add(handle);
+
+        [box, text].forEach(function (node) {
+            node.on("mouseenter", function () {
+                machiningStage.container().style.cursor = "pointer";
+            });
+            node.on("mouseleave", function () {
+                machiningStage.container().style.cursor = "default";
+            });
+            node.on("click tap", function () {
+                promptMachiningPositionEdit(box, startMm, bounds.lo, bounds.hi, function (val) {
+                    commitCluster(index, val);
+                    saveMachiningAppliedItems();
+                    renderMachiningAppliedList();
+                });
+            });
+        });
+    });
+
+    group.visible(true);
+}
+
+// Redraw the board and all selected machining options on the canvas.
+// Used for all machining options.
 function redrawMachiningCanvas() {
     initMachiningStage();
     if (!machiningStage) return;
@@ -2800,6 +4120,18 @@ function redrawMachiningCanvas() {
     var lengthRaw = document.getElementById("mLength") ? document.getElementById("mLength").textContent : "-";
     var widthRaw = document.getElementById("mWidth") ? document.getElementById("mWidth").textContent : "-";
     var angledItem = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0] || null;
+    var grooveItem = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0] || null;
+    // Matched on behaviour, not slug — any option set to "Hinge holes" in
+    // wp-admin gets drawn here, the same lookup buildMachiningAppliedItemHTML()
+    // already uses to pick its detail panel.
+    var hingeItem = machiningAppliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "hinge-holes";
+    })[0] || null;
+    var shelfItem = machiningAppliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "shelf-holes";
+    })[0] || null;
 
     var length = parseFloat(lengthRaw);
     var width = parseFloat(widthRaw);
@@ -2819,12 +4151,15 @@ function redrawMachiningCanvas() {
     var midX = x + rectW / 2;
     var midY = y + rectH / 2;
 
-    machiningShapes.panel.position({ x: x, y: y });
-    machiningShapes.panel.size({ width: rectW, height: rectH });
+    // The panel's outline points are set by updateMachiningNotch() below —
+    // full rectangle when there's no cut, corner-removed polygon when
+    // there is. It's called on every redraw and during callout drags, so
+    // the outline stays in sync with the cut in both cases.
 
     // "A side" (default) shows L1 at the top; "B side" swaps L1/L2 — kept in
-    // sync with the item's A/B toggle and the "Panel shows" face box below.
-    var flipLength = !!(angledItem && angledItem.view === "B");
+    // sync with whichever item's A/B toggle and the "Panel shows" face box
+    // below (angled-cut and groove share the same view concept).
+    var flipLength = !!((angledItem && angledItem.view === "B") || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
 
     // Badge centres sit cfg.badgeOffset outside the board edge, not on the
     // border line itself.
@@ -2842,6 +4177,9 @@ function redrawMachiningCanvas() {
 
     // Notch first — decides which side/position the rulers below split at.
     updateMachiningNotch(angledItem, geo);
+    updateMachiningGroove(grooveItem, geo);
+    updateMachiningHinge(hingeItem, geo);
+    updateMachiningShelf(shelfItem, geo);
 
     var lengthRulerY = geo.lengthAtTop ? (y - cfg.rulerOffset) : (bottom + cfg.rulerOffset);
     var widthRulerX = geo.cornerW === "W1" ? (x - cfg.rulerOffset) : (right + cfg.rulerOffset);
@@ -2872,7 +4210,7 @@ function redrawMachiningCanvas() {
     updateMachiningDimLine(machiningShapes.dimWidth, widthRulerX, y, widthRulerX, bottom, true, geo.splitWidAt, widthLabelA, widthLabelB, widthSign);
 
     machiningLayer.batchDraw();
-}
+}   
 
 function saveMachiningAppliedItems() {
     if (!machiningCurrentRow) return;
@@ -2883,8 +4221,18 @@ function saveMachiningAppliedItems() {
     // buildPanelSummaryMachiningText() in the Panel Summary section, which
     // already reads row.dataset.machiningData expecting this shape.
     var summaryItems = machiningAppliedItems
-        .filter(function (item) { return item.option === "angled-cut"; })
+        .filter(function (item) { return item.option === "angled-cut" || item.option === "groove"; })
         .map(function (item) {
+            if (item.option === "groove") {
+                var glabels = machiningGrooveLabels(item.edge);
+                return {
+                    type: "Groove cut",
+                    side: item.edge,
+                    detail: (item.width || "-") + "mm wide x " + (item.depth || "-") + "mm deep, " +
+                        glabels.end1 + " " + (item.end1 || "-") + "mm, " + glabels.end2 + " " + (item.end2 || "-") + "mm, " +
+                        "From " + (item.distanceEdge || "-") + " " + (item.distance || "-") + "mm"
+                };
+            }
             var labels = machiningCornerLabels(item.corner);
             return {
                 type: "Angled cut",
@@ -2909,6 +4257,22 @@ function machiningTapesForCurrentRow() {
     var code = decorInput && decorInput.value ? decorInput.value.split(" - ")[0].trim() : "";
     if (!code) return [];
     return window.cutlistEdgeTapes.filter(function (t) { return t.decorCode === code; });
+}
+
+// Which edge finishes the chosen tape supports — the "Radius edge finish" /
+// "Square edge finish" toggles on the Edge Tape CPT. Only an explicit false
+// disables one: an unselected or unrecognised tape leaves both available,
+// matching the REST layer, which reports true for tapes saved before those
+// fields existed rather than silently offering nothing.
+function machiningTapeFinishes(code) {
+    var both = { radius: true, square: true };
+    if (!code) return both;
+    var tape = (window.cutlistEdgeTapes || []).filter(function (t) { return t.code === code; })[0];
+    if (!tape) return both;
+    return {
+        radius: tape.radiusEdgeFinish !== false,
+        square: tape.squareEdgeFinish !== false
+    };
 }
 
 function buildMachiningEdgingOptionsHTML(tapes, selectedCode) {
@@ -2942,7 +4306,524 @@ function buildMachiningPreviewSVG(item) {
         "</svg>";
 }
 
+function buildGroovePreviewSVG(item) {
+    var isBack = item.view === "B";
+    var isVertical = item.edge === "W1-W2";
+    var grooveLine = isVertical
+        ? '<line x1="95" y1="28" x2="99" y2="78" stroke="#2b78c8" stroke-width="3" stroke-linecap="round"></line>'
+        : '<line x1="42" y1="66" x2="108" y2="70" stroke="#2b78c8" stroke-width="3" stroke-linecap="round"></line>';
+    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
+        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
+        grooveLine +
+        '<text class="preview-label" x="70" y="45" text-anchor="middle">' + (isBack ? "B SIDE" : "A SIDE") + "</text>" +
+        '<text x="65" y="14" text-anchor="middle">L1</text>' +
+        '<text x="65" y="97" text-anchor="middle">L2</text>' +
+        '<text x="14" y="55">W1</text>' +
+        '<text x="122" y="55">W2</text>' +
+        "</svg>";
+}
+
+// HINGE HOLES (Blum 35mm Screw-On / INSERTA)
+//
+// A panel must be at least this square in both directions before hinges
+// can be drilled at all.
+var MACHINING_HINGE_MIN_PANEL_MM = 150;
+
+// Hinge count steps with the length of the edge being drilled:
+//   150-399 -> 2, 400-499 -> 3, 500-599 -> 4, 600-699 -> 5, ...
+// i.e. 2 up to 399, then one more per whole 100mm from 400 up. Returns 0
+// when the edge is too short to take hinges at all.
+function machiningHingeHoleCount(edgeLengthMm) {
+    if (!(edgeLengthMm >= MACHINING_HINGE_MIN_PANEL_MM)) return 0;
+    if (edgeLengthMm < 400) return 2;
+    return 3 + Math.floor((edgeLengthMm - 400) / 100);
+}
+
+// The count to *start* a new item on, which is not the maximum. The rule
+// above is a ceiling — what the edge can physically take at the 100mm
+// minimum spacing — so a 1000mm edge allows 9, and defaulting to that
+// looks nothing like a real door. This aims at roughly one hinge per
+// 500mm, which lands on the counts a fitter would actually specify:
+// 1000mm -> 3, 2000mm -> 5. The select still offers the full range up to
+// the ceiling for anyone who wants more.
+function machiningHingeDefaultHoleCount(edgeLengthMm) {
+    var max = machiningHingeHoleCount(edgeLengthMm);
+    if (max < 2) return 0;
+    return Math.max(2, Math.min(max, 1 + Math.ceil(edgeLengthMm / 500)));
+}
+
+// Hinges run along the edge being drilled, so an L1/L2 edge is measured
+// along the panel's length and a W1/W2 edge along its width.
+function machiningHingeEdgeLength(edge, dims) {
+    return (edge === "W1" || edge === "W2") ? dims.width : dims.length;
+}
+
+// How far the first/last hinge sits in from each end of the edge.
+var MACHINING_HINGE_END_OFFSET_MM = 100;
+
+// Evenly spaces N holes along an edge of length L, O in from each end:
+//   gap = (L - 2*O) / (N - 1)
+//   position(k) = O + (k - 1) * gap,  k = 1..N
+// e.g. L=1000, N=3, O=100 -> gap 400, positions [100, 500, 900] — the
+// worked example this was specified against. Returns [] for N < 2 (no
+// gap to divide) or a length too short for the offsets to fit.
+function machiningHingePositions(edgeLengthMm, holeCount, offsetMm) {
+    offsetMm = offsetMm == null ? MACHINING_HINGE_END_OFFSET_MM : offsetMm;
+    if (!(holeCount >= 2) || !(edgeLengthMm > offsetMm * 2)) return [];
+
+    var gap = (edgeLengthMm - 2 * offsetMm) / (holeCount - 1);
+    var positions = [];
+    for (var k = 1; k <= holeCount; k++) {
+        positions.push(offsetMm + (k - 1) * gap);
+    }
+    return positions;
+}
+
+// Drag limits, all in mm along the drilled edge.
+var MACHINING_HINGE_MIN_END_MM = 50;   // closest an end hole may sit to its end
+var MACHINING_HINGE_MAX_END_MM = 300;  // furthest an end hole may sit from it
+var MACHINING_HINGE_MIN_GAP_MM = 100;  // closest two adjacent holes may sit
+
+// The legal mm span for one hole, given where its neighbours currently are.
+//
+// The end rules (50..300 from the near end) and the spacing rule (>=100mm
+// between adjacent holes) are combined here rather than applied separately,
+// because they overlap at the ends: dragging the first hole right must also
+// respect the second hole's own 100mm clearance, or moving one hole would
+// silently invalidate its neighbour. Expressing every hole's limits in terms
+// of its neighbours keeps the whole set valid no matter which one moves.
+function machiningHingeBounds(positions, index, edgeLengthMm) {
+    var last = positions.length - 1;
+
+    var lo = index === 0
+        ? MACHINING_HINGE_MIN_END_MM
+        : positions[index - 1] + MACHINING_HINGE_MIN_GAP_MM;
+    var hi = index === last
+        ? edgeLengthMm - MACHINING_HINGE_MIN_END_MM
+        : positions[index + 1] - MACHINING_HINGE_MIN_GAP_MM;
+
+    if (index === 0) hi = Math.min(hi, MACHINING_HINGE_MAX_END_MM);
+    if (index === last) lo = Math.max(lo, edgeLengthMm - MACHINING_HINGE_MAX_END_MM);
+
+    // An edge too short for this many holes can leave no legal span at all
+    // — pin to the lower bound rather than let the hole cross its neighbour.
+    if (hi < lo) hi = lo;
+    return { lo: lo, hi: hi };
+}
+
+function machiningHingeClamp(positions, index, valueMm, edgeLengthMm) {
+    var b = machiningHingeBounds(positions, index, edgeLengthMm);
+    return Math.min(b.hi, Math.max(b.lo, valueMm));
+}
+
+// Shortest edge that can hold N holes at all: a 50mm minimum at each end
+// plus a 100mm minimum between every adjacent pair.
+function machiningHingeMinEdgeFor(holeCount) {
+    return 2 * MACHINING_HINGE_MIN_END_MM + MACHINING_HINGE_MIN_GAP_MM * (holeCount - 1);
+}
+
+// The nominal 100mm end offset only fits on an edge long enough for it —
+// below roughly 300mm, two holes 100mm in from each end would sit almost
+// on top of each other (a 201mm edge gave [100, 101]). Pulling the offset
+// in toward the 50mm end minimum keeps the 100mm gap intact instead.
+function machiningHingeDefaultOffset(edgeLengthMm, holeCount) {
+    var widest = (edgeLengthMm - MACHINING_HINGE_MIN_GAP_MM * (holeCount - 1)) / 2;
+    return Math.max(MACHINING_HINGE_MIN_END_MM,
+        Math.min(MACHINING_HINGE_END_OFFSET_MM, widest));
+}
+
+// Tolerance absorbs the rounding done when a drag commits whole mm.
+function machiningHingePositionsValid(positions, edgeLengthMm) {
+    return positions.every(function (v, i) {
+        if (typeof v !== "number" || !isFinite(v)) return false;
+        var b = machiningHingeBounds(positions, i, edgeLengthMm);
+        return v >= b.lo - 0.5 && v <= b.hi + 0.5;
+    });
+}
+
+// Hole positions are the evenly-spaced defaults until the user drags one,
+// after which the dragged set is stored on the item. Anything that changes
+// the edge being drilled or the hole count leaves those stored positions
+// meaningless, so they're re-validated here and silently dropped back to
+// the computed spacing rather than needing every such handler to clear them.
+function machiningHingeResolvedPositions(item, edgeLengthMm) {
+    var holeCount = Math.max(2, Number(item.holes) || 2);
+    var stored = item.positions;
+
+    // No legal arrangement exists on an edge this short, so draw nothing
+    // rather than a layout that breaks its own rules.
+    if (!(edgeLengthMm >= machiningHingeMinEdgeFor(holeCount))) return [];
+
+    if (Array.isArray(stored) && stored.length === holeCount &&
+        machiningHingePositionsValid(stored, edgeLengthMm)) {
+        return stored.slice();
+    }
+    return machiningHingePositions(edgeLengthMm, holeCount,
+        machiningHingeDefaultOffset(edgeLengthMm, holeCount));
+}
+
+function buildHingeHolesDetailHTML(item, index, label) {
+    var dims = machiningCurrentDims();
+    var edgeLength = machiningHingeEdgeLength(item.edge, dims);
+    var maxHoles = machiningHingeHoleCount(edgeLength);
+
+    var edgesHTML = ["L1", "L2", "W1", "W2"].map(function (edge) {
+        return '<label class="machining-hinge-edge">' +
+            '<input type="radio" name="machiningHingeEdge' + index + '" value="' + edge + '"' +
+            (item.edge === edge ? " checked" : "") + ">" +
+            "<span>" + edge + "</span></label>";
+    }).join("");
+
+    // The panel's own size decides how many hinges fit, so the choices are
+    // built from it rather than being a fixed list.
+    var countHTML;
+    if (maxHoles < 2) {
+        countHTML = '<div class="machining-hinge-note">' +
+            (isNaN(edgeLength)
+                ? "Enter the panel's length and width first."
+                : "This edge is " + Math.round(edgeLength) + "mm — hinges need at least " +
+                  MACHINING_HINGE_MIN_PANEL_MM + "mm.") +
+            "</div>";
+    } else {
+        var opts = "";
+        for (var n = 2; n <= maxHoles; n++) {
+            opts += '<option value="' + n + '"' + (Number(item.holes) === n ? " selected" : "") + ">" + n + "</option>";
+        }
+        countHTML = '<select class="machining-select machining-hinge-count">' + opts + "</select>";
+    }
+
+    return "" +
+        '<div class="machining-applied-item machining-applied-item--hinge" data-index="' + index + '">' +
+        '<div class="machining-applied-chip">' +
+        '<span class="machining-applied-chip-label">' + panelSummaryEscape(label) + " on " + item.edge + "</span>" +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
+        "</div>" +
+        '<div class="machining-applied-detail">' +
+        '<div class="machining-hinge-row">' +
+        '<div class="machining-detail-label">Holes drilled along edge:</div>' +
+        '<div class="machining-hinge-edges">' + edgesHTML + "</div>" +
+        "</div>" +
+        '<div class="machining-hinge-row">' +
+        '<div class="machining-detail-label">Number of hinge holes:</div>' +
+        countHTML +
+        "</div>" +
+        '<div class="machining-hinge-row machining-hinge-view-row">' +
+        '<div class="machining-detail-label">Holes drilled on</div>' +
+        '<div class="machining-toggle-row" data-role="hinge-view">' +
+        // Hinge cups are bored into the back of the panel, so A side is
+        // shown for orientation but never selectable.
+        '<button type="button" class="machining-toggle-btn" data-view="A" disabled ' +
+        'title="Hinge holes are drilled on the back face">A side<br><small>Front face</small></button>' +
+        '<button type="button" class="machining-toggle-btn selected" data-view="B">B side<br><small>Back face</small></button>' +
+        "</div>" +
+        "</div>" +
+        '<div class="machining-preview-box">' + buildHingePreviewSVG(item) + "</div>" +
+        '<button type="button" class="machining-save-btn">Save</button>' +
+        "</div>" +
+        "</div>";
+}
+
+function buildHingePreviewSVG(item) {
+    var edge = item.edge || "L1";
+    // Dots sit along whichever edge is selected, on the B (back) face.
+    var dots = { L1: [], L2: [], W1: [], W2: [] };
+    var n = Math.max(2, Number(item.holes) || 2);
+    for (var i = 0; i < n; i++) {
+        var t = (i + 1) / (n + 1);
+        dots.L1.push([25 + 90 * t, 21]);
+        dots.L2.push([35 + 90 * t, 84]);
+        dots.W1.push([26 + 10 * t, 20 + 65 * t]);
+        dots.W2.push([115 + 10 * t, 20 + 65 * t]);
+    }
+    var marks = (dots[edge] || []).map(function (p) {
+        return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.6" fill="#2b78c8"></circle>';
+    }).join("");
+
+    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
+        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
+        '<text class="preview-label" x="75" y="56" text-anchor="middle">B SIDE</text>' +
+        '<text x="65" y="14" text-anchor="middle">L1</text>' +
+        '<text x="70" y="97" text-anchor="middle">L2</text>' +
+        '<text x="14" y="55">W1</text>' +
+        '<text x="122" y="55">W2</text>' +
+        marks +
+        "</svg>";
+}
+
+// SHELF HOLES (5mm / 7.5mm diameter shelf-pin rows)
+//
+// Two rows of pin holes run parallel to the chosen edge pair, one inset
+// from each edge of that pair. Each row carries N clusters, and a cluster
+// is `positions` holes spaced `step` mm apart — 32mm being the System 32
+// standard the default follows.
+var MACHINING_SHELF_DEFAULT_ROW_MM = 50;
+// Where the first cluster starts along the run. Not a panel field — each
+// cluster's start is set by dragging its marker or typing into its canvas
+// callout, and this is only the value a fresh layout begins from.
+var MACHINING_SHELF_DEFAULT_START_MM = 100;
+var MACHINING_SHELF_DEFAULT_STEP_MM = 32;
+var MACHINING_SHELF_DEFAULT_POSITIONS = 2;
+var MACHINING_SHELF_DEFAULT_CLUSTERS = 1;
+var MACHINING_SHELF_MAX_CLUSTERS = 12;
+
+// Drilling limits, all in mm. MIN_END and MIN_SIDE fence the pattern away
+// from the panel's edges (along the run and across it respectively);
+// MIN_HOLE_GAP is the closest two holes inside one cluster may sit, which
+// is the floor on Step; MIN_CLUSTER_GAP is the clear board one cluster
+// must leave the next.
+var MACHINING_SHELF_HOLE_DEPTH_MM = 8;
+var MACHINING_SHELF_MIN_END_MM = 50;
+var MACHINING_SHELF_MIN_SIDE_MM = 20;
+var MACHINING_SHELF_MIN_HOLE_GAP_MM = 25;
+var MACHINING_SHELF_MIN_CLUSTER_GAP_MM = 75;
+var MACHINING_SHELF_MAX_POSITIONS = 50;
+var MACHINING_SHELF_MAX_STEP_MM = 500;
+
+// An "L1-L2" pair means the rows run along the panel's length and their
+// inset is measured across its width from L1/L2; "W1-W2" is the reverse.
+// Mirrors machiningGrooveLabels()'s convention for the same edge pairs.
+function machiningShelfAxes(edge, dims) {
+    if (edge === "W1-W2") {
+        return {
+            run: dims.width, cross: dims.length,
+            row1Label: "Row one from W1", row2Label: "Row two from W2"
+        };
+    }
+    return {
+        run: dims.length, cross: dims.width,
+        row1Label: "Row one from L1", row2Label: "Row two from L2"
+    };
+}
+
+function machiningShelfNum(value, fallback) {
+    var n = parseFloat(value);
+    return isFinite(n) ? n : fallback;
+}
+
+function buildShelfHolesDetailHTML(item, index, label) {
+    var dims = machiningCurrentDims();
+    var axes = machiningShelfAxes(item.edge, dims);
+    var crossMax = !isNaN(axes.cross) ? axes.cross - 1 : 9998;
+    var runMax = !isNaN(axes.run) ? axes.run - 1 : 9998;
+
+    var edgesHTML = ["L1-L2", "W1-W2"].map(function (pair) {
+        return '<label class="machining-shelf-edge">' +
+            '<input type="radio" name="machiningShelfEdge' + index + '" value="' + pair + '"' +
+            (item.edge === pair ? " checked" : "") + ">" +
+            "<span>" + pair + "</span></label>";
+    }).join("");
+
+    // Only offer counts the run can actually take at the 25mm minimum
+    // between clusters — same approach as the hinge count, which is built
+    // from what the edge allows rather than a fixed list.
+    var maxClusters = isNaN(axes.run) ? 1 : machiningShelfMaxClusters(item, axes.run);
+    var clusterOpts = "";
+    for (var c = 1; c <= maxClusters; c++) {
+        clusterOpts += '<option value="' + c + '"' +
+            (Number(item.clusters) === c ? " selected" : "") + ">" + c + "</option>";
+    }
+
+    function field(fieldName, fieldLabel, value, min, max) {
+        return '<div class="machining-offset-field"><label>' + fieldLabel + "</label>" +
+            '<input type="text" class="machining-offset-input" data-field="' + fieldName + '"' +
+            ' data-min="' + min + '" data-max="' + max + '" value="' + value + '"></div>';
+    }
+
+    // A cluster can be configured so it can't be drilled at all — wider
+    // than the panel, or too many clusters for the run. Say why rather
+    // than leaving a blank canvas.
+    var geom = machiningShelfGeom(item);
+    var minRun = machiningShelfMinRunFor(Math.min(geom.clusters, maxClusters), geom.span);
+    var warning = "";
+    if (!isNaN(axes.run)) {
+        if (geom.span > axes.run) {
+            warning = "A cluster of " + geom.positions + " at " + Math.round(geom.step) +
+                "mm spans " + Math.round(geom.span) + "mm, wider than this " +
+                Math.round(axes.run) + "mm run. Reduce the step or the number of positions.";
+        } else if (axes.run < minRun) {
+            warning = "This " + Math.round(axes.run) + "mm run is too short for " +
+                Math.min(geom.clusters, maxClusters) + " cluster(s) — " +
+                Math.round(minRun) + "mm needed at these limits.";
+        }
+    }
+
+    var noteHTML = warning
+        ? '<div class="machining-hinge-note">' + warning + "</div>"
+        : '<div class="machining-groove-note">Notes:<br>' +
+          "Hole depth: " + MACHINING_SHELF_HOLE_DEPTH_MM + "mm<br>" +
+          "Min distance from end: " + MACHINING_SHELF_MIN_END_MM + "mm<br>" +
+          "Min distance from side: " + MACHINING_SHELF_MIN_SIDE_MM + "mm<br>" +
+          "Min distance between holes: " + MACHINING_SHELF_MIN_HOLE_GAP_MM + "mm<br>" +
+          "Min distance between clusters: " + MACHINING_SHELF_MIN_CLUSTER_GAP_MM + "mm" +
+          "</div>";
+
+    return "" +
+        '<div class="machining-applied-item machining-applied-item--shelf" data-index="' + index + '">' +
+        '<div class="machining-applied-chip">' +
+        '<span class="machining-applied-chip-label">' + panelSummaryEscape(label) + " along " + item.edge + "</span>" +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
+        "</div>" +
+        '<div class="machining-applied-detail">' +
+
+        '<div class="machining-shelf-row">' +
+        '<div class="machining-detail-label">Holes drilled along edge:</div>' +
+        '<div class="machining-shelf-edges">' + edgesHTML + "</div>" +
+        "</div>" +
+
+        '<div class="machining-shelf-row">' +
+        '<div class="machining-detail-label">Distance:</div>' +
+        '<div class="machining-offset-row">' +
+        field("row1", axes.row1Label, item.row1 == null ? "" : item.row1, MACHINING_SHELF_MIN_SIDE_MM, crossMax) +
+        field("row2", axes.row2Label, item.row2 == null ? "" : item.row2, MACHINING_SHELF_MIN_SIDE_MM, crossMax) +
+        "</div>" +
+        "</div>" +
+
+        '<div class="machining-shelf-row">' +
+        '<div class="machining-detail-label">Cluster size:</div>' +
+        '<div class="machining-offset-row">' +
+        field("step", "Step", item.step == null ? "" : item.step, MACHINING_SHELF_MIN_HOLE_GAP_MM, MACHINING_SHELF_MAX_STEP_MM) +
+        field("positions", "Positions", item.positions == null ? "" : item.positions, 1, MACHINING_SHELF_MAX_POSITIONS) +
+        "</div>" +
+        "</div>" +
+
+        '<div class="machining-shelf-row">' +
+        '<div class="machining-detail-label">Number of clusters:</div>' +
+        '<select class="machining-select machining-shelf-clusters">' + clusterOpts + "</select>" +
+        "</div>" +
+
+        '<div class="machining-detail-label machining-shelf-view-label">Holes drilled on:</div>' +
+        '<div class="machining-toggle-row" data-role="shelf-view">' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "A" ? " selected" : "") +
+        '" data-view="A">A side<br><small>Front face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "B" ? " selected" : "") +
+        '" data-view="B">B side<br><small>Back face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "AB" ? " selected" : "") +
+        '" data-view="AB">Both<br><small>Front &amp; Back</small></button>' +
+        "</div>" +
+
+        '<div class="machining-preview-box">' + buildShelfPreviewSVG(item) + "</div>" +
+        noteHTML +
+        '<button type="button" class="machining-save-btn">Save</button>' +
+        "</div>" +
+        "</div>";
+}
+
+function buildShelfPreviewSVG(item) {
+    var faceText = item.view === "A" ? "A SIDE" : item.view === "AB" ? "A + B" : "B SIDE";
+    var alongLength = item.edge !== "W1-W2";
+
+    // Two rows of dots on the isometric face, one per configured row, laid
+    // out along whichever edge pair is selected.
+    var n = Math.max(1, Math.min(6, Math.round(machiningShelfNum(item.positions, 2))));
+    var marks = "";
+    for (var r = 0; r < 2; r++) {
+        for (var i = 0; i < n; i++) {
+            var t = (i + 1) / (n + 1);
+            var cx, cy;
+            if (alongLength) {
+                cx = 30 + 80 * t + 8 * (r ? 1 : 0);
+                cy = 34 + 38 * r;
+            } else {
+                cx = 40 + 62 * r;
+                cy = 28 + 50 * t;
+            }
+            marks += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
+                '" r="2.2" fill="#2b78c8"></circle>';
+        }
+    }
+
+    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
+        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
+        '<text class="preview-label" x="75" y="60" text-anchor="middle">' + faceText + "</text>" +
+        '<text x="65" y="14" text-anchor="middle">L1</text>' +
+        '<text x="70" y="97" text-anchor="middle">L2</text>' +
+        '<text x="14" y="55">W1</text>' +
+        '<text x="122" y="55">W2</text>' +
+        marks +
+        "</svg>";
+}
+
+function buildGrooveDetailHTML(item, index) {
+    var dims = machiningCurrentDims();
+    var isVertical = item.edge === "W1-W2";
+    var runMax = isVertical
+        ? (!isNaN(dims.width) ? dims.width - 1 : 9998)
+        : (!isNaN(dims.length) ? dims.length - 1 : 9998);
+    var distMax = isVertical
+        ? (!isNaN(dims.length) ? dims.length - 1 : 9998)
+        : (!isNaN(dims.width) ? dims.width - 1 : 9998);
+    var labels = machiningGrooveLabels(item.edge);
+
+    var thickEl = document.getElementById("mThick");
+    var thickness = thickEl ? parseFloat(thickEl.textContent) : NaN;
+    var maxDepth = !isNaN(thickness) ? Math.max(1, thickness - MACHINING_GROOVE_DEPTH_MARGIN_MM) : 9998;
+
+    var distEdgeOptionsHTML = labels.distEdges.map(function (edge) {
+        return '<option value="' + edge + '"' + (item.distanceEdge === edge ? " selected" : "") + '>From ' + edge + "</option>";
+    }).join("");
+
+    return "" +
+        '<div class="machining-applied-item" data-index="' + index + '">' +
+        '<div class="machining-applied-chip">' +
+        '<span class="machining-applied-chip-label">Groove cut along ' + item.edge + '</span>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
+        "</div>" +
+        '<div class="machining-applied-detail">' +
+        '<div class="machining-detail-label">Groove cut along edge:</div>' +
+        '<div class="machining-toggle-row" data-role="groove-edge">' +
+        '<button type="button" class="machining-toggle-btn' + (item.edge !== "W1-W2" ? " selected" : "") + '" data-edge="L1-L2">L1-L2</button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.edge === "W1-W2" ? " selected" : "") + '" data-edge="W1-W2">W1-W2</button>' +
+        "</div>" +
+        '<div class="machining-detail-label">Size:</div>' +
+        '<div class="machining-offset-row">' +
+        '<div class="machining-offset-field"><label>Width</label>' +
+        '<input type="text" class="machining-offset-input" data-field="width" data-min="1" data-max="' + MACHINING_GROOVE_MAX_WIDTH_MM + '" value="' + (item.width || "") + '"></div>' +
+        '<div class="machining-offset-field"><label>Depth</label>' +
+        '<input type="text" class="machining-offset-input" data-field="depth" data-min="1" data-max="' + maxDepth + '" value="' + (item.depth || "") + '"></div>' +
+        "</div>" +
+        '<div class="machining-detail-label">End points:</div>' +
+        '<div class="machining-offset-row">' +
+        '<div class="machining-offset-field"><label>' + labels.end1 + '</label>' +
+        '<input type="text" class="machining-offset-input" data-field="end1" data-min="0" data-max="' + runMax + '" value="' + (item.end1 || "") + '"></div>' +
+        '<div class="machining-offset-field"><label>' + labels.end2 + '</label>' +
+        '<input type="text" class="machining-offset-input" data-field="end2" data-min="0" data-max="' + runMax + '" value="' + (item.end2 || "") + '"></div>' +
+        "</div>" +
+        '<div class="machining-detail-label">Distance:</div>' +
+        '<div class="machining-offset-row">' +
+        '<div class="machining-offset-field"><label>Specify edge</label>' +
+        '<select class="machining-select machining-groove-distance-edge">' + distEdgeOptionsHTML + "</select></div>" +
+        '<div class="machining-offset-field"><label>Edge to groove</label>' +
+        '<input type="text" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + (item.distance || "") + '"></div>' +
+        "</div>" +
+        '<div class="machining-detail-label">Groove cut on:</div>' +
+        '<div class="machining-toggle-row" data-role="view">' +
+        '<button type="button" class="machining-toggle-btn' + (item.view !== "B" ? " selected" : "") + '" data-view="A">A side<br><small>Front face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "B" ? " selected" : "") + '" data-view="B">B side<br><small>Back face</small></button>' +
+        "</div>" +
+        '<div class="machining-preview-box">' + buildGroovePreviewSVG(item) + "</div>" +
+        '<div class="machining-groove-note">Notes: Max groove depth: ' + maxDepth + "mm</div>" +
+        '<button type="button" class="machining-save-btn">Save</button>' +
+        "</div>" +
+        "</div>";
+}
+
 function buildMachiningAppliedItemHTML(item, index) {
+
+    if (item.option === "groove") {
+        return buildGrooveDetailHTML(item, index);
+    }
+
+    // Dispatched on the CPT's behaviour rather than the slug, so any option
+    // set to "Hinge holes" in wp-admin gets this panel — not just the two
+    // Blum ones seeded with it.
+    var itemOpt = machiningOptionBySlug(item.option);
+    if (itemOpt && itemOpt.behaviour === "hinge-holes") {
+        return buildHingeHolesDetailHTML(item, index, itemOpt.label || item.label || "Hinge holes");
+    }
+
+    if (itemOpt && itemOpt.behaviour === "shelf-holes") {
+        return buildShelfHolesDetailHTML(item, index, itemOpt.label || item.label || "Shelf holes");
+    }
 
     if (item.option !== "angled-cut") {
         return '<div class="machining-applied-item" data-index="' + index + '">' +
@@ -2954,6 +4835,7 @@ function buildMachiningAppliedItemHTML(item, index) {
 
     var labels = machiningCornerLabels(item.corner);
     var tapes = machiningTapesForCurrentRow();
+    var allowedFinishes = machiningTapeFinishes(item.edgeTapeCode);
     var dims = machiningCurrentDims();
     var maxH = !isNaN(dims.length) ? dims.length - 1 : 9998;
     var maxV = !isNaN(dims.width) ? dims.width - 1 : 9998;
@@ -2989,8 +4871,12 @@ function buildMachiningAppliedItemHTML(item, index) {
         '<div class="Select2__dropdown">' + buildMachiningEdgingOptionsHTML(tapes, item.edgeTapeCode) + "</div>" +
         "</div>" +
         '<div class="machining-toggle-row" data-role="finish"' + (item.edgeTapeCode ? "" : ' style="display:none"') + ">" +
-        '<button type="button" class="machining-toggle-btn' + (item.finish === "radius" ? " selected" : "") + '" data-finish="radius">Radius<br><small>edge finish</small></button>' +
-        '<button type="button" class="machining-toggle-btn' + (item.finish === "square" ? " selected" : "") + '" data-finish="square">Square<br><small>edge finish</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.finish === "radius" ? " selected" : "") + '"' +
+        (allowedFinishes.radius ? "" : ' disabled title="This edging tape isn\'t available with a radius edge finish"') +
+        ' data-finish="radius">Radius<br><small>edge finish</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.finish === "square" ? " selected" : "") + '"' +
+        (allowedFinishes.square ? "" : ' disabled title="This edging tape isn\'t available with a square edge finish"') +
+        ' data-finish="square">Square<br><small>edge finish</small></button>' +
         "</div>" +
         '<div class="machining-detail-label">View</div>' +
         '<div class="machining-toggle-row" data-role="view">' +
@@ -3019,16 +4905,76 @@ if (machiningAddBtn) {
 
         var optionKey = selectedItem.dataset.option;
 
-        if (optionKey === "angled-cut") {
+        // Which settings panel/drawing to use comes from the CPT's
+        // behaviour field, so an option added in wp-admin can reuse an
+        // existing behaviour under its own name. Falls back to the slug
+        // for anything not in the catalogue.
+        var optionDef = machiningOptionBySlug(optionKey);
+        var behaviour = optionDef ? optionDef.behaviour : optionKey;
+
+        // The dropdown item is already greyed, but this is a delegated
+        // handler on a div — nothing stops a click reaching it.
+        if (machiningOptionBlockedReason(optionDef, machiningCurrentRow)) return;
+
+        if (behaviour === "angled-cut") {
+            // offsetH/offsetV are measured from the *far* edge, so the
+            // default leg is subtracted from the board's own dimension.
+            // Left blank when that dimension isn't filled in yet — there's
+            // nothing to subtract from, and the cut is drawn at
+            // MACHINING_MIN_INSET until the row has real numbers.
+            var addDims = machiningCurrentDims();
+            var defaultOffsetH = (!isNaN(addDims.length) && addDims.length > MACHINING_DEFAULT_CUT_LEG_MM)
+                ? Math.round(addDims.length - MACHINING_DEFAULT_CUT_LEG_MM) : "";
+            var defaultOffsetV = (!isNaN(addDims.width) && addDims.width > MACHINING_DEFAULT_CUT_LEG_MM)
+                ? Math.round(addDims.width - MACHINING_DEFAULT_CUT_LEG_MM) : "";
             machiningAppliedItems.push({
                 option: "angled-cut",
                 corner: "L1-W1",
-                offsetH: "",
-                offsetV: "",
+                offsetH: defaultOffsetH,
+                offsetV: defaultOffsetV,
                 edgeTapeCode: "",
                 edgeTapeName: "",
                 finish: "",
                 view: "A"
+            });
+        } else if (behaviour === "groove") {
+            machiningAppliedItems.push({
+                option: "groove",
+                edge: "L1-L2",
+                width: "",
+                depth: "",
+                end1: "",
+                end2: "",
+                distanceEdge: "L1",
+                distance: "",
+                view: "A"
+            });
+        } else if (behaviour === "hinge-holes") {
+            // Start at the recommended count for the edge, not the maximum
+            // it could take — the select then lets it be changed either way.
+            var hingeDims = machiningCurrentDims();
+            var hingeDefault = machiningHingeDefaultHoleCount(machiningHingeEdgeLength("L1", hingeDims));
+            machiningAppliedItems.push({
+                option: optionKey,
+                label: selectedItem.textContent.trim(),
+                edge: "L1",
+                holes: hingeDefault >= 2 ? hingeDefault : 2,
+                // Hinge cups go into the back face; A side isn't selectable.
+                view: "B"
+            });
+        } else if (behaviour === "shelf-holes") {
+            machiningAppliedItems.push({
+                option: optionKey,
+                label: selectedItem.textContent.trim(),
+                edge: "L1-L2",
+                row1: MACHINING_SHELF_DEFAULT_ROW_MM,
+                row2: MACHINING_SHELF_DEFAULT_ROW_MM,
+                step: MACHINING_SHELF_DEFAULT_STEP_MM,
+                positions: MACHINING_SHELF_DEFAULT_POSITIONS,
+                clusters: MACHINING_SHELF_DEFAULT_CLUSTERS,
+                // Shelf pins are bored into the inner face, but unlike hinge
+                // cups either face — or both — is a legitimate choice.
+                view: "B"
             });
         } else {
             machiningAppliedItems.push({
@@ -3086,6 +5032,13 @@ if (machiningAppliedList) {
                 var tape = machiningTapesForCurrentRow()
                     .filter(function (t) { return t.code === option.dataset.code; })[0];
                 item.edgeTapeName = tape ? tape.name : "";
+
+                // Switching tape can outlaw the finish already chosen —
+                // drop it rather than leave a selected-but-disabled button
+                // that would also be saved to the order.
+                var nowAllowed = machiningTapeFinishes(item.edgeTapeCode);
+                if (!nowAllowed[item.finish]) item.finish = "";
+
                 renderMachiningAppliedList();
                 saveMachiningAppliedItems();
                 return;
@@ -3095,7 +5048,20 @@ if (machiningAppliedList) {
 
         var finishBtn = e.target.closest(".machining-toggle-btn[data-finish]");
         if (finishBtn) {
+            // Browsers don't fire click on a disabled button, but this
+            // listener is delegated — so guard rather than rely on that.
+            if (finishBtn.disabled) return;
             item.finish = finishBtn.dataset.finish;
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+            return;
+        }
+
+        var edgeBtn = e.target.closest(".machining-toggle-btn[data-edge]");
+        if (edgeBtn) {
+            item.edge = edgeBtn.dataset.edge;
+            // Switching axis changes which edges the end points/distance are
+            // measured from, and their valid max — re-render picks that up.
             renderMachiningAppliedList();
             saveMachiningAppliedItems();
             return;
@@ -3132,6 +5098,46 @@ if (machiningAppliedList) {
             saveMachiningAppliedItems();
         }
 
+        if (e.target.classList.contains("machining-groove-distance-edge")) {
+            item.distanceEdge = e.target.value;
+            saveMachiningAppliedItems();
+        }
+
+        if (e.target.matches('input[type="radio"][name^="machiningHingeEdge"]')) {
+            item.edge = e.target.value;
+            // Switching L1/L2 <-> W1/W2 measures a different side of the
+            // panel, so the allowed hole count changes with it — clamp
+            // rather than keep a count the new edge can't take.
+            var maxHoles = machiningHingeHoleCount(
+                machiningHingeEdgeLength(item.edge, machiningCurrentDims())
+            );
+            if (maxHoles >= 2) {
+                item.holes = Math.min(Number(item.holes) || 2, maxHoles);
+            }
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+        }
+
+        if (e.target.classList.contains("machining-hinge-count")) {
+            item.holes = parseInt(e.target.value, 10) || 2;
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+        }
+
+        if (e.target.matches('input[type="radio"][name^="machiningShelfEdge"]')) {
+            item.edge = e.target.value;
+            // The row insets are measured across the other axis now, so
+            // their labels and max change — re-render picks both up.
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+        }
+
+        if (e.target.classList.contains("machining-shelf-clusters")) {
+            item.clusters = parseInt(e.target.value, 10) || 1;
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+        }
+
     });
 
     // Only updates the in-memory item, not the DOM — re-rendering on every
@@ -3146,7 +5152,9 @@ if (machiningAppliedList) {
         if (!item) return;
 
         var field = e.target.dataset.field;
-        if (field === "offsetH" || field === "offsetV") {
+        if (field === "offsetH" || field === "offsetV" ||
+            field === "width" || field === "depth" || field === "end1" || field === "end2" || field === "distance" ||
+            field === "row1" || field === "row2" || field === "step" || field === "positions") {
             item[field] = e.target.value;
         }
 
@@ -3427,9 +5435,11 @@ function updateSprayVisuals() {
 
     var cfg = SPRAY_OPTIONS[sprayState.option];
     if (!cfg) {
-        // No matching finish (removed in wp-admin, or a stale cached slug)
-        // — fail visibly instead of throwing on cfg.finishes below, which
-        // would silently freeze the total.
+        // sprayState.option doesn't match any known finish — e.g. it was 
+        // removed in wp-admin after this overlay was opened, or (during
+        // testing) a stale cached proto-main.js still has an old slug.
+        // Fail visibly instead of throwing on cfg.finishes below, which
+        // would silently freeze the total at whatever it last showed.
         areaEl.textContent = "-";
         totalEl.textContent = sprayMoney(0);
         panel.style.background = "";

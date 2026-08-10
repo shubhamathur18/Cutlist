@@ -36,6 +36,28 @@
             "required": 1
         },
         {
+            "key": "field_edge_tape_radius_edge_finish",
+            "label": "Radius edge finish",
+            "name": "radius_edge_finish",
+            "type": "true_false",
+            "instructions": "Can this tape be finished with a radius (rounded) edge?",
+            "ui": 1,
+            "default_value": 1,
+            "ui_on_text": "Yes",
+            "ui_off_text": "No"
+        },
+        {
+            "key": "field_edge_tape_square_edge_finish",
+            "label": "Square edge finish",
+            "name": "square_edge_finish",
+            "type": "true_false",
+            "instructions": "Can this tape be finished with a square edge?",
+            "ui": 1,
+            "default_value": 1,
+            "ui_on_text": "Yes",
+            "ui_off_text": "No"
+        },
+        {
             "key": "field_edge_tape_boards",
             "label": "Matches boards",
             "name": "boards",

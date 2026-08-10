@@ -1,5 +1,9 @@
         :root {
             --primary-color: #5da344;
+            /* Section-tab bar palette. Kept separate from --primary-color,
+               which the rest of the app still uses for its green accents. */
+            --tabbar-bg: rgba(28, 28, 28, 1);
+            --tabbar-accent: #e5342b;
         }
 
         * {
@@ -13,39 +17,121 @@
             overflow-x: hidden;
         }
 
-        /* TOP BLUE AREA */
+        /* TOP BRAND BAR + SECTION TABS
+           Heights come from padding rather than fixed px so a label that
+           wraps to two lines can't overflow its tab; `stretch` then keeps
+           every tab the same height as the tallest, so a single wrapped
+           label doesn't leave the row looking ragged. */
         .header {
-            background: var(--primary-color);
-            height: 122px;
-            padding-top: 40px;
+            background: var(--tabbar-bg);
+            padding: 30px 24px 0;
         }
 
         .tabs {
             display: flex;
-            margin-left: 33px;
-            margin-right: 90px;
+            align-items: stretch;
+            gap: 3px;
+            max-width: 1440px;
+            margin: 0 auto;
+            /* Below ~5 readable tabs the row scrolls instead of crushing
+               every label — squashed tabs were the previous 20%-width
+               layout's failure mode on tablet/mobile. */
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .tabs::-webkit-scrollbar {
+            display: none;
         }
 
         .tab {
-            height: 82px;
-            width: 20%;
-            background: #eeffed;
-            color: #333;
-            border-right: 1px solid var(--primary-color);
+            flex: 1 1 0;
+            min-width: 148px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            font-size: 17px;
-            gap: 16px;
+            justify-content: center;
+            gap: 7px;
+            padding: 16px;
+            /* Transparent by default so only the active tab spends the
+               3px, keeping every label on the same baseline. */
+            border-top: 3px solid transparent;
+            border-radius: 9px 9px 0 0;
+            background: rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.66);
+            font-size: 15px;
+            line-height: 1.3;
+            text-align: center;
+            text-decoration: none;
             cursor: pointer;
+            transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
         }
 
+        .tab>div {
+            font-weight: 600;
+        }
+
+        /* Price is supporting information, so it sits back from the label
+           rather than competing with it at equal weight. */
+        .tab>strong {
+            font-size: 14px;
+            font-weight: 700;
+            opacity: 0.82;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.13);
+            color: #fff;
+        }
+
+        .tab:focus-visible {
+            outline: 2px solid var(--tabbar-accent);
+            outline-offset: -3px;
+        }
+
+        /* The panel below is white, so a white tab reads as continuous with
+           it — the section you're on is literally the front-most surface.
+           Red is spent only here, on the one element it needs to mark. */
         .tab.active {
-            background: white;
-            color: var(--primary-color);
-            margin-top: -12px;
-            height: 94px;
+            background: #fff;
+            color: #1c1c1c;
+            border-top-color: var(--tabbar-accent);
+            box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.28);
+            cursor: default;
+        }
+
+        .tab.active>strong {
+            opacity: 1;
+        }
+
+        /* Muted colour rather than opacity: opacity fades the text into the
+           dark bar and makes it look blurred, this keeps it crisp while
+           still clearly reading as unavailable. */
+        .tab.disabled {
+            background: rgba(255, 255, 255, 0.065);
+            color: rgba(255, 255, 255);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        @media (max-width: 700px) {
+            .header {
+                padding: 20px 12px 0;
+            }
+
+            .tab {
+                min-width: 128px;
+                font-size: 14px;
+                padding: 13px 12px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tab {
+                transition: none;
+            }
         }
 
         /* Persistent "View basket / Checkout" bar — only shown once something's in the basket */
@@ -110,27 +196,30 @@
 
         .section-title h2 {
             margin: 0;
-            font-size: 30px;
-            font-weight: 400;
+            font-size: 24px;
+            font-weight: 600;
+            text-transform: capitalize;
+            letter-spacing: 0.4px;
         }
 
         .toggle {
-            color: var(--primary-color);
+            color: var(--tabbar-bg);
             font-size: 14px;
             display: flex;
-            gap: 30px;
+            gap: 20px;
             align-items: center;
             cursor: pointer;
             user-select: none;
+            font-weight: 500;
         }
 
         /* arrow */
         .arrow {
-            width: 20px;
-            height: 20px;
-            border-left: 1px solid var(--primary-color);
-            border-top: 1px solid var(--primary-color);
-            transform: rotate(45deg);
+            width: 10px;
+            height: 10px;
+            border-left: 2px solid var(--tabbar-bg);
+            border-top: 2px solid var(--tabbar-bg);
+            transform: rotate(45deg) translateY(6px);
         }
 
         .arrow.down {
@@ -139,40 +228,79 @@
 
         /* TABLE */
         .table-area {
-            margin-top: 17px;
+            margin-top: 10px;
             overflow-x: auto;
         }
 
         table {
             border-collapse: separate;
-            border-spacing: 10px 8px;
+            border-spacing: 7px 5px;
             font-size: 14px;
-            color: #8b98a0;
+            color: #5c666f;
         }
 
         th {
-            font-weight: 400;
+            font-weight: 600;
             text-align: left;
+            color: #47525b;
+            font-size: 12.5px;
+            letter-spacing: 0.015em;
+            vertical-align: bottom;
+            padding-bottom: 3px;
         }
 
-        td input {
-            height: 100%;
-            border: 1px solid #c8c8c8;
+        /* Every control in the list shares one look — white field, soft
+           border, green focus ring — so the grid reads as a single form
+           rather than a mix of bordered inputs and borderless grey boxes.
+           Checkboxes are excluded: a fixed height/padding/border turns the
+           Grain match tickbox into a stray empty rectangle. */
+        td input:not([type="checkbox"]):not([type="radio"]),
+        td select {
+            height: 36px;
+            border: 1px solid #d3d9df;
+            border-radius: 6px;
             background: #fff;
-            padding: 5px;
+            color: #1c1c1c;
+            font-size: 13px;
+            padding: 0 9px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        td input::placeholder {
+            color: #a7b0b8;
+        }
+
+        td input:not([type="checkbox"]):hover:not(:disabled),
+        td select:hover:not(:disabled) {
+            border-color: #b4bec6;
+        }
+
+        td input:not([type="checkbox"]):focus,
+        td select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(93, 163, 68, 0.15);
+        }
+
+        /* Most fields in an empty row are disabled, so they stay quiet: a
+           flat tint rather than the old solid grey + opacity, which turned
+           each row into a wall of heavy blocks and blurred the text.
+           opacity is reset because the global input:disabled sets 0.7. */
+        td input:not([type="checkbox"]):disabled,
+        td select:disabled {
+            background: #f6f7f9;
+            border-color: #e4e8ec;
+            color: #98a1a9;
+            opacity: 1;
+            cursor: not-allowed;
         }
 
         .decor input {
             width: 242px;
-            background: white;
         }
 
         .small select {
-            width: 63px;
-            height: 100%;
-            border: 1px solid #c8c8c8;
-            background: #fff;
-            padding: 5px;
+            width: 72px;
         }
 
         select:disabled {
@@ -181,47 +309,94 @@
         }
 
         .small input {
-            width: 45px;
+            width: 54px;
         }
 
         .qty input {
-            width: 48px;
+            width: 54px;
         }
 
         .desc input {
-            width: 115px;
+            width: 130px;
         }
 
+        /* Groups the four edge columns without the old flat grey slab —
+           tinted so it reads as a header band, not a hole. */
         .edging {
-            background: #f4f4f4;
+            background: #f5f8f9;
             text-align: center;
         }
 
+        .edging-group {
+            border-radius: 8px 8px 0 0;
+            padding: 8px 8px;
+            vertical-align: middle;
+        }
+
+        /* Each sits directly above its own column's input, so it centres on
+           that input rather than on an even quarter of the group's width. */
+        .edging-col {
+            text-align: center;
+            border-radius: 0 0 8px 8px;
+            padding: 4px 0 6px;
+        }
+
+        /* The input is narrower than its cell, so without this it sits left
+           while the label above centres — leaving them off by a couple of
+           px even though both are in the same column. */
+        .edging-input {
+            text-align: center;
+        }
+
+        /* Destructive, so it stays muted until you actually reach for it. */
         .delete {
-            color: red;
-            font-size: 34px;
+            color: #c7ccd1;
+            font-size: 22px;
+            line-height: 1;
             cursor: pointer;
             text-align: center;
+            transition: color 0.15s ease;
+        }
+
+        .delete:hover {
+            color: #e5342b;
         }
 
         .btn-area {
-            margin-left: 43px;
-            margin-top: 20px;   
-            margin: 20px 0 20px 43px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 22px 0 20px 12px;
         }
-        .btn-area button{
+
+        .btn-area button {
             width: fit-content !important;
-            font-size: 12px;
+            height: 36px;
+            font-size: 12.5px;
             font-weight: 600;
-            border-radius: 20px;
-            padding: 0 20px;
+            border-radius: 8px;
+            padding: 0 18px;
+            margin-right: 0;
             cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
         }
+
+        .btn-area button:not(:disabled):hover {
+            background: rgba(93, 163, 68, 0.08);
+        }
+
+        .btn-area button:disabled {
+            border-color: #e0e4e8;
+            color: #a8b0b7;
+            background: #fff;
+            cursor: not-allowed;
+        }
+
         button {
             height: 38px;
-            background: white;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
+            background: #f6f7f9;
+            border: 1px solid var(--tabbar-bg);
+            color: var(--tabbar-bg);
             font-size: 14px;
             width: 242px;
             margin-right: 7px;
@@ -276,7 +451,7 @@
         }
 
         #fsTable tr.fs-row td {
-            padding: 6px 10px;
+            padding: 10px;
             border-bottom: 1px solid #eee;
             vertical-align: middle;
         }
@@ -394,13 +569,17 @@
             width: 64px;
         }
 
+        /* Matches the cutting list header — same weight, colour and size,
+           so the three tables on the page read as one system. */
         #etTable thead th {
             padding: 8px 10px;
-            font-size: 12px;
-            font-weight: 400;
-            color: #8b98a0;
-            border-bottom: 1px solid #ddd;
+            font-size: 12.5px;
+            font-weight: 600;
+            letter-spacing: 0.015em;
+            color: #47525b;
+            border-bottom: 1px solid #e3e8ec;
             text-align: left;
+            vertical-align: bottom;
         }
 
         #etTable thead th.th-index {
@@ -412,8 +591,8 @@
         }
 
         #etTable tbody td {
-            padding: 6px 8px;
-            border-bottom: 1px solid #eee;
+            padding: 7px 8px;
+            border-bottom: 1px solid #eef1f4;
             vertical-align: middle;
         }
 
@@ -434,23 +613,30 @@
             user-select: none;
         }
 
+        /* Same field treatment as the cutting list's inputs: soft border,
+           6px radius, and a green ring when open instead of the old
+           darkening border. */
         .Select2__input-wrapper {
             display: flex;
             align-items: center;
-            border: 1px solid #c8c8c8;
+            border: 1px solid #d3d9df;
+            border-radius: 6px;
             background: #fff;
-            min-height: 39px;
-            padding: 0 8px;
+            min-height: 36px;
+            padding: 0 9px;
             cursor: pointer;
             gap: 6px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .Select2__input-wrapper:hover {
-            border-color: #888;
+            border-color: #b4bec6;
         }
 
         .Select2.is-open .Select2__input-wrapper {
-            border-color: #555;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(93, 163, 68, 0.15);
+            border-radius: 6px 6px 0 0;
         }
 
         .Select2__input {
@@ -495,9 +681,10 @@
             left: 0;
             right: 0;
             background: #fff;
-            border: 1px solid #c8c8c8;
+            border: 1px solid #d3d9df;
             border-top: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.13);
+            border-radius: 0 0 6px 6px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
             z-index: 2000;
             max-height: 270px;
             overflow-y: auto;
@@ -561,30 +748,68 @@
         .et-qty-input {
             width: 84px;
             height: 36px;
-            border: 1px solid #c8c8c8;
+            border: 1px solid #d3d9df;
+            border-radius: 6px;
             text-align: center;
             padding: 0 6px;
-            font-size: 14px;
+            font-size: 13px;
+            color: #1c1c1c;
             background: #fff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
+        .et-qty-input::placeholder {
+            color: #a7b0b8;
+        }
+
+        .et-qty-input:hover:not(:disabled) {
+            border-color: #b4bec6;
+        }
+
+        .et-qty-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(93, 163, 68, 0.15);
+        }
+
+        /* Quiet tint rather than a solid grey block, matching the disabled
+           fields in the cutting list. */
         .et-qty-input:disabled {
-            background: #eee;
+            background: #f6f7f9;
+            border-color: #e4e8ec;
+            color: #98a1a9;
+            opacity: 1;
             cursor: not-allowed;
         }
 
-        /* remove button */
-        .button-remove {
-            background: none;
-            border: none;
-            width: auto;
-            height: auto;
-            padding: 4px 6px;
+        /* "Add a row" under the Full Sheets / Edging Tape tables — same pill
+           treatment as the cutting list's .btn-area buttons. */
+        .table-bottom-buttons button {
+            height: 36px;
+            font-size: 12.5px;
+            font-weight: 600;
+            border-radius: 8px;
+            padding: 0 18px;
             cursor: pointer;
-            line-height: 1;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .table-bottom-buttons button:not(:disabled):hover {
+            background: rgba(93, 163, 68, 0.08);
+        }
+
+        .table-bottom-buttons button:disabled {
+            border-color: #e0e4e8;
+            color: #a8b0b7;
+            background: #fff;
+            cursor: not-allowed;
+        }
+
+        /* The edging tape rows now use the same span.delete × as the cutting
+           list, so they inherit the shared .delete styling (muted grey,
+           red on hover) — no separate SVG-button rules needed. */
+        #etTable .delete {
+            display: inline-block;
         }
 
         /* PANEL MODAL (More info) */
@@ -1637,9 +1862,10 @@
             border: 1px solid var(--primary-color);
             color: var(--primary-color);
             background: #fff;
-            padding: 12px 28px;
+            padding: 8px 18px;
             cursor: pointer;
             font-size: 14px;
+            border-radius: 20px;
         }
 
         .supplier-tab.active {
@@ -1787,30 +2013,43 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
         }
 
         .grain-direction {
-            display: flex;
-            align-items: center;
-            gap: 10px;
             font-size: 13px;
             color: #555;
             width: 80%;
+            text-align: center;
+            margin-bottom: 4px;
         }
 
-        .grain-direction::before,
-        .grain-direction::after {
-            content: "";
-            flex: 1;
+        .grain-arrow-line {
+            position: relative;
+            width: 80%;
             height: 1px;
             background: #555;
+            margin-bottom: 12px;
         }
 
-        .grain-direction::before {
-            clip-path: polygon(0 50%, 8px 0, 8px 100%);
-            height: 9px;
-            background: #555;
+        .grain-arrow-line::before,
+        .grain-arrow-line::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 7px;
+            height: 7px;
+            border-top: 1px solid #555;
+            border-right: 1px solid #555;
+        }
+
+        .grain-arrow-line::before {
+            left: 0;
+            transform: translateY(-50%) rotate(-135deg);
+        }
+
+        .grain-arrow-line::after {
+            right: 0;
+            transform: translateY(-50%) rotate(45deg);
         }
 
         .grain-diagram {
@@ -1856,6 +2095,32 @@
             border-bottom: none;
         }
 
+        .grain-labels {
+            display: flex;
+            width: 80%;
+            margin-top: 6px;
+        }
+
+        .grain-label {
+            flex: 1;
+            text-align: center;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: #999;
+        }
+
+        .grain-label.big {
+            flex: 1.4;
+        }
+
+        .grain {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            height: 60px;
+        }
+
         .grain input[type="checkbox"] {
             width: 18px;
             height: 18px;
@@ -1866,10 +2131,33 @@
             cursor: not-allowed;
         }
 
+        .grain-letter {
+            display: none;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 3px;
+            border: 1px solid #999;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #555;
+            text-align: center;
+            line-height: 16px;
+        }
+
+        .grain-letter.visible {
+            display: inline-block;
+        }
+
+        /* Right-aligned, not centred: the icons are visibility:hidden until
+           a row is unlocked, and hidden elements still take up space — so
+           centring put the × in a different place on a data row (3 icons)
+           than on a section row (1 icon). Anchoring to the end keeps the ×
+           in the same column on every row regardless of icon count. */
         .actions-inner {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-end;
             gap: 10px;
         }
 
@@ -1904,16 +2192,26 @@
             color: #3f8fd1;
         }
 
+        /* Muted until hovered — a permanent row of red crosses pulls the
+           eye to the one destructive control on every row. */
         .actions .delete {
-            color: red;
-            font-size: 28px;
+            color: #c7ccd1;
+            font-size: 22px;
             line-height: 1;
             cursor: pointer;
+            transition: color 0.15s ease;
+        }
+
+        .actions .delete:hover {
+            color: #e5342b;
         }
 
         /* Row hover highlight */
+        /* A neutral tint rather than the old yellow — row hover is a
+           pointer cue, not a warning, and yellow competes with the
+           genuinely coloured states (invalid fields, grain notices). */
         .table-area table tr:not(.header-row):not(.section-row):hover {
-            background-color: #fffde7;
+            background-color: #f5f8fa69;
         }
 
         /* Section row */
@@ -1930,6 +2228,14 @@
 
         .section-row td.sr-input-cell {
             padding: 5px 8px;
+        }
+
+        /* `.section-row td { padding: 0 }` above lets the name input span
+           its cell edge to edge, but it also strips the 5px right padding
+           every other td gets from the global `td` rule — which pushed this
+           row's × 5px further right than the one on every data row. */
+        .section-row td.actions {
+            padding-right: 5px;
         }
 
         .section-name-input {
@@ -2303,10 +2609,14 @@
         }
 
         /* EDGE FINISH POPUP */
+        /* This popup is blue-themed rather than using the app's green
+           --primary-color: it sits over the edgebanding columns, which are
+           blue throughout (tabs, highlights, diagram callouts). */
         .edge-popup {
+            --edge-accent: #2b78c8;
             display: none;
             position: absolute;
-            width: 292px;
+            width: 300px;
             background: #eaf3fc;
             border: 1px solid #bcd8f2;
             box-shadow: 0px 2px 8px #999;
@@ -2315,42 +2625,87 @@
             color: #333;
         }
 
-        .edge-popup-header {
-            position: relative;
-            background: #d7e9fb;
-            text-align: center;
-            padding: 14px;
-            font-size: 16px;
+        /* One of the four edge labels around the diagram. Only the edge
+           currently being edited takes the accent. */
+        .edge-face-label.active {
+            color: var(--edge-accent);
             font-weight: bold;
-            border-bottom: 1px solid #bcd8f2;
         }
 
+        /* Floats in the popup's corner — there's no title row to sit in. */
         .edge-popup-close {
             position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--primary-color);
+            right: 12px;
+            top: 8px;
+            z-index: 1;
+            color: var(--edge-accent);
             cursor: pointer;
-            font-size: 18px;
-            font-weight: normal;
+            font-size: 22px;
+            font-weight: bold;
+            line-height: 1;
         }
 
+        /* Transparent: the popup's blue shows through, and only the inner
+           card is white — W1/W2/L2 read as labels around the panel. */
         .edge-diagram {
-            background: #fff;
-            margin: 16px;
-            padding: 14px 10px 10px;
+            margin: 6px 12px 4px;
             text-align: center;
+        }
+
+        .edge-top-label {
+            color: #8a8f94;
+            font-size: 13px;
+            padding: 6px 0 8px;
+        }
+
+        .edge-diagram-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .edge-side-label {
+            color: #8a8f94;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        /* Width and height are set per row from the entered dimensions (see
+           renderEdgePopup), so the drawing is the shape of the real panel.
+           A max-height clamp here used to squash every tall panel back into
+           a square, and `flex: 1` let wide ones grow past the popup — both
+           are now handled by sizing the box in JS instead. */
+        .edge-diagram-card {
+            position: relative;
+            flex: 0 0 auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fff;
+            border: 1px solid #333;
+            padding: 10px 12px 12px;
+            width: 196px;
+            height: 130px;
         }
 
         .edge-dim-top {
             color: #999;
             font-size: 13px;
-            margin-bottom: 4px;
         }
 
-        .edge-diagram-frame {
+        /* Three columns with equal 1fr gutters: the dimension sits in the
+           first, the arrow in the middle. Equal gutters keep the arrow
+           centred on the card, while still reserving space so it can't run
+           into the dimension text on a narrow (tall-panel) card — which is
+           what absolute positioning allowed. */
+        .edge-card-body {
             position: relative;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr minmax(0, auto) 1fr;
+            align-items: center;
+            padding: 6px 0;
         }
 
         .edge-highlight {
@@ -2390,42 +2745,40 @@
             background: var(--primary-color);
         }
 
-        .edge-diagram-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            border: 1px solid #333;
-            padding: 18px 6px;
-        }
-
         .edge-dim-side {
+            justify-self: start;
             color: #999;
             font-size: 13px;
+            white-space: nowrap;
         }
 
-        .edge-diagram-box {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-        }
-
+        /* Two-shaft arrow, drawn rather than the "↔" glyph so the weight
+           and length match the reference at any font size. It scales down
+           on a narrow card instead of overflowing. */
         .edge-grain-arrow {
-            font-size: 20px;
-            color: #333;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .edge-grain-arrow svg {
+            display: block;
+            width: 100%;
+            max-width: 74px;
+            height: auto;
         }
 
         .edge-grain-caption {
             color: #999;
             font-size: 12px;
-            margin-top: 8px;
         }
 
         .edge-bottom-label {
             text-align: center;
-            font-weight: bold;
-            color: #333;
-            padding-bottom: 10px;
+            color: #8a8f94;
+            font-size: 13px;
+            padding: 6px 0 12px;
         }
 
         .edge-tabs {
@@ -2436,11 +2789,15 @@
             flex: 1;
             text-align: center;
             padding: 8px 0;
-            background: #bcd8f2;
+            background: #a8cbeb;
             color: #fff;
             cursor: pointer;
             font-size: 13px;
             border-right: 1px solid #eaf3fc;
+        }
+
+        .edge-tab:hover:not(.active) {
+            background: #93bfe5;
         }
 
         .edge-tab:last-child {
@@ -2471,13 +2828,26 @@
             font: inherit;
         }
 
-        .edge-summary:hover {
+        .edge-summary:hover:not(:disabled) {
             background: #dceafd;
         }
 
+        /* No edging tape is matched to this row's decor, so there's nothing
+           to apply — see edgeTapeForRow(). */
+        .edge-summary:disabled {
+            cursor: not-allowed;
+            color: #a8b0b7;
+        }
+
+        .edge-summary:disabled .edge-summary-desc {
+            color: #b4bcc3;
+        }
+
+        /* Bordered once the tape is applied to the edge being edited. */
         .edge-summary.selected {
-            border-color: var(--primary-color);
+            border-color: var(--edge-accent);
             border-radius: 4px;
+            background: #fff;
         }
 
         .edge-summary-code {
@@ -2490,27 +2860,49 @@
             margin-top: 2px;
         }
 
+        /* Two equal halves split by a divider, on their own light band —
+           matching the reference, where the finishes read as a paired
+           choice rather than two floating cards. */
         .edge-finish-options {
             display: flex;
-            justify-content: center;
-            gap: 24px;
-            padding: 10px 10px 14px;
+            background: #f4f7fa;
+            border-top: 1px solid #dbe6f0;
+            border-bottom: 1px solid #dbe6f0;
         }
 
         .edge-finish-option {
+            flex: 1;
             text-align: center;
             color: #666;
             font-size: 12px;
+            line-height: 1.35;
             cursor: pointer;
-            padding: 6px;
+            padding: 14px 6px 12px;
             border: 2px solid transparent;
-            border-radius: 4px;
+        }
+
+        .edge-finish-option + .edge-finish-option {
+            border-left: 1px solid #dbe6f0;
         }
 
         .edge-finish-option.selected {
             background: #f9dfa0;
             border-color: #f0c060;
             color: #333;
+        }
+
+        /* Finish this tape isn't available in (Edge Tape CPT toggles).
+           Greyed rather than hidden, so it reads as "not for this tape"
+           instead of the option having vanished. */
+        .edge-finish-option.disabled {
+            color: #a8b0b7;
+            cursor: not-allowed;
+            background: #f6f7f9;
+        }
+
+        .edge-finish-option.disabled .edge-finish-icon {
+            border-color: #d8dde2;
+            background: #fbfcfd;
         }
 
         .edge-finish-icon {
@@ -2528,10 +2920,14 @@
         .edge-finishing-link {
             display: block;
             text-align: center;
-            color: var(--primary-color);
+            color: var(--edge-accent);
             font-size: 13px;
             text-decoration: none;
-            padding-bottom: 14px;
+            padding: 14px 10px;
+        }
+
+        .edge-finishing-link:hover {
+            text-decoration: underline;
         }
 
         .edge-mode-toggle {
@@ -2539,22 +2935,23 @@
             margin: 0 16px 16px;
             border-radius: 20px;
             overflow: hidden;
-            border: 1px solid var(--primary-color);
+            border: 1px solid var(--edge-accent);
         }
 
         .edge-mode-toggle .mode-btn {
             flex: 1;
             border: none;
             background: #fff;
-            color: var(--primary-color);
+            color: var(--edge-accent);
             height: 34px;
             width: auto;
             font-size: 13px;
             margin: 0;
+            cursor: pointer;
         }
 
         .edge-mode-toggle .mode-btn.active {
-            background: var(--primary-color);
+            background: var(--edge-accent);
             color: #fff;
         }
 
@@ -2650,7 +3047,7 @@
         }
 
         .machining-sidebar {
-            width: 320px;
+            width: 380px;
             border-right: 1px solid #ddd;
             padding: 20px;
             overflow-y: auto;
@@ -2660,10 +3057,33 @@
         .machining-select {
             width: 100%;
             height: 39px;
+            box-sizing: border-box;
             border: 1px solid #c8c8c8;
-            padding: 0 10px;
+            padding: 0 32px 0 10px;
             color: #999;
             margin-bottom: 16px;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 10px center;
+            background-size: 14px;
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+        }
+
+        /* Replaces the browser's default focus ring (a heavy black
+           rectangle with appearance:none on Windows Chrome/Edge) with the
+           app's usual thin accent border. */
+        .machining-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .machining-select:disabled {
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 10px center;
+            background-size: 14px;
+            opacity: 1;
+            color: #999;
+            cursor: default;
+            padding: 11px 10px;
         }
 
         .machining-select-wrap {
@@ -2805,6 +3225,15 @@
             cursor: pointer;
         }
 
+        /* Hinge holes chip is blue rather than the app's green — matches
+           the edge popup's accent (--edge-accent, #2b78c8, scoped to
+           .edge-popup so not reusable as a variable here) since hinge
+           drilling is an edge-boring operation like edgebanding, not a
+           panel-shaping one. Angled cut / groove chips are unaffected. */
+        .machining-applied-item--hinge .machining-applied-chip {
+            background: var(--primary-color);
+        }
+
         .machining-applied-remove {
             background: #fff;
             border: 1px solid #d9342b;
@@ -2835,6 +3264,145 @@
 
         .machining-detail-label:first-child {
             margin-top: 0;
+        }
+
+        .machining-groove-note {
+            font-size: 12px;
+            color: #888;
+            margin: 10px 0;
+        }
+
+        /* HINGE HOLES panel — label on the left, control on the right, so
+           the three settings line up as a small form rather than stacking
+           the way the angled-cut panel does. */
+        .machining-hinge-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .machining-hinge-row .machining-detail-label {
+            margin: 0;
+            flex-shrink: 0;
+        }
+
+        .machining-hinge-edges {
+            display: flex;
+            gap: 14px;
+        }
+
+        /* Label above its radio, matching the reference where L1/L2/W1/W2
+           sit as a row of headed buttons. */
+        .machining-hinge-edge {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .machining-hinge-count {
+            width: 132px;
+            flex-shrink: 0;
+        }
+
+        /* "Holes drilled on" specifically: the label sits at its natural
+           width and the A/B toggle fills whatever's left, instead of both
+           being squeezed by the row's justify-content:space-between the
+           way the label+control rows above are — that squeeze was cutting
+           the B side button off entirely. */
+        .machining-hinge-view-row .machining-detail-label {
+            flex-shrink: 0;
+        }
+
+        .machining-hinge-view-row .machining-toggle-row {
+            flex: 1;
+            min-width: 0;
+        }
+
+        
+
+        /* Shown instead of the count when the panel is too small to take
+           hinges — explains why rather than leaving an empty control. */
+        .machining-hinge-note {
+            font-size: 12px;
+            line-height: 1.4;
+            color: #a8600d;
+            background: #fdf3e3;
+            border: 1px solid #f0dcc0;
+            border-radius: 6px;
+            padding: 7px 9px;
+            flex: 1;
+        }
+
+        /* SHELF HOLES panel — same label-left/control-right form as the
+           hinge panel, but the controls are paired input fields rather
+           than single ones, so the label keeps its natural width and the
+           field pair takes the rest instead of both being pushed apart. */
+        .machining-shelf-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+
+        .machining-shelf-row .machining-detail-label {
+            margin: 0;
+            flex: 0 0 auto;
+            min-width: 118px;
+        }
+
+        .machining-shelf-row .machining-offset-row {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .machining-shelf-row .machining-select {
+            flex: 0 0 auto;
+            width: 132px;
+            margin-left: auto;
+        }
+
+        .machining-shelf-edges {
+            display: flex;
+            gap: 22px;
+            margin-left: auto;
+        }
+
+        /* Label above its radio, matching the edge pair shown as a headed
+           pair of buttons in the reference. */
+        .machining-shelf-edge {
+            display: flex;
+            flex-direction: column-reverse;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .machining-shelf-view-label {
+            text-align: center;
+        }
+
+        /* Shelf drilling is a face operation like edgebanding rather than a
+           panel-shaping one, so this panel carries the blue accent from the
+           reference instead of the app's green. Scoped so the angled-cut,
+           groove and hinge panels keep theirs. */
+        .machining-applied-item--shelf .machining-applied-chip {
+            background: #2b78c8;
+        }
+
+        .machining-applied-item--shelf .machining-toggle-btn {
+            border-color: #2b78c8;
+            color: #2b78c8;
+        }
+
+        .machining-applied-item--shelf .machining-toggle-btn.selected {
+            background: #2b78c8;
+            color: #fff;
         }
 
         .machining-corner-picker {
@@ -2892,6 +3460,16 @@
             font-family: inherit;
             cursor: pointer;
             text-align: center;
+        }
+
+        /* Edge finish the selected tape isn't available in — see the
+           Radius/Square toggles on the Edge Tape CPT. Greyed rather than
+           hidden so it's clear the option exists but not for this tape. */
+        .machining-toggle-btn:disabled {
+            border-color: #e0e4e8;
+            background: #f6f7f9;
+            color: #a8b0b7;
+            cursor: not-allowed;
         }
 
         .machining-toggle-btn small {
@@ -6615,44 +7193,38 @@
 
         .header .tabs a.tab {
             text-decoration: none;
-            color: inherit;
         }
 
-        .header .tabs a.tab.disabled {
-            cursor: not-allowed;
-            opacity: 0.55;
-            pointer-events: none;
-        }
-
-        .is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){
+        .is-layout-constrained> :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
             max-width: 100% !important;
         }
-/* Max length/width warning tooltip (cutting-margin cap on the selected
-   board's own sheet size) */
-.cutlist-max-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-bottom: 8px;
-    background: #fbe1e1;
-    border: 1px solid #e8a3a3;
-    color: #7a2020;
-    font-size: 12px;
-    line-height: 1.4;
-    padding: 5px 10px;
-    border-radius: 3px;
-    white-space: nowrap;
-    z-index: 20;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
 
-.cutlist-max-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent;
-    border-top-color: #fbe1e1;
-}
+        /* Max length/width warning tooltip (cutting-margin cap on the selected
+   board's own sheet size) */
+        .cutlist-max-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            background: #fbe1e1;
+            border: 1px solid #e8a3a3;
+            color: #7a2020;
+            font-size: 12px;
+            line-height: 1.4;
+            padding: 5px 10px;
+            border-radius: 3px;
+            white-space: nowrap;
+            z-index: 20;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .cutlist-max-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #fbe1e1;
+        }
