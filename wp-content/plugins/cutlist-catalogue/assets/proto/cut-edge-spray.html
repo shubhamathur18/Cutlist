@@ -1,5 +1,6 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -630,454 +631,590 @@
             display: flex;
             align-items: flex-start;
         }
-#summarySection{
-    display:none;
-    margin-top:60px;
-}
 
-.summary-card{
-    border:1px solid #ddd;
-    margin-bottom:25px;
-}
+        #summarySection {
+            display: none;
+            margin-top: 60px;
+        }
 
-.summary-header{
-    background:#edf3fb;
-    padding:18px;
-    display:flex;
-    justify-content:space-between;
-    font-size:22px;
-}
+        .summary-card {
+            border: 1px solid #ddd;
+            margin-bottom: 25px;
+        }
 
-.summary-body{
-    padding:25px;
-}
+        .summary-header {
+            background: #edf3fb;
+            padding: 18px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 22px;
+        }
 
-.summary-total{
-    text-align:right;
-    margin-top:40px;
-    font-size:28px;
-}
-       
+        .summary-body {
+            padding: 25px;
+        }
+
+        .summary-total {
+            text-align: right;
+            margin-top: 40px;
+            font-size: 28px;
+        }
+
 
         /* ==========================================================
    PANEL SUMMARY (NEW UI)
 ========================================================== */
 
-.panel-summary-modal{
-    width:min(1380px,96vw);
-    height:min(820px,92vh);
-    background:#f5f6f8;
-    border-radius:12px;
-    overflow:hidden;
-    box-shadow:0 20px 60px rgba(0,0,0,.25);
-    display:flex;
-    flex-direction:column;
-}
+        .panel-summary-modal {
+            width: min(1380px, 96vw);
+            height: min(820px, 92vh);
+            background: #f5f6f8;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+            display: flex;
+            flex-direction: column;
+        }
 
-.panel-summary-header{
-    height:64px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:0 24px;
-    background:#fff;
-    border-bottom:1px solid #e6e6e6;
-}
+        .panel-summary-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            background: #fff;
+            border-bottom: 1px solid #e6e6e6;
+        }
 
-.panel-summary-header h2{
-    margin:0;
-    font-size:18px;
-    font-weight:600;
-    color:#3d73b9;
-}
+        .panel-summary-header h2 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #3d73b9;
+        }
 
-.panel-summary-body{
-    flex:1;
-    display:flex;
-    overflow:hidden;
-}
-.summary-section{max-width:1200px;margin:auto}
-.summary-title{font-size:42px;font-weight:300;margin:0 0 25px}
-.summary-card{background:#fff;border:1px solid #d8d8d8;margin-bottom:22px}
-.summary-header{background:#dfe8f4;padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
-.summary-header-left{display:flex;gap:20px;font-size:22px}
-.summary-header-left strong{font-weight:500}
-.summary-header-right{display:flex;gap:30px;color:#2f78bd;align-items:center;font-size:14px}
-.summary-body{padding:28px}
-.summary-note{color:#666}
-.plans{display:flex;gap:30px;margin-top:20px}
-.plan{width:320px}
-.box{position:relative;width:100%;border:1px solid #d9d9d9;background:#fafafa;overflow:hidden}
-.panel{position:absolute;border:2px solid #2f78bd;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
-.offcut{position:absolute;box-sizing:border-box;background:repeating-linear-gradient(45deg,#d9e7f7,#d9e7f7 6px,#fff 6px,#fff 12px);display:flex;align-items:center;justify-content:center;color:#2f78bd;font-size:12px;text-align:center;line-height:1.4}
-.panel-dim-chip{background:#fafafa;border:1px solid #eee;padding:4px 10px;font-size:12px;color:#333;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.sheet{text-align:right;font-size:28px}
-.sheet span{display:block;font-size:14px}
-table{width:100%;border-collapse:collapse}
-th{font-size:13px;color:#777;text-align:left;border-bottom:1px solid #ddd;padding:10px}
-td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
-.total{text-align:right;margin-top:20px}
-.total strong{display:block;font-size:16px;margin-bottom:6px}
-.grand{text-align:right;padding:20px 0}
-.grand .price{font-size:28px; margin-bottom:6px;}
-.grand .vat{font-size:20px;color:#555}
+        .panel-summary-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
 
-/* ==========================================
+        .summary-section {
+            max-width: 1200px;
+            margin: auto
+        }
+
+        .summary-title {
+            font-size: 42px;
+            font-weight: 300;
+            margin: 0 0 25px
+        }
+
+        .summary-card {
+            background: #fff;
+            border: 1px solid #d8d8d8;
+            margin-bottom: 22px
+        }
+
+        .summary-header {
+            background: #dfe8f4;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        .summary-header-left {
+            display: flex;
+            gap: 20px;
+            font-size: 22px
+        }
+
+        .summary-header-left strong {
+            font-weight: 500
+        }
+
+        .summary-header-right {
+            display: flex;
+            gap: 30px;
+            color: #2f78bd;
+            align-items: center;
+            font-size: 14px
+        }
+
+        .summary-body {
+            padding: 28px
+        }
+
+        .summary-note {
+            color: #666
+        }
+
+        .plans {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px
+        }
+
+        .plan {
+            width: 320px
+        }
+
+        .box {
+            position: relative;
+            width: 100%;
+            border: 1px solid #d9d9d9;
+            background: #fafafa;
+            overflow: hidden
+        }
+
+        .panel {
+            position: absolute;
+            border: 2px solid #2f78bd;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        .offcut {
+            position: absolute;
+            box-sizing: border-box;
+            background: repeating-linear-gradient(45deg, #d9e7f7, #d9e7f7 6px, #fff 6px, #fff 12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2f78bd;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.4
+        }
+
+        .panel-dim-chip {
+            background: #fafafa;
+            border: 1px solid #eee;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: #333;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .08)
+        }
+
+        .sheet {
+            text-align: right;
+            font-size: 28px
+        }
+
+        .sheet span {
+            display: block;
+            font-size: 14px
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse
+        }
+
+        th {
+            font-size: 13px;
+            color: #777;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            padding: 10px
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px
+        }
+
+        .total {
+            text-align: right;
+            margin-top: 20px
+        }
+
+        .total strong {
+            display: block;
+            font-size: 16px;
+            margin-bottom: 6px
+        }
+
+        .grand {
+            text-align: right;
+            padding: 20px 0
+        }
+
+        .grand .price {
+            font-size: 28px;
+            margin-bottom: 6px;
+        }
+
+        .grand .vat {
+            font-size: 20px;
+            color: #555
+        }
+
+        /* ==========================================
    SUMMARY TOGGLE
 ========================================== */
 
-.summary-toggle{
-    display:inline-flex;
-    width:fit-content;
-    align-items:center;
-    gap:8px;
+        .summary-toggle {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            gap: 8px;
 
-    background:none;
-    border:none;
+            background: none;
+            border: none;
 
-    padding:0;
+            padding: 0;
 
-    cursor:pointer;
+            cursor: pointer;
 
-    font:inherit;
-    color:#2d79c7;
-    font-weight:600;
-}
+            font: inherit;
+            color: #2d79c7;
+            font-weight: 600;
+        }
 
-.summary-toggle:hover{
-    color:#155fa9;
-}
+        .summary-toggle:hover {
+            color: #155fa9;
+        }
 
-.summary-arrow{
-    display:inline-block;
-    transition:transform .25s ease;
-}
+        .summary-arrow {
+            display: inline-block;
+            transition: transform .25s ease;
+        }
 
-.summary-body{
-    overflow:hidden;
-    transition:max-height .35s ease,
-               padding .35s ease,
-               opacity .25s ease;
+        .summary-body {
+            overflow: hidden;
+            transition: max-height .35s ease,
+                padding .35s ease,
+                opacity .25s ease;
 
-    max-height:0;
-    opacity:0;
+            max-height: 0;
+            opacity: 0;
 
-    padding-top:0;
-    padding-bottom:0;
-}
+            padding-top: 0;
+            padding-bottom: 0;
+        }
 
-.summary-body.is-open{
+        .summary-body.is-open {
 
-    max-height:1500px;
+            max-height: 1500px;
 
-    opacity:1;
+            opacity: 1;
 
-    padding:28px;
-}
+            padding: 28px;
+        }
 
-.summary-card.open .summary-arrow{
+        .summary-card.open .summary-arrow {
 
-    transform:rotate(180deg);
+            transform: rotate(180deg);
 
-}
-/* ===========================
+        }
+
+        /* ===========================
    LEFT
 =========================== */
 
-.panel-summary-left{
+        .panel-summary-left {
 
-        width:66%;
-    background:#dbe6f4;
-    position:relative;
-    overflow:hidden;
-    border-right:1px solid #d8d8d8;
+            width: 66%;
+            background: #dbe6f4;
+            position: relative;
+            overflow: hidden;
+            border-right: 1px solid #d8d8d8;
 
-}
+        }
 
-.panel-summary-canvas{
+        .panel-summary-canvas {
 
-    position:absolute;
-    inset:0;
-    padding:40px;
+            position: absolute;
+            inset: 0;
+            padding: 40px;
 
-}
+        }
 
-.panel-summary-svg-wrap{
+        .panel-summary-svg-wrap {
 
-    width:100%;
-    height:100%;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-}
+        }
 
-.panel-summary-drawing{
+        .panel-summary-drawing {
 
-    width:100%;
-    height:100%;
-    max-width:none;
+            width: 100%;
+            height: 100%;
+            max-width: none;
 
-    transition:transform .25s ease;
+            transition: transform .25s ease;
 
-    transform-origin:center center;
+            transform-origin: center center;
 
-}
-/* ===========================
+        }
+
+        /* ===========================
    RIGHT
 =========================== */
 
-.panel-summary-right{
+        .panel-summary-right {
 
-        width:34%;
-    background:#fff;
-    padding:24px;
-    overflow:auto;
+            width: 34%;
+            background: #fff;
+            padding: 24px;
+            overflow: auto;
 
-}
+        }
 
-.summary-card{
-    background:#fff;
-    border:1px solid #e6e6e6;
-    border-radius:12px;
-    margin-bottom:18px;
-    overflow:hidden;
-    box-shadow:0 2px 10px rgba(0,0,0,.05);
-    transition:.2s ease;
-}
+        .summary-card {
+            background: #fff;
+            border: 1px solid #e6e6e6;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .05);
+            transition: .2s ease;
+        }
 
-.summary-card:hover{
-    box-shadow:0 8px 24px rgba(0,0,0,.08);
-}
+        .summary-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, .08);
+        }
 
-.summary-card-title{
-    padding:16px 20px;
-    font-size:16px;
-    font-weight:600;
-    color:#222;
-    border-bottom:1px solid #ececec;
-    background:#fafafa;
-}
-.summary-card-body{
-    padding:22px;
-}
-.summary-value{
+        .summary-card-title {
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #222;
+            border-bottom: 1px solid #ececec;
+            background: #fafafa;
+        }
 
-    font-size:15px;
-    color:#333;
-    line-height:1.5;
+        .summary-card-body {
+            padding: 22px;
+        }
 
-}
+        .summary-value {
 
-.summary-image{
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
 
-    width:100%;
-    border-radius:6px;
-    overflow:hidden;
+        }
 
-}
+        .summary-image {
 
-.summary-image img{
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
 
-    width:100%;
-    display:block;
+        }
 
-}
-.summary-image{
-    position:relative;
-    overflow:hidden;
-    border-radius:10px;
-    border:1px solid #d9d9d9;
-    background:#f6f6f6;
-}
+        .summary-image img {
 
-.summary-image img{
-    display:block;
-    width:100%;
-    height:210px;
-    object-fit:cover;
-}
+            width: 100%;
+            display: block;
 
-.summary-image-overlay{
-    position:absolute;
-    left:0;
-    right:0;
-    bottom:0;
-    padding:12px 16px;
-    background:linear-gradient(to top,
-        rgba(0,0,0,.72),
-        rgba(0,0,0,0));
-    color:#fff;
-    font-size:15px;
-    font-weight:600;
-}
+        }
 
-/* ===========================
+        .summary-image {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            border: 1px solid #d9d9d9;
+            background: #f6f6f6;
+        }
+
+        .summary-image img {
+            display: block;
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+        }
+
+        .summary-image-overlay {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 12px 16px;
+            background: linear-gradient(to top,
+                    rgba(0, 0, 0, .72),
+                    rgba(0, 0, 0, 0));
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* ===========================
    EDGE
 =========================== */
 
-.edge-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:10px 0;
-    border-bottom:1px solid #f1f1f1;
-}
+        .edge-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
 
-.edge-row:last-child{
-    border-bottom:none;
-}
+        .edge-row:last-child {
+            border-bottom: none;
+        }
 
-.edge-label{
-    font-size:14px;
-    color:#666;
-    font-weight:500;
-}
+        .edge-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
 
-.edge-value{
-    font-size:15px;
-    font-weight:600;
-    color:#222;
-}
+        .edge-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #222;
+        }
 
-/* ===========================
+        /* ===========================
    GRAIN
 =========================== */
 
-.grain-widget{
+        .grain-widget {
 
-    position:absolute;
-    top:22px;
-    right:22px;
-    width:150px;
-    background:#fff;
-    border-radius:8px;
-    border:1px solid #d8d8d8;
-    padding:12px;
-    box-shadow:0 8px 20px rgba(0,0,0,.08);
+            position: absolute;
+            top: 22px;
+            right: 22px;
+            width: 150px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #d8d8d8;
+            padding: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, .08);
 
-}
+        }
 
-.grain-widget h5{
+        .grain-widget h5 {
 
-    margin:0 0 8px;
-    font-size:12px;
-    color:#777;
+            margin: 0 0 8px;
+            font-size: 12px;
+            color: #777;
 
-}
+        }
 
-/* ===========================
+        /* ===========================
    FRONT
 =========================== */
 
-.front-indicator{
+        .front-indicator {
 
-    position:absolute;
-    right:24px;
-    bottom:24px;
-    background:#fff;
-    border-radius:8px;
-    border:1px solid #d8d8d8;
-    padding:12px 18px;
-    text-align:center;
+            position: absolute;
+            right: 24px;
+            bottom: 24px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #d8d8d8;
+            padding: 12px 18px;
+            text-align: center;
 
-}
+        }
 
-.front-indicator span{
+        .front-indicator span {
 
-    display:block;
-    font-size:11px;
-    color:#777;
+            display: block;
+            font-size: 11px;
+            color: #777;
 
-}
+        }
 
-.front-indicator strong{
+        .front-indicator strong {
 
-    display:block;
-    margin-top:4px;
-    font-size:15px;
-    color:#222;
+            display: block;
+            margin-top: 4px;
+            font-size: 15px;
+            color: #222;
 
-}
+        }
 
-/* ===========================
+        /* ===========================
    ZOOM
 =========================== */
 
-.zoom-controls{
+        .zoom-controls {
 
-    position:absolute;
-    right:24px;
-    bottom:110px;
-    display:flex;
-    flex-direction:column;
-    gap:10px;
+            position: absolute;
+            right: 24px;
+            bottom: 110px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
 
-}
+        }
 
-.zoom-btn{
+        .zoom-btn {
 
-    width:42px;
-    height:42px;
-    border-radius:50%;
-    border:1px solid #d6d6d6;
-    background:#fff;
-    font-size:22px;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 1px solid #d6d6d6;
+            background: #fff;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
-}
+        }
 
-.zoom-btn:hover{
+        .zoom-btn:hover {
 
-    background:#f2f6fb;
+            background: #f2f6fb;
 
-}
+        }
 
-/* ===========================
+        /* ===========================
    SVG
 =========================== */
 
-.panel-summary-drawing text{
-    font-size:13px;
-    fill:#444;
-    font-family:Arial,sans-serif;
-}
+        .panel-summary-drawing text {
+            font-size: 13px;
+            fill: #444;
+            font-family: Arial, sans-serif;
+        }
 
-.panel-summary-drawing .panel-board{
-    fill:#fff;
-    stroke:#222;
-    stroke-width:2;
-}
+        .panel-summary-drawing .panel-board {
+            fill: #fff;
+            stroke: #222;
+            stroke-width: 2;
+        }
 
-.panel-summary-drawing .panel-edge{
-    stroke-width:5;
-    stroke-linecap:round;
-}
+        .panel-summary-drawing .panel-edge {
+            stroke-width: 5;
+            stroke-linecap: round;
+        }
 
-.panel-summary-drawing .panel-grain{
+        .panel-summary-drawing .panel-grain {
 
-    stroke:#555;
-    stroke-width:2;
+            stroke: #555;
+            stroke-width: 2;
 
-}
+        }
 
-.panel-summary-drawing .panel-machining{
+        .panel-summary-drawing .panel-machining {
 
-    stroke:#444;
-    stroke-width:2;
-    fill:none;
+            stroke: #444;
+            stroke-width: 2;
+            fill: none;
 
-}
+        }
 
-.panel-summary-drawing .panel-machining-fill{
+        .panel-summary-drawing .panel-machining-fill {
 
-    fill:rgba(40,120,255,.10);
-    stroke:#444;
+            fill: rgba(40, 120, 255, .10);
+            stroke: #444;
 
-}
+        }
 
         /* LEFT COLUMN */
         .column-gallery {
@@ -5737,38 +5874,81 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
         .sd-board-save-btn:hover {
             background: #155a9e;
         }
+
         /* Door-select warning dialog */
         .sd-warn-overlay {
-            display: none; position: fixed; inset: 0;
-            background: rgba(80,90,100,0.45); z-index: 3000;
-            align-items: center; justify-content: center;
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(80, 90, 100, 0.45);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
         }
-        .sd-warn-overlay.is-open { display: flex; }
+
+        .sd-warn-overlay.is-open {
+            display: flex;
+        }
+
         .sd-warn-dialog {
-            background: #fff; border-radius: 4px;
-            width: 360px; max-width: 94vw;
+            background: #fff;
+            border-radius: 4px;
+            width: 360px;
+            max-width: 94vw;
             padding: 36px 32px 28px;
-            display: flex; flex-direction: column; align-items: center;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.22);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.22);
             text-align: center;
         }
+
         .sd-warn-icon {
-            width: 58px; height: 58px; border-radius: 50%;
-            border: 2.5px solid #e8a030; display: flex;
-            align-items: center; justify-content: center;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2.5px solid #e8a030;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             margin-bottom: 18px;
         }
+
         .sd-warn-icon span {
-            font-size: 28px; font-weight: 700; color: #e8a030; line-height: 1;
+            font-size: 28px;
+            font-weight: 700;
+            color: #e8a030;
+            line-height: 1;
         }
-        .sd-warn-title { font-size: 22px; font-weight: 700; color: #222; margin-bottom: 10px; }
-        .sd-warn-body  { font-size: 14px; color: #666; line-height: 1.55; margin-bottom: 24px; }
+
+        .sd-warn-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 10px;
+        }
+
+        .sd-warn-body {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.55;
+            margin-bottom: 24px;
+        }
+
         .sd-warn-ok-btn {
-            border: 1.5px solid #1a6bbf; background: #fff; color: #1a6bbf;
-            padding: 8px 50px; font-size: 14px; cursor: pointer;
+            border: 1.5px solid #1a6bbf;
+            background: #fff;
+            color: #1a6bbf;
+            padding: 8px 50px;
+            font-size: 14px;
+            cursor: pointer;
             transition: background 0.12s, color 0.12s;
         }
-        .sd-warn-ok-btn:hover { background: #1a6bbf; color: #fff; }
+
+        .sd-warn-ok-btn:hover {
+            background: #1a6bbf;
+            color: #fff;
+        }
 
         .sd-panel-cat {
             flex: 1;
@@ -6078,9 +6258,13 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
         }
     </style>
     <style>
-        .header .tabs a.tab { text-decoration: none; color: inherit; }
+        .header .tabs a.tab {
+            text-decoration: none;
+            color: inherit;
+        }
     </style>
 </head>
+
 <body>
     <div class="cb-topbar" id="cbTopbar" style="display:none">
         <a href="basket.html" class="cb-topbar-btn cb-topbar-view">View basket</a>
@@ -6088,11 +6272,21 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
     </div>
     <div class="header">
         <div class="tabs">
-            <a href="cut-edge-spray.html" class="tab active"><div>Cut, Edge &amp; Spray</div><strong>&pound;0.00</strong></a>
-            <a href="cnc-machining.html" class="tab"><div>CNC Machining</div><strong>&pound;0.00</strong></a>
-            <a href="sliding-doors.html" class="tab"><div>Sliding Doors</div><strong>&pound;0.00</strong></a>
-            <a href="hinged-doors.html" class="tab"><div>Hinged Doors</div><strong>&pound;0.00</strong></a>
-            <a href="furniture-fittings.html" class="tab"><div>Furniture Fittings</div><strong>&pound;0.00</strong></a>
+            <a href="cut-edge-spray.html" class="tab active">
+                <div>Cut, Edge &amp; Spray</div><strong>&pound;0.00</strong>
+            </a>
+            <a href="cnc-machining.html" class="tab">
+                <div>CNC Machining</div><strong>&pound;0.00</strong>
+            </a>
+            <a href="sliding-doors.html" class="tab">
+                <div>Sliding Doors</div><strong>&pound;0.00</strong>
+            </a>
+            <a href="hinged-doors.html" class="tab">
+                <div>Hinged Doors</div><strong>&pound;0.00</strong>
+            </a>
+            <a href="furniture-fittings.html" class="tab">
+                <div>Furniture Fittings</div><strong>&pound;0.00</strong>
+            </a>
         </div>
     </div>
     <div class="container tab-panel active" data-panel="cutspray">
@@ -6329,7 +6523,7 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
                 <button style="width:257px">
                     Upload cutting list
                 </button>
-                <button style="width:257px" disabled>
+                <button id="downloadRowBtn" style="width:257px">
                     Download cutting list
                 </button>
             </div>
@@ -6339,8 +6533,10 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
         <div class="grain-details" id="grainMatchSection" style="display:none;">
             <h2>Grain matching details</h2>
             <div class="grain-notice">
-                A drawing detailing grain matching cluster is required. Please upload it below before proceeding to the checkout.<br>
-                Mark the panels with "Grain matching" with the letters as A, B or C and so on. Provide a description of how the grain matching should be done.
+                A drawing detailing grain matching cluster is required. Please upload it below before proceeding to the
+                checkout.<br>
+                Mark the panels with "Grain matching" with the letters as A, B or C and so on. Provide a description of
+                how the grain matching should be done.
             </div>
             <div class="grain-cols">
                 <div class="grain-col">
@@ -6352,7 +6548,8 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
                         Supported formats: JPEG, PNG, GIF, PDF
                         <br>
                         <a id="grainAddFiles">Add your files</a>
-                        <input type="file" id="grainFileInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf" style="display:none;">
+                        <input type="file" id="grainFileInput" multiple accept=".jpg,.jpeg,.png,.gif,.pdf"
+                            style="display:none;">
                         <div class="grain-file-list" id="grainFileList"></div>
                     </div>
                 </div>
@@ -6458,7 +6655,7 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
                     <span class="arrow down"></span>
                 </div>
             </div>
-            <div class="table-area" id="etTableArea" style="display:none">
+            <div class="table-area collapsed" id="etTableArea">
                 <table id="etTable">
                     <colgroup>
                         <col class="col-index">
@@ -6503,8 +6700,8 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
                                 </div>
                             </td>
                             <td></td>
-                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Min 5" value=""
-                                    disabled></td>
+                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*"
+                                    placeholder="Min 5" value="" disabled></td>
                             <td></td>
                             <td class="text-right">
                                 <button class="button-remove" type="button" title="Remove row">
@@ -6535,8 +6732,8 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
                                 </div>
                             </td>
                             <td></td>
-                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Min 5" value=""
-                                    disabled></td>
+                            <td><input class="et-qty-input" type="text" inputmode="numeric" pattern="[0-9]*"
+                                    placeholder="Min 5" value="" disabled></td>
                             <td></td>
                             <td class="text-right">
                                 <button class="button-remove" type="button" title="Remove row">
@@ -6571,83 +6768,130 @@ td{padding:12px;border-bottom:1px solid #eee;font-size:14px}
 CUT, EDGE & SPRAY SUMMARY
 ========================================= -->
 
-<section class="summary-section" id="summarySection" style="display:none;">
-<h2 class="summary-title">Cut, edge &amp; spray summary</h2>
+        <section class="summary-section" id="summarySection" style="display:none;">
+            <h2 class="summary-title">Cut, edge &amp; spray summary</h2>
 
-<div class="summary-card">
-<div class="summary-header">
-<div class="summary-header-left"><span>Sheets to be cut</span><strong>£848.80</strong></div>
-<div class="summary-header-right">
-    <span>Cutting plans x2</span>
+            <div class="summary-card">
+                <div class="summary-header">
+                    <div class="summary-header-left"><span>Sheets to be cut</span><strong>£848.80</strong></div>
+                    <div class="summary-header-right">
+                        <span>Cutting plans x2</span>
 
-    <button class="summary-toggle" type="button">
-        Details
-        <span class="summary-arrow">▼</span>
-    </button>
-</div>
-</div>
-<div class="summary-body  is-open">
-<h3>Select offcuts</h3>
-<p class="summary-note">If there are any offcuts, you can mark them here to be included with your order free of charge.</p>
-<div class="plans">
-<div class="plan">
-<div>Plan 1</div>
-<div class="box"><div class="panel"></div><div class="offcut">Offcut</div></div>
-<p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
-<div class="sheet"><strong>x2</strong><span>sheets</span></div>
-</div>
-<div class="plan">
-<div>Plan 2</div>
-<div class="box"><div class="panel"></div><div class="offcut">Offcut</div></div>
-<p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
-<div class="sheet"><strong>x2</strong><span>sheets</span></div>
-</div>
-</div>
-</div>
-</div>
+                        <button class="summary-toggle" type="button">
+                            Details
+                            <span class="summary-arrow">▼</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="summary-body  is-open">
+                    <h3>Select offcuts</h3>
+                    <p class="summary-note">If there are any offcuts, you can mark them here to be included with your
+                        order free of charge.</p>
+                    <div class="plans">
+                        <div class="plan">
+                            <div>Plan 1</div>
+                            <div class="box">
+                                <div class="panel"></div>
+                                <div class="offcut">Offcut</div>
+                            </div>
+                            <p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
+                            <div class="sheet"><strong>x2</strong><span>sheets</span></div>
+                        </div>
+                        <div class="plan">
+                            <div>Plan 2</div>
+                            <div class="box">
+                                <div class="panel"></div>
+                                <div class="offcut">Offcut</div>
+                            </div>
+                            <p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
+                            <div class="sheet"><strong>x2</strong><span>sheets</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<div class="summary-card">
-<div class="summary-header"><div class="summary-header-left"><span>Edgebanding</span><strong>£89.12</strong></div>
-<div class="summary-header-right">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <div class="summary-header-left"><span>Edgebanding</span><strong>£89.12</strong></div>
+                    <div class="summary-header-right">
 
-    <button class="summary-toggle" type="button">
-        Details
-        <span class="summary-arrow">▼</span>
-    </button>
+                        <button class="summary-toggle" type="button">
+                            Details
+                            <span class="summary-arrow">▼</span>
+                        </button>
 
-</div>
-</div>
-<div class="summary-body">
-<table><tr><th>Qty</th><th>Product code</th><th>Product name</th><th>Tape size</th><th>Unit price</th><th>Line total</th></tr>
-<tr><td>16</td><td>M1-42</td><td>Matt ABS edging - Brown Abano Ash</td><td>42x1mm</td><td>£5.57</td><td>£89.12</td></tr></table>
-<div class="total"><strong>This section: £89.12</strong><div>With VAT: £106.94</div></div>
-</div></div>
+                    </div>
+                </div>
+                <div class="summary-body">
+                    <table>
+                        <tr>
+                            <th>Qty</th>
+                            <th>Product code</th>
+                            <th>Product name</th>
+                            <th>Tape size</th>
+                            <th>Unit price</th>
+                            <th>Line total</th>
+                        </tr>
+                        <tr>
+                            <td>16</td>
+                            <td>M1-42</td>
+                            <td>Matt ABS edging - Brown Abano Ash</td>
+                            <td>42x1mm</td>
+                            <td>£5.57</td>
+                            <td>£89.12</td>
+                        </tr>
+                    </table>
+                    <div class="total"><strong>This section: £89.12</strong>
+                        <div>With VAT: £106.94</div>
+                    </div>
+                </div>
+            </div>
 
-<div class="summary-card">
-<div class="summary-header"><div class="summary-header-left"><span>Additional services</span><strong>£115.50</strong></div>
-<div class="summary-header-right">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <div class="summary-header-left"><span>Additional services</span><strong>£115.50</strong></div>
+                    <div class="summary-header-right">
 
-    <button class="summary-toggle" type="button">
-        Details
-        <span class="summary-arrow">▼</span>
-    </button>
+                        <button class="summary-toggle" type="button">
+                            Details
+                            <span class="summary-arrow">▼</span>
+                        </button>
 
-</div>
-</div>
-<div class="summary-body">
-<table><tr><th>Qty</th><th>Service code</th><th>Service</th><th>Description</th><th>Unit price</th><th>Line total</th></tr>
-<tr><td>2</td><td>BND-FS</td><td>Bonding</td><td>Bonding of two panels</td><td>£57.75</td><td>£115.50</td></tr></table>
-<div class="total"><strong>This section: £115.50</strong><div>With VAT: £138.60</div></div>
-</div></div>
+                    </div>
+                </div>
+                <div class="summary-body">
+                    <table>
+                        <tr>
+                            <th>Qty</th>
+                            <th>Service code</th>
+                            <th>Service</th>
+                            <th>Description</th>
+                            <th>Unit price</th>
+                            <th>Line total</th>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>BND-FS</td>
+                            <td>Bonding</td>
+                            <td>Bonding of two panels</td>
+                            <td>£57.75</td>
+                            <td>£115.50</td>
+                        </tr>
+                    </table>
+                    <div class="total"><strong>This section: £115.50</strong>
+                        <div>With VAT: £138.60</div>
+                    </div>
+                </div>
+            </div>
 
-<div class="grand">
-<div class="price">Total: £1,053.42</div>
-<div class="vat">With VAT: £1,264.10</div>
-</div>
+            <div class="grand">
+                <div class="price">Total: £1,053.42</div>
+                <div class="vat">With VAT: £1,264.10</div>
+            </div>
 
-</div>
+    </div>
 
-      
+
     </div>
     <!-- PANEL MODAL (More info) -->
     <div class="panel-modal-overlay" id="panelModalOverlay">
@@ -6746,31 +6990,31 @@ CUT, EDGE & SPRAY SUMMARY
             <div class="panel-summary-header">
                 <h2>Panel Summary</h2>
             </div>
-      <div class="panel-summary-body">
+            <div class="panel-summary-body">
 
-    <div class="panel-summary-left">
+                <div class="panel-summary-left">
 
-        <div id="panelSummaryDrawingContainer"></div>
+                    <div id="panelSummaryDrawingContainer"></div>
 
-        <div class="grain-widget" id="grainWidget"></div>
+                    <div class="grain-widget" id="grainWidget"></div>
 
-        <div class="zoom-controls">
-            <button class="zoom-btn" id="panelZoomIn">+</button>
-            <button class="zoom-btn" id="panelZoomOut">−</button>
-        </div>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" id="panelZoomIn">+</button>
+                        <button class="zoom-btn" id="panelZoomOut">−</button>
+                    </div>
 
-        <div class="front-indicator">
-            <span>Panel Shows</span>
-            <strong>FRONT</strong>
-        </div>
+                    <div class="front-indicator">
+                        <span>Panel Shows</span>
+                        <strong>FRONT</strong>
+                    </div>
 
-    </div>
+                </div>
 
-    <div class="panel-summary-right">
-        <div id="panelSummarySidebar"></div>
-    </div>
+                <div class="panel-summary-right">
+                    <div id="panelSummarySidebar"></div>
+                </div>
 
-</div>
+            </div>
         </div>
     </div>
     <div class="decor-popup" id="decorPopup">
@@ -6914,7 +7158,15 @@ CUT, EDGE & SPRAY SUMMARY
         </button>
         <div class="edge-finish-options" id="edgeFinishOptions">
             <div class="edge-finish-option" data-finish="radius">
-                <div class="edge-finish-icon radius"></div>
+                <svg viewBox="0 0 42.1 42.1" xmlns="http://www.w3.org/2000/svg" width="42.1" height="42.1">
+                    <g stroke="var(--dropdown-text-inactive)" stroke-width=".5" stroke-miterlimit="10" style="
+    stroke: black;
+">
+                        <path fill="none" d="M.3.3h41.6v41.6H.3z"></path>
+                        <path d="M21 9.4H.3v32.4h30.3V19.1s.3-3.5-3.1-6.7c-3.3-3.1-6.5-3-6.5-3z"
+                            fill="var(--dropdown-background)"></path>
+                    </g>
+                </svg>
                 <div>Radius<br>edge finish</div>
             </div>
             <div class="edge-finish-option" data-finish="square">
@@ -7050,7 +7302,12 @@ CUT, EDGE & SPRAY SUMMARY
                     <div class="machining-diagram" id="sprayDiagram">
                         <div class="machining-edge-label edge-top">L1</div>
                         <div class="machining-edge-label edge-left">W1</div>
-                        <div class="machining-panel" id="sprayPanel"></div>
+                        <div class="machining-panel" id="sprayPanel">
+                            <span class="edge-highlight top" id="sprayHighlightL1"></span>
+                            <span class="edge-highlight bottom" id="sprayHighlightL2"></span>
+                            <span class="edge-highlight left" id="sprayHighlightW1"></span>
+                            <span class="edge-highlight right" id="sprayHighlightW2"></span>
+                        </div>
                         <div class="machining-edge-label edge-right">W2</div>
                         <div class="machining-edge-label edge-bottom">L2</div>
                         <div class="machining-dim-line vertical">
@@ -7078,7 +7335,7 @@ CUT, EDGE & SPRAY SUMMARY
         </div>
     </div>
 
-<script>
+    <script>
         let activeDecorInput = null;
         const popup = document.getElementById("decorPopup");
         const table = document.querySelector(".table-area table");
@@ -7116,8 +7373,8 @@ CUT, EDGE & SPRAY SUMMARY
         let machiningZoom = 1;
         // PANEL SUMMARY NAVIGATION
 
-let panelSummaryRows = [];
-let panelSummaryCurrentIndex = 0;
+        let panelSummaryRows = [];
+        let panelSummaryCurrentIndex = 0;
 
         // HELPERS
 
@@ -7748,399 +8005,399 @@ let panelSummaryCurrentIndex = 0;
 
 
         // ==========================================
-// UPDATE BASKET BUTTON
-// ==========================================
+        // UPDATE BASKET BUTTON
+        // ==========================================
 
-const updateBasketBtn = document.getElementById("updateBasketBtn");
-const summarySection = document.getElementById("summarySection");
+        const updateBasketBtn = document.getElementById("updateBasketBtn");
+        const summarySection = document.getElementById("summarySection");
 
-// Harvest the filled-in cutting list rows so basket.html can show them in its PDF.
-function collectCuttingListItems() {
+        // Harvest the filled-in cutting list rows so basket.html can show them in its PDF.
+        function collectCuttingListItems() {
 
-    var items = [];
+            var items = [];
 
-    table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+            table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
 
-        var decorInput = row.querySelector(".decor input");
-        if (!decorInput) return;
+                var decorInput = row.querySelector(".decor input");
+                if (!decorInput) return;
 
-        var decor = decorInput.value.trim();
-        var cells = row.querySelectorAll("td.small input");
-        var length = cells[0] ? cells[0].value.trim() : "";
-        var width = cells[1] ? cells[1].value.trim() : "";
-        var qty = row.querySelector(".qty input") ? row.querySelector(".qty input").value.trim() : "";
-        var desc = row.querySelector(".desc input") ? row.querySelector(".desc input").value.trim() : "";
-        var thickSelect = row.querySelector(".thick select");
-        var thick = thickSelect ? thickSelect.value : "";
+                var decor = decorInput.value.trim();
+                var cells = row.querySelectorAll("td.small input");
+                var length = cells[0] ? cells[0].value.trim() : "";
+                var width = cells[1] ? cells[1].value.trim() : "";
+                var qty = row.querySelector(".qty input") ? row.querySelector(".qty input").value.trim() : "";
+                var desc = row.querySelector(".desc input") ? row.querySelector(".desc input").value.trim() : "";
+                var thickSelect = row.querySelector(".thick select");
+                var thick = thickSelect ? thickSelect.value : "";
 
-        // Skip rows the user hasn't started filling in
-        if (!decor && !length && !width && !qty) return;
+                // Skip rows the user hasn't started filling in
+                if (!decor && !length && !width && !qty) return;
 
-        var edges = {};
-        row.querySelectorAll(".edging-input").forEach(function (cell) {
-            var input = cell.querySelector("input");
-            edges[cell.dataset.edge] = input ? input.value.trim() : "";
-        });
+                var edges = {};
+                row.querySelectorAll(".edging-input").forEach(function (cell) {
+                    var input = cell.querySelector("input");
+                    edges[cell.dataset.edge] = input ? input.value.trim() : "";
+                });
 
-        items.push({
-            id: CutlistBasket.makeId("ces"),
-            decor: decor,
-            thick: thick,
-            length: length,
-            width: width,
-            qty: parseInt(qty, 10) || 1,
-            description: desc,
-            edgeL1: edges.L1 || "",
-            edgeL2: edges.L2 || "",
-            edgeW1: edges.W1 || "",
-            edgeW2: edges.W2 || "",
-            unitPrice: 0
-        });
+                items.push({
+                    id: CutlistBasket.makeId("ces"),
+                    decor: decor,
+                    thick: thick,
+                    length: length,
+                    width: width,
+                    qty: parseInt(qty, 10) || 1,
+                    description: desc,
+                    edgeL1: edges.L1 || "",
+                    edgeL2: edges.L2 || "",
+                    edgeW1: edges.W1 || "",
+                    edgeW2: edges.W2 || "",
+                    unitPrice: 0
+                });
 
-    });
+            });
 
-    return items;
+            return items;
 
-}
+        }
 
-// Harvest the filled-in full-sheet rows
-function collectFullSheetItems() {
+        // Harvest the filled-in full-sheet rows
+        function collectFullSheetItems() {
 
-    var items = [];
+            var items = [];
 
-    document.querySelectorAll("#fsTable tr.fs-row").forEach(function (row) {
+            document.querySelectorAll("#fsTable tr.fs-row").forEach(function (row) {
 
-        var decor = row.querySelector(".decor input").value.trim();
-        var lengthInput = row.querySelector(".fs-length input");
-        var widthInput = row.querySelector(".fs-width input");
-        var qty = parseInt(row.querySelector(".qty input").value, 10) || 0;
+                var decor = row.querySelector(".decor input").value.trim();
+                var lengthInput = row.querySelector(".fs-length input");
+                var widthInput = row.querySelector(".fs-width input");
+                var qty = parseInt(row.querySelector(".qty input").value, 10) || 0;
 
-        if (!decor || !qty) return;
+                if (!decor || !qty) return;
 
-        items.push({
-            decor: decor,
-            thick: row.querySelector(".thick select").value,
-            length: lengthInput ? lengthInput.value.trim() : "",
-            width: widthInput ? widthInput.value.trim() : "",
-            brand: row.querySelector(".fs-brand").textContent.trim(),
-            qty: qty
-        });
+                items.push({
+                    decor: decor,
+                    thick: row.querySelector(".thick select").value,
+                    length: lengthInput ? lengthInput.value.trim() : "",
+                    width: widthInput ? widthInput.value.trim() : "",
+                    brand: row.querySelector(".fs-brand").textContent.trim(),
+                    qty: qty
+                });
 
-    });
+            });
 
-    return items;
+            return items;
 
-}
+        }
 
-// Harvest the selected edging tape rows
-function collectEdgingTapeItems() {
+        // Harvest the selected edging tape rows
+        function collectEdgingTapeItems() {
 
-    var items = [];
+            var items = [];
 
-    document.querySelectorAll("#etTbody tr").forEach(function (row) {
+            document.querySelectorAll("#etTbody tr").forEach(function (row) {
 
-        var sel = row.querySelector(".Select2");
-        if (!sel || sel.classList.contains("isEmpty")) return;
+                var sel = row.querySelector(".Select2");
+                if (!sel || sel.classList.contains("isEmpty")) return;
 
-        var codeEl = sel.querySelector(".Select2__input .code");
-        var nameEl = sel.querySelector(".Select2__input .name");
-        var sizeEl = sel.querySelector(".Select2__input .size");
-        var qty = parseFloat(row.querySelector(".et-qty-input").value) || ET_MIN_QTY;
-        if (qty < ET_MIN_QTY) qty = ET_MIN_QTY;
+                var codeEl = sel.querySelector(".Select2__input .code");
+                var nameEl = sel.querySelector(".Select2__input .name");
+                var sizeEl = sel.querySelector(".Select2__input .size");
+                var qty = parseFloat(row.querySelector(".et-qty-input").value) || ET_MIN_QTY;
+                if (qty < ET_MIN_QTY) qty = ET_MIN_QTY;
 
-        items.push({
-            code: codeEl ? codeEl.textContent.trim() : "",
-            name: nameEl ? nameEl.textContent.trim() : "",
-            size: sizeEl ? sizeEl.textContent.trim() : "",
-            qty: qty
-        });
+                items.push({
+                    code: codeEl ? codeEl.textContent.trim() : "",
+                    name: nameEl ? nameEl.textContent.trim() : "",
+                    size: sizeEl ? sizeEl.textContent.trim() : "",
+                    qty: qty
+                });
 
-    });
+            });
 
-    return items;
+            return items;
 
-}
+        }
 
-// Demo prices for the prototype summary
-var SUMMARY_SHEET_PRICE = 106.10;   // per 2800 x 2070 sheet
-var SUMMARY_TAPE_PRICE = 5.57;      // per metre of edging tape
+        // Demo prices for the prototype summary
+        var SUMMARY_SHEET_PRICE = 106.10;   // per 2800 x 2070 sheet
+        var SUMMARY_TAPE_PRICE = 5.57;      // per metre of edging tape
 
-var SHEET_LENGTH = 2800;
-var SHEET_WIDTH = 2070;
-var SUMMARY_KERF = 25; // saw kerf / trim allowed between the panel and its offcuts, in mm
+        var SHEET_LENGTH = 2800;
+        var SHEET_WIDTH = 2070;
+        var SUMMARY_KERF = 25; // saw kerf / trim allowed between the panel and its offcuts, in mm
 
-function summaryMoney(n) {
-    return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+        function summaryMoney(n) {
+            return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
 
-// Packs as many copies of one panel size as will fit into a grid on a single
-// sheet (to scale), so repeated parts are shown cut from the same board
-// instead of each getting its own sheet. Whatever doesn't fit in the grid,
-// plus any grid cells left empty by a partial last row, is drawn as labelled
-// offcut.
-function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth) {
+        // Packs as many copies of one panel size as will fit into a grid on a single
+        // sheet (to scale), so repeated parts are shown cut from the same board
+        // instead of each getting its own sheet. Whatever doesn't fit in the grid,
+        // plus any grid cells left empty by a partial last row, is drawn as labelled
+        // offcut.
+        function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth) {
 
-    sheetLength = sheetLength || SHEET_LENGTH;
-    sheetWidth = sheetWidth || SHEET_WIDTH;
-    qty = Math.max(1, qty || 1);
+            sheetLength = sheetLength || SHEET_LENGTH;
+            sheetWidth = sheetWidth || SHEET_WIDTH;
+            qty = Math.max(1, qty || 1);
 
-    // Clamp the panel to the sheet so a bad/oversized entry can't break the layout
-    var panelL = Math.min(Math.max(panelLength, 0), sheetLength);
-    var panelW = Math.min(Math.max(panelWidth, 0), sheetWidth);
+            // Clamp the panel to the sheet so a bad/oversized entry can't break the layout
+            var panelL = Math.min(Math.max(panelLength, 0), sheetLength);
+            var panelW = Math.min(Math.max(panelWidth, 0), sheetWidth);
 
-    var colPitch = panelL + SUMMARY_KERF;
-    var rowPitch = panelW + SUMMARY_KERF;
-    var perRow = Math.max(1, Math.floor((sheetLength + SUMMARY_KERF) / colPitch));
-    var perCol = Math.max(1, Math.floor((sheetWidth + SUMMARY_KERF) / rowPitch));
-    var maxPerSheet = perRow * perCol;
-    var count = Math.min(qty, maxPerSheet);
-    var rows = Math.ceil(count / perRow);
-    // Row-major fill means every row except a possible last one uses all perRow columns;
-    // the grid's actual width is only as wide as the fullest row needs, not the sheet's capacity.
-    var gridWidthCols = rows > 1 ? perRow : count;
+            var colPitch = panelL + SUMMARY_KERF;
+            var rowPitch = panelW + SUMMARY_KERF;
+            var perRow = Math.max(1, Math.floor((sheetLength + SUMMARY_KERF) / colPitch));
+            var perCol = Math.max(1, Math.floor((sheetWidth + SUMMARY_KERF) / rowPitch));
+            var maxPerSheet = perRow * perCol;
+            var count = Math.min(qty, maxPerSheet);
+            var rows = Math.ceil(count / perRow);
+            // Row-major fill means every row except a possible last one uses all perRow columns;
+            // the grid's actual width is only as wide as the fullest row needs, not the sheet's capacity.
+            var gridWidthCols = rows > 1 ? perRow : count;
 
-    var gridWidth = gridWidthCols * panelL + (gridWidthCols - 1) * SUMMARY_KERF;
-    var gridHeight = rows * panelW + (rows - 1) * SUMMARY_KERF;
+            var gridWidth = gridWidthCols * panelL + (gridWidthCols - 1) * SUMMARY_KERF;
+            var gridHeight = rows * panelW + (rows - 1) * SUMMARY_KERF;
 
-    function pct(mm, of) { return (mm / of) * 100; }
-    function rect(xMm, yMm, wMm, hMm) {
-        return "left:" + pct(xMm, sheetLength) + "%;top:" + pct(yMm, sheetWidth) + "%;" +
-            "width:" + pct(wMm, sheetLength) + "%;height:" + pct(hMm, sheetWidth) + "%";
-    }
-
-    var html = "<div class=\"box\" style=\"aspect-ratio:" + sheetLength + "/" + sheetWidth + "\">";
-
-    // Place the panels in row-major order across the grid
-    for (var i = 0; i < count; i++) {
-        var col = i % perRow;
-        var row = Math.floor(i / perRow);
-        html += "<div class=\"panel\" style=\"" + rect(col * colPitch, row * rowPitch, panelL, panelW) + "\">" +
-            (i === 0 ? "<span class=\"panel-dim-chip\">" + panelL + " x " + panelW + "mm</span>" : "") +
-            "</div>";
-    }
-
-    // If there's more than one row, a partial last row leaves empty cells inside
-    // the grid's own width (as opposed to the sheet's spare capacity) - still offcut
-    var lastRowCount = count - (rows - 1) * perRow;
-    if (rows > 1 && lastRowCount < perRow) {
-        var emptyW = (perRow - lastRowCount) * panelL + (perRow - lastRowCount - 1) * SUMMARY_KERF;
-        html += "<div class=\"offcut\" style=\"" + rect(lastRowCount * colPitch, (rows - 1) * rowPitch, emptyW, panelW) + "\">" +
-            "Offcut<br>" + Math.round(emptyW) + " x " + panelW +
-            "</div>";
-    }
-
-    // Right offcut: whatever's left of the sheet width, running its full height
-    var rightW = sheetLength - gridWidth - SUMMARY_KERF;
-    if (rightW > 0) {
-        html += "<div class=\"offcut\" style=\"" + rect(gridWidth + SUMMARY_KERF, 0, rightW, sheetWidth) + "\">" +
-            "Offcut<br>" + rightW + " x " + sheetWidth +
-            "</div>";
-    }
-
-    // Bottom offcut: below the grid, only as wide as the grid itself
-    var bottomH = sheetWidth - gridHeight - SUMMARY_KERF;
-    if (bottomH > 0) {
-        html += "<div class=\"offcut\" style=\"" + rect(0, gridHeight + SUMMARY_KERF, gridWidth, bottomH) + "\">" +
-            "Offcut<br>" + gridWidth + " x " + bottomH +
-            "</div>";
-    }
-
-    html += "</div>";
-
-    return html;
-
-}
-
-function summaryCardHTML(title, price, headerExtra, bodyHTML, open) {
-    return "" +
-        "<div class=\"summary-card" + (open ? " open" : "") + "\">" +
-        "<div class=\"summary-header\">" +
-        "<div class=\"summary-header-left\"><span>" + title + "</span><strong>" + price + "</strong></div>" +
-        "<div class=\"summary-header-right\">" +
-        (headerExtra ? "<span>" + headerExtra + "</span>" : "") +
-        "<button class=\"summary-toggle\" type=\"button\">Details <span class=\"summary-arrow\">&#9660;</span></button>" +
-        "</div></div>" +
-        "<div class=\"summary-body" + (open ? " is-open" : "") + "\">" + bodyHTML + "</div>" +
-        "</div>";
-}
-
-function buildSummaryHTML(cutItems, fsItems, etItems) {
-
-    var html = "<h2 class=\"summary-title\">Cut, edge &amp; spray summary</h2>";
-    var grandTotal = 0;
-    var EMPTY_BODY = "<p class=\"summary-note\">No items added yet.</p>";
-
-    // ---- Sheets to be cut: one cutting plan per decor + thickness ----
-    var sheetsTotal = 0;
-    var sheetsBody = EMPTY_BODY;
-    var planNo = 0;
-
-    if (cutItems.length) {
-
-        var groups = {};
-        cutItems.forEach(function (item) {
-            var key = item.decor + "|" + item.thick;
-            if (!groups[key]) groups[key] = { decor: item.decor, thick: item.thick, area: 0, bestItem: null, bestArea: 0 };
-            var l = parseFloat(item.length) || 0;
-            var w = parseFloat(item.width) || 0;
-            groups[key].area += l * w * item.qty;
-            // Track the single largest panel in the group to draw the cutting plan to scale
-            if (l * w > groups[key].bestArea) {
-                groups[key].bestArea = l * w;
-                groups[key].bestItem = { length: l, width: w, qty: item.qty };
+            function pct(mm, of) { return (mm / of) * 100; }
+            function rect(xMm, yMm, wMm, hMm) {
+                return "left:" + pct(xMm, sheetLength) + "%;top:" + pct(yMm, sheetWidth) + "%;" +
+                    "width:" + pct(wMm, sheetLength) + "%;height:" + pct(hMm, sheetWidth) + "%";
             }
+
+            var html = "<div class=\"box\" style=\"aspect-ratio:" + sheetLength + "/" + sheetWidth + "\">";
+
+            // Place the panels in row-major order across the grid
+            for (var i = 0; i < count; i++) {
+                var col = i % perRow;
+                var row = Math.floor(i / perRow);
+                html += "<div class=\"panel\" style=\"" + rect(col * colPitch, row * rowPitch, panelL, panelW) + "\">" +
+                    (i === 0 ? "<span class=\"panel-dim-chip\">" + panelL + " x " + panelW + "mm</span>" : "") +
+                    "</div>";
+            }
+
+            // If there's more than one row, a partial last row leaves empty cells inside
+            // the grid's own width (as opposed to the sheet's spare capacity) - still offcut
+            var lastRowCount = count - (rows - 1) * perRow;
+            if (rows > 1 && lastRowCount < perRow) {
+                var emptyW = (perRow - lastRowCount) * panelL + (perRow - lastRowCount - 1) * SUMMARY_KERF;
+                html += "<div class=\"offcut\" style=\"" + rect(lastRowCount * colPitch, (rows - 1) * rowPitch, emptyW, panelW) + "\">" +
+                    "Offcut<br>" + Math.round(emptyW) + " x " + panelW +
+                    "</div>";
+            }
+
+            // Right offcut: whatever's left of the sheet width, running its full height
+            var rightW = sheetLength - gridWidth - SUMMARY_KERF;
+            if (rightW > 0) {
+                html += "<div class=\"offcut\" style=\"" + rect(gridWidth + SUMMARY_KERF, 0, rightW, sheetWidth) + "\">" +
+                    "Offcut<br>" + rightW + " x " + sheetWidth +
+                    "</div>";
+            }
+
+            // Bottom offcut: below the grid, only as wide as the grid itself
+            var bottomH = sheetWidth - gridHeight - SUMMARY_KERF;
+            if (bottomH > 0) {
+                html += "<div class=\"offcut\" style=\"" + rect(0, gridHeight + SUMMARY_KERF, gridWidth, bottomH) + "\">" +
+                    "Offcut<br>" + gridWidth + " x " + bottomH +
+                    "</div>";
+            }
+
+            html += "</div>";
+
+            return html;
+
+        }
+
+        function summaryCardHTML(title, price, headerExtra, bodyHTML, open) {
+            return "" +
+                "<div class=\"summary-card" + (open ? " open" : "") + "\">" +
+                "<div class=\"summary-header\">" +
+                "<div class=\"summary-header-left\"><span>" + title + "</span><strong>" + price + "</strong></div>" +
+                "<div class=\"summary-header-right\">" +
+                (headerExtra ? "<span>" + headerExtra + "</span>" : "") +
+                "<button class=\"summary-toggle\" type=\"button\">Details <span class=\"summary-arrow\">&#9660;</span></button>" +
+                "</div></div>" +
+                "<div class=\"summary-body" + (open ? " is-open" : "") + "\">" + bodyHTML + "</div>" +
+                "</div>";
+        }
+
+        function buildSummaryHTML(cutItems, fsItems, etItems) {
+
+            var html = "<h2 class=\"summary-title\">Cut, edge &amp; spray summary</h2>";
+            var grandTotal = 0;
+            var EMPTY_BODY = "<p class=\"summary-note\">No items added yet.</p>";
+
+            // ---- Sheets to be cut: one cutting plan per decor + thickness ----
+            var sheetsTotal = 0;
+            var sheetsBody = EMPTY_BODY;
+            var planNo = 0;
+
+            if (cutItems.length) {
+
+                var groups = {};
+                cutItems.forEach(function (item) {
+                    var key = item.decor + "|" + item.thick;
+                    if (!groups[key]) groups[key] = { decor: item.decor, thick: item.thick, area: 0, bestItem: null, bestArea: 0 };
+                    var l = parseFloat(item.length) || 0;
+                    var w = parseFloat(item.width) || 0;
+                    groups[key].area += l * w * item.qty;
+                    // Track the single largest panel in the group to draw the cutting plan to scale
+                    if (l * w > groups[key].bestArea) {
+                        groups[key].bestArea = l * w;
+                        groups[key].bestItem = { length: l, width: w, qty: item.qty };
+                    }
+                });
+
+                var totalSheets = 0;
+                var plansHTML = Object.keys(groups).map(function (key) {
+                    var g = groups[key];
+                    planNo++;
+                    // Rough demo estimate: panel area + 25% waste, at least one sheet
+                    var sheets = Math.max(1, Math.ceil((g.area * 1.25) / (SHEET_LENGTH * SHEET_WIDTH)));
+                    totalSheets += sheets;
+                    var boxHTML = g.bestItem
+                        ? cutPlanBoxHTML(g.bestItem.length, g.bestItem.width, g.bestItem.qty, SHEET_LENGTH, SHEET_WIDTH)
+                        : "<div class=\"box\" style=\"aspect-ratio:" + SHEET_LENGTH + "/" + SHEET_WIDTH + "\"></div>";
+                    return "" +
+                        "<div class=\"plan\">" +
+                        "<div>Plan " + planNo + "</div>" +
+                        boxHTML +
+                        "<p>" + g.decor + (g.thick ? "<br>" + SHEET_LENGTH + " &times; " + SHEET_WIDTH + " &times; " + g.thick + "mm" : "") + "</p>" +
+                        "<div class=\"sheet\"><strong>x" + sheets + "</strong><span>sheets</span></div>" +
+                        "</div>";
+                }).join("");
+
+                sheetsTotal = totalSheets * SUMMARY_SHEET_PRICE;
+                grandTotal += sheetsTotal;
+
+                sheetsBody =
+                    "<h3>Select offcuts</h3>" +
+                    "<p class=\"summary-note\">If there are any offcuts, you can mark them here to be included with your order free of charge.</p>" +
+                    "<div class=\"plans\">" + plansHTML + "</div>";
+
+            }
+
+            if (cutItems.length) {
+                html += summaryCardHTML(
+                    "Sheets to be cut",
+                    summaryMoney(sheetsTotal),
+                    planNo ? "Cutting plans x" + planNo : "",
+                    sheetsBody,
+                    true
+                );
+            }
+
+            // ---- Full sheets ----
+            var fsTotal = 0;
+            var fsBody = EMPTY_BODY;
+
+            if (fsItems.length) {
+
+                var fsRows = fsItems.map(function (item) {
+                    var line = item.qty * SUMMARY_SHEET_PRICE;
+                    fsTotal += line;
+                    return "<tr><td>" + item.qty + "</td><td>" + item.decor + "</td>" +
+                        "<td>" + (item.length && item.width ? item.length + " &times; " + item.width + (item.thick ? " &times; " + item.thick : "") + "mm" : "-") + "</td>" +
+                        "<td>" + (item.brand || "-") + "</td>" +
+                        "<td>" + summaryMoney(SUMMARY_SHEET_PRICE) + "</td><td>" + summaryMoney(line) + "</td></tr>";
+                }).join("");
+
+                grandTotal += fsTotal;
+
+                fsBody =
+                    "<table><tr><th>Qty</th><th>Decor</th><th>Size</th><th>Brand</th><th>Unit price</th><th>Line total</th></tr>" + fsRows + "</table>" +
+                    "<div class=\"total\"><strong>This section: " + summaryMoney(fsTotal) + "</strong><div>With VAT: " + summaryMoney(fsTotal * 1.2) + "</div></div>";
+
+            }
+
+            if (fsItems.length) {
+                html += summaryCardHTML("Full sheets", summaryMoney(fsTotal), "", fsBody, false);
+            }
+
+            // ---- Edging tape ----
+            var etTotal = 0;
+            var etBody = EMPTY_BODY;
+
+            if (etItems.length) {
+
+                var etRows = etItems.map(function (item) {
+                    var line = item.qty * SUMMARY_TAPE_PRICE;
+                    etTotal += line;
+                    return "<tr><td>" + item.qty + "</td><td>" + item.code + "</td><td>" + item.name + "</td>" +
+                        "<td>" + item.size + "</td><td>" + summaryMoney(SUMMARY_TAPE_PRICE) + "</td><td>" + summaryMoney(line) + "</td></tr>";
+                }).join("");
+
+                grandTotal += etTotal;
+
+                etBody =
+                    "<table><tr><th>Qty [m]</th><th>Product code</th><th>Product name</th><th>Tape size</th><th>Unit price</th><th>Line total</th></tr>" + etRows + "</table>" +
+                    "<div class=\"total\"><strong>This section: " + summaryMoney(etTotal) + "</strong><div>With VAT: " + summaryMoney(etTotal * 1.2) + "</div></div>";
+
+            }
+
+            if (etItems.length) {
+                html += summaryCardHTML("Edging tape", summaryMoney(etTotal), "", etBody, false);
+            }
+
+            if (!cutItems.length && !fsItems.length && !etItems.length) {
+                html += "<p class=\"summary-note\">Nothing to summarise yet — add panels, full sheets or edging tape above.</p>";
+            } else {
+                html += "<div class=\"grand\">" +
+                    "<div class=\"price\">Total: " + summaryMoney(grandTotal) + "</div>" +
+                    "<div class=\"vat\">With VAT: " + summaryMoney(grandTotal * 1.2) + "</div>" +
+                    "</div>";
+            }
+
+            return html;
+
+        }
+
+        // The summary is rebuilt from scratch on every basket update, so its
+        // Details toggles are wired via delegation instead of per-button listeners.
+        summarySection.addEventListener("click", function (e) {
+
+            var btn = e.target.closest(".summary-toggle");
+            if (!btn) return;
+
+            var card = btn.closest(".summary-card");
+            var body = card.querySelector(".summary-body");
+
+            card.classList.toggle("open");
+            body.classList.toggle("is-open");
+
         });
 
-        var totalSheets = 0;
-        var plansHTML = Object.keys(groups).map(function (key) {
-            var g = groups[key];
-            planNo++;
-            // Rough demo estimate: panel area + 25% waste, at least one sheet
-            var sheets = Math.max(1, Math.ceil((g.area * 1.25) / (SHEET_LENGTH * SHEET_WIDTH)));
-            totalSheets += sheets;
-            var boxHTML = g.bestItem
-                ? cutPlanBoxHTML(g.bestItem.length, g.bestItem.width, g.bestItem.qty, SHEET_LENGTH, SHEET_WIDTH)
-                : "<div class=\"box\" style=\"aspect-ratio:" + SHEET_LENGTH + "/" + SHEET_WIDTH + "\"></div>";
-            return "" +
-                "<div class=\"plan\">" +
-                "<div>Plan " + planNo + "</div>" +
-                boxHTML +
-                "<p>" + g.decor + (g.thick ? "<br>" + SHEET_LENGTH + " &times; " + SHEET_WIDTH + " &times; " + g.thick + "mm" : "") + "</p>" +
-                "<div class=\"sheet\"><strong>x" + sheets + "</strong><span>sheets</span></div>" +
-                "</div>";
-        }).join("");
+        updateBasketBtn.addEventListener("click", function () {
 
-        sheetsTotal = totalSheets * SUMMARY_SHEET_PRICE;
-        grandTotal += sheetsTotal;
+            var cutItems = collectCuttingListItems();
 
-        sheetsBody =
-            "<h3>Select offcuts</h3>" +
-            "<p class=\"summary-note\">If there are any offcuts, you can mark them here to be included with your order free of charge.</p>" +
-            "<div class=\"plans\">" + plansHTML + "</div>";
+            // Save the cutting list into the shared basket
+            if (window.CutlistBasket) {
+                CutlistBasket.setCategory("cut-edge-spray", cutItems);
+                var bar = document.getElementById("cbTopbar");
+                if (bar) bar.style.display = "";
+            }
 
-    }
+            // Rebuild the summary from what the user actually entered
+            summarySection.innerHTML = buildSummaryHTML(cutItems, collectFullSheetItems(), collectEdgingTapeItems());
 
-    if (cutItems.length) {
-        html += summaryCardHTML(
-            "Sheets to be cut",
-            summaryMoney(sheetsTotal),
-            planNo ? "Cutting plans x" + planNo : "",
-            sheetsBody,
-            true
-        );
-    }
+            // Show summary
+            summarySection.style.display = "block";
 
-    // ---- Full sheets ----
-    var fsTotal = 0;
-    var fsBody = EMPTY_BODY;
+            // Scroll to summary
+            summarySection.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
 
-    if (fsItems.length) {
+            // Disable button until next change
+            updateBasketBtn.disabled = true;
 
-        var fsRows = fsItems.map(function (item) {
-            var line = item.qty * SUMMARY_SHEET_PRICE;
-            fsTotal += line;
-            return "<tr><td>" + item.qty + "</td><td>" + item.decor + "</td>" +
-                "<td>" + (item.length && item.width ? item.length + " &times; " + item.width + (item.thick ? " &times; " + item.thick : "") + "mm" : "-") + "</td>" +
-                "<td>" + (item.brand || "-") + "</td>" +
-                "<td>" + summaryMoney(SUMMARY_SHEET_PRICE) + "</td><td>" + summaryMoney(line) + "</td></tr>";
-        }).join("");
+        });
 
-        grandTotal += fsTotal;
-
-        fsBody =
-            "<table><tr><th>Qty</th><th>Decor</th><th>Size</th><th>Brand</th><th>Unit price</th><th>Line total</th></tr>" + fsRows + "</table>" +
-            "<div class=\"total\"><strong>This section: " + summaryMoney(fsTotal) + "</strong><div>With VAT: " + summaryMoney(fsTotal * 1.2) + "</div></div>";
-
-    }
-
-    if (fsItems.length) {
-        html += summaryCardHTML("Full sheets", summaryMoney(fsTotal), "", fsBody, false);
-    }
-
-    // ---- Edging tape ----
-    var etTotal = 0;
-    var etBody = EMPTY_BODY;
-
-    if (etItems.length) {
-
-        var etRows = etItems.map(function (item) {
-            var line = item.qty * SUMMARY_TAPE_PRICE;
-            etTotal += line;
-            return "<tr><td>" + item.qty + "</td><td>" + item.code + "</td><td>" + item.name + "</td>" +
-                "<td>" + item.size + "</td><td>" + summaryMoney(SUMMARY_TAPE_PRICE) + "</td><td>" + summaryMoney(line) + "</td></tr>";
-        }).join("");
-
-        grandTotal += etTotal;
-
-        etBody =
-            "<table><tr><th>Qty [m]</th><th>Product code</th><th>Product name</th><th>Tape size</th><th>Unit price</th><th>Line total</th></tr>" + etRows + "</table>" +
-            "<div class=\"total\"><strong>This section: " + summaryMoney(etTotal) + "</strong><div>With VAT: " + summaryMoney(etTotal * 1.2) + "</div></div>";
-
-    }
-
-    if (etItems.length) {
-        html += summaryCardHTML("Edging tape", summaryMoney(etTotal), "", etBody, false);
-    }
-
-    if (!cutItems.length && !fsItems.length && !etItems.length) {
-        html += "<p class=\"summary-note\">Nothing to summarise yet — add panels, full sheets or edging tape above.</p>";
-    } else {
-        html += "<div class=\"grand\">" +
-            "<div class=\"price\">Total: " + summaryMoney(grandTotal) + "</div>" +
-            "<div class=\"vat\">With VAT: " + summaryMoney(grandTotal * 1.2) + "</div>" +
-            "</div>";
-    }
-
-    return html;
-
-}
-
-// The summary is rebuilt from scratch on every basket update, so its
-// Details toggles are wired via delegation instead of per-button listeners.
-summarySection.addEventListener("click", function (e) {
-
-    var btn = e.target.closest(".summary-toggle");
-    if (!btn) return;
-
-    var card = btn.closest(".summary-card");
-    var body = card.querySelector(".summary-body");
-
-    card.classList.toggle("open");
-    body.classList.toggle("is-open");
-
-});
-
-updateBasketBtn.addEventListener("click", function () {
-
-    var cutItems = collectCuttingListItems();
-
-    // Save the cutting list into the shared basket
-    if (window.CutlistBasket) {
-        CutlistBasket.setCategory("cut-edge-spray", cutItems);
-        var bar = document.getElementById("cbTopbar");
-        if (bar) bar.style.display = "";
-    }
-
-    // Rebuild the summary from what the user actually entered
-    summarySection.innerHTML = buildSummaryHTML(cutItems, collectFullSheetItems(), collectEdgingTapeItems());
-
-    // Show summary
-    summarySection.style.display = "block";
-
-    // Scroll to summary
-    summarySection.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
-
-    // Disable button until next change
-    updateBasketBtn.disabled = true;
-
-});
-
-function markDirty() {
-    updateBasketBtn.disabled = false;
-}
+        function markDirty() {
+            updateBasketBtn.disabled = false;
+        }
         // Cutting list — any input change
         table.addEventListener('input', markDirty);
 
@@ -8373,20 +8630,20 @@ function markDirty() {
                         code + " - " + name;
 
 
-                    
+
                     let currentRow =
                         activeDecorInput.closest("tr");
 
                     // Save selected decor image for Panel Summary
-var img = this.querySelector("img");
+                    var img = this.querySelector("img");
 
-if (img) {
-    currentRow.dataset.image = img.src;
-} else {
-    currentRow.dataset.image = "";
-}
+                    if (img) {
+                        currentRow.dataset.image = img.src;
+                    } else {
+                        currentRow.dataset.image = "";
+                    }
 
-console.log("Selected image:", img ? img.src : "No Image");
+                    console.log("Selected image:", img ? img.src : "No Image");
                     currentRow.classList.add("unlocked");
 
 
@@ -8842,33 +9099,33 @@ console.log("Selected image:", img ? img.src : "No Image");
 
         function openPanelSummaryModal(row) {
 
-    panelSummaryRows = Array.from(
-        table.querySelectorAll("tr")
-    ).filter(function(r){
+            panelSummaryRows = Array.from(
+                table.querySelectorAll("tr")
+            ).filter(function (r) {
 
-        return !r.classList.contains("header-row") &&
-               !r.classList.contains("section-row");
+                return !r.classList.contains("header-row") &&
+                    !r.classList.contains("section-row");
 
-    });
+            });
 
-    panelSummaryCurrentIndex =
-        panelSummaryRows.indexOf(row);
+            panelSummaryCurrentIndex =
+                panelSummaryRows.indexOf(row);
 
-    var overlay = document.getElementById('panelSummaryModalOverlay');
+            var overlay = document.getElementById('panelSummaryModalOverlay');
 
-    var data = getPanelSummaryData(row);
+            var data = getPanelSummaryData(row);
             overlay._row = row;
             document.getElementById("panelSummaryDrawingContainer").innerHTML =
-    buildPanelSummaryDrawing(data);
+                buildPanelSummaryDrawing(data);
 
-document.getElementById("panelSummarySidebar").innerHTML =
-    buildPanelSummaryInfo(data);
+            document.getElementById("panelSummarySidebar").innerHTML =
+                buildPanelSummaryInfo(data);
             panelSummaryInitZoom();
-buildGrainWidget(data);
+            buildGrainWidget(data);
             overlay.classList.add('is-open');
         }
 
-      
+
         function panelSummaryValue(field) {
             if (!field) return '-';
             var value = field.value;
@@ -8903,26 +9160,26 @@ buildGrainWidget(data);
             var dims = row ? getDimInputs(row) : {};
             var grainInput = row ? row.querySelector('.grain input') : null;
             return {
-    decor: panelSummaryValue(row ? row.querySelector('.decor input') : null),
-    thickness: panelSummaryValue(row ? row.querySelector('.thick select') : null),
-    length: panelSummaryValue(dims.lengthInput),
-    width: panelSummaryValue(dims.widthInput),
-    qty: panelSummaryValue(row ? row.querySelector('.qty input') : null),
-    desc: panelSummaryValue(row ? row.querySelector('.desc input') : null),
+                decor: panelSummaryValue(row ? row.querySelector('.decor input') : null),
+                thickness: panelSummaryValue(row ? row.querySelector('.thick select') : null),
+                length: panelSummaryValue(dims.lengthInput),
+                width: panelSummaryValue(dims.widthInput),
+                qty: panelSummaryValue(row ? row.querySelector('.qty input') : null),
+                desc: panelSummaryValue(row ? row.querySelector('.desc input') : null),
 
-    // NEW
-    image: row ? (row.dataset.image || "") : "",
+                // NEW
+                image: row ? (row.dataset.image || "") : "",
 
-    grain: grainInput && grainInput.checked ? 'Yes' : '-',
-    grainDirection: row && row.dataset.grainDirection ? row.dataset.grainDirection : 'horizontal',
+                grain: grainInput && grainInput.checked ? 'Yes' : '-',
+                grainDirection: row && row.dataset.grainDirection ? row.dataset.grainDirection : 'horizontal',
 
-    L1: panelSummaryEdgeValue(row, 'L1'),
-    L2: panelSummaryEdgeValue(row, 'L2'),
-    W1: panelSummaryEdgeValue(row, 'W1'),
-    W2: panelSummaryEdgeValue(row, 'W2'),
+                L1: panelSummaryEdgeValue(row, 'L1'),
+                L2: panelSummaryEdgeValue(row, 'L2'),
+                W1: panelSummaryEdgeValue(row, 'W1'),
+                W2: panelSummaryEdgeValue(row, 'W2'),
 
-    machining: getPanelSummaryMachining(row)
-};
+                machining: getPanelSummaryMachining(row)
+            };
         }
 
         function buildPanelSummaryDrawing(data) {
@@ -8965,8 +9222,8 @@ buildGrainWidget(data);
         <h5>Grain Direction</h5>
         <div style="text-align:center;font-size:28px;">
             ${data.grain === 'Yes'
-                ? (String(data.grainDirection).toLowerCase()==='vertical' ? '↕' : '↔')
-                : '—'}
+                    ? (String(data.grainDirection).toLowerCase() === 'vertical' ? '↕' : '↔')
+                    : '—'}
         </div>
     </div>
 
@@ -8995,38 +9252,38 @@ buildGrainWidget(data);
 
             ${edgeMarkup}
 
-            ${buildPanelSummaryGrain(data,x,y,rectW,rectH)}
+            ${buildPanelSummaryGrain(data, x, y, rectW, rectH)}
 
             ${buildPanelSummaryMachining(
-                data,
-                x,
-                y,
-                rectW,
-                rectH,
-                length,
-                width
-            )}
+                        data,
+                        x,
+                        y,
+                        rectW,
+                        rectH,
+                        length,
+                        width
+                    )}
 
             <!-- TOP DIMENSION -->
 
-<line x1="${x}" y1="${y-28}" x2="${right}" y2="${y-28}"
+<line x1="${x}" y1="${y - 28}" x2="${right}" y2="${y - 28}"
       stroke="#777" stroke-width="1"/>
 
-<line x1="${x}" y1="${y-28}" x2="${x}" y2="${y}"
+<line x1="${x}" y1="${y - 28}" x2="${x}" y2="${y}"
       stroke="#777" stroke-width="1"/>
 
-<line x1="${right}" y1="${y-28}" x2="${right}" y2="${y}"
+<line x1="${right}" y1="${y - 28}" x2="${right}" y2="${y}"
       stroke="#777" stroke-width="1"/>
 
-<polygon points="${x},${y-28} ${x+8},${y-32} ${x+8},${y-24}"
+<polygon points="${x},${y - 28} ${x + 8},${y - 32} ${x + 8},${y - 24}"
          fill="#777"/>
 
-<polygon points="${right},${y-28} ${right-8},${y-32} ${right-8},${y-24}"
+<polygon points="${right},${y - 28} ${right - 8},${y - 32} ${right - 8},${y - 24}"
          fill="#777"/>
 
 <text
     x="${midX}"
-    y="${y-36}"
+    y="${y - 36}"
     text-anchor="middle"
     font-size="12"
     fill="#444"
@@ -9040,27 +9297,27 @@ buildGrainWidget(data);
 
 <!-- LEFT DIMENSION -->
 
-<line x1="${x-30}" y1="${y}" x2="${x-30}" y2="${bottom}"
+<line x1="${x - 30}" y1="${y}" x2="${x - 30}" y2="${bottom}"
       stroke="#777"
       stroke-width="1"/>
 
-<line x1="${x-30}" y1="${y}" x2="${x}" y2="${y}"
+<line x1="${x - 30}" y1="${y}" x2="${x}" y2="${y}"
       stroke="#777"
       stroke-width="1"/>
 
-<line x1="${x-30}" y1="${bottom}" x2="${x}" y2="${bottom}"
+<line x1="${x - 30}" y1="${bottom}" x2="${x}" y2="${bottom}"
       stroke="#777"
       stroke-width="1"/>
 
-<polygon points="${x-30},${y} ${x-34},${y+8} ${x-26},${y+8}"
+<polygon points="${x - 30},${y} ${x - 34},${y + 8} ${x - 26},${y + 8}"
          fill="#777"/>
 
-<polygon points="${x-30},${bottom} ${x-34},${bottom-8} ${x-26},${bottom-8}"
+<polygon points="${x - 30},${bottom} ${x - 34},${bottom - 8} ${x - 26},${bottom - 8}"
          fill="#777"/>
 
 <text
-    transform="rotate(-90 ${x-42} ${midY})"
-    x="${x-42}"
+    transform="rotate(-90 ${x - 42} ${midY})"
+    x="${x - 42}"
     y="${midY}"
     text-anchor="middle"
     font-size="12"
@@ -9071,7 +9328,7 @@ buildGrainWidget(data);
 
 </text>
 
-            ${buildPanelSummaryLegend(data,260)}
+            ${buildPanelSummaryLegend(data, 260)}
 
         </svg>
 
@@ -9186,19 +9443,19 @@ buildGrainWidget(data);
             }).join('');
         }
 
-      function buildPanelSummaryInfo(data) {
+        function buildPanelSummaryInfo(data) {
 
-    var image = data.image || "https://via.placeholder.com/320x220/e8e8e8/888888?text=Material";
+            var image = data.image || "https://via.placeholder.com/320x220/e8e8e8/888888?text=Material";
 
-    var size =
-        panelSummaryEscape(data.length) +
-        " × " +
-        panelSummaryEscape(data.width) +
-        " × " +
-        panelSummaryEscape(data.thickness) +
-        " mm";
+            var size =
+                panelSummaryEscape(data.length) +
+                " × " +
+                panelSummaryEscape(data.width) +
+                " × " +
+                panelSummaryEscape(data.thickness) +
+                " mm";
 
-    return `
+            return `
 
 <div class="summary-card">
 
@@ -9314,92 +9571,92 @@ letter-spacing:-2px;">
 
 `;
 
-}
-       let panelZoom = 1;
+        }
+        let panelZoom = 1;
 
-function panelSummaryInitZoom(){
+        function panelSummaryInitZoom() {
 
-    panelZoom = 1;
+            panelZoom = 1;
 
-    const svg = document.querySelector(".panel-summary-drawing");
+            const svg = document.querySelector(".panel-summary-drawing");
 
-    if(!svg) return;
+            if (!svg) return;
 
-    svg.style.transformOrigin = "center center";
-    svg.style.transform = "scale(1)";
+            svg.style.transformOrigin = "center center";
+            svg.style.transform = "scale(1)";
 
-    const buttons = document.querySelectorAll(".zoom-btn");
+            const buttons = document.querySelectorAll(".zoom-btn");
 
-    if(buttons.length < 2) return;
+            if (buttons.length < 2) return;
 
-    buttons[0].onclick = function(){
+            buttons[0].onclick = function () {
 
-        panelZoom += 0.1;
+                panelZoom += 0.1;
 
-        if(panelZoom > 3)
-            panelZoom = 3;
+                if (panelZoom > 3)
+                    panelZoom = 3;
 
-        svg.style.transform = "scale(" + panelZoom + ")";
-    };
+                svg.style.transform = "scale(" + panelZoom + ")";
+            };
 
-    buttons[1].onclick = function(){
+            buttons[1].onclick = function () {
 
-        panelZoom -= 0.1;
+                panelZoom -= 0.1;
 
-        if(panelZoom < 0.5)
-            panelZoom = 0.5;
+                if (panelZoom < 0.5)
+                    panelZoom = 0.5;
 
-        svg.style.transform = "scale(" + panelZoom + ")";
-    };
+                svg.style.transform = "scale(" + panelZoom + ")";
+            };
 
-}
-function panelSummaryPrevious(){
+        }
+        function panelSummaryPrevious() {
 
-    if(panelSummaryCurrentIndex<=0)
-        return;
+            if (panelSummaryCurrentIndex <= 0)
+                return;
 
-    panelSummaryCurrentIndex--;
+            panelSummaryCurrentIndex--;
 
-    openPanelSummaryModal(
-        panelSummaryRows[panelSummaryCurrentIndex]
-    );
+            openPanelSummaryModal(
+                panelSummaryRows[panelSummaryCurrentIndex]
+            );
 
-}
+        }
 
-function panelSummaryNext(){
+        function panelSummaryNext() {
 
-    if(panelSummaryCurrentIndex>=panelSummaryRows.length-1)
-        return;
+            if (panelSummaryCurrentIndex >= panelSummaryRows.length - 1)
+                return;
 
-    panelSummaryCurrentIndex++;
+            panelSummaryCurrentIndex++;
 
-    openPanelSummaryModal(
-        panelSummaryRows[panelSummaryCurrentIndex]
-    );
+            openPanelSummaryModal(
+                panelSummaryRows[panelSummaryCurrentIndex]
+            );
 
-}
-function closePanelSummaryModal() {
+        }
+        function closePanelSummaryModal() {
             var overlay = document.getElementById('panelSummaryModalOverlay');
             overlay.classList.remove('is-open');
             overlay._row = null;
         }
         const panelPrevBtn =
-    document.getElementById("panelSummaryPrev");
+            document.getElementById("panelSummaryPrev");
 
-const panelNextBtn =
-    document.getElementById("panelSummaryNext");
+        const panelNextBtn =
+            document.getElementById("panelSummaryNext");
 
-if(panelPrevBtn){
+        if (panelPrevBtn) {
 
-    panelPrevBtn.onclick = panelSummaryPrevious;
+            panelPrevBtn.onclick = panelSummaryPrevious;
 
-}
+        }
 
-if(panelNextBtn){
+        if (panelNextBtn) {
 
-    panelNextBtn.onclick = panelSummaryNext;
+            panelNextBtn.onclick = panelSummaryNext;
 
-}
+        }
         document.getElementById('panelSummaryModalClose').addEventListener('click', closePanelSummaryModal);
         document.getElementById('panelSummaryModalOverlay').addEventListener('click', function (e) {
             if (!e.target.closest('.panel-summary-modal')) {
@@ -9640,6 +9897,7 @@ if(panelNextBtn){
                     { title: "White primer", sub: "", price: 25.00 }
                 ],
                 paintFields: false,
+                paintBrands: [],
                 bOption: null
             },
             "solid-colour": {
@@ -9650,6 +9908,7 @@ if(panelNextBtn){
                     { title: "Matt finish", sub: "colour<br>5% sheen", price: 62.95 }
                 ],
                 paintFields: true,
+                paintBrands: ["Farrow & Ball", "Dulux", "Little Greene", "RAL Classic"],
                 bOption: { text: "Spray B side with white primer only", price: 25.00 }
             },
             "clear-lacquer": {
@@ -9660,11 +9919,12 @@ if(panelNextBtn){
                     { title: "Matt finish", sub: "clear lacquer<br>5% sheen", price: 41.95 }
                 ],
                 paintFields: false,
+                paintBrands: [],
                 bOption: { text: "Spray B side with clear sealant only", price: 20.00 }
             }
         };
 
-        var SPRAY_BRANDS = ["Farrow & Ball", "Dulux", "Little Greene", "RAL Classic"];
+        // Paint brands now come per-finish via paintBrands in each SPRAY_OPTIONS entry.
 
         var sprayState = null;
 
@@ -9730,7 +9990,7 @@ if(panelNextBtn){
                     "<div class=\"spray-field\">" +
                     "<label>Paint brand</label>" +
                     "<select id=\"sprayBrand\"><option value=\"\">Select brand</option>" +
-                    SPRAY_BRANDS.map(function (b) {
+                    (cfg.paintBrands || []).map(function (b) {
                         return "<option" + (sprayState.brand === b ? " selected" : "") + ">" + b + "</option>";
                     }).join("") +
                     "</select>" +
@@ -9910,67 +10170,156 @@ if(panelNextBtn){
 
 
             });
-            function buildGrainWidget(data){
+        function buildGrainWidget(data) {
 
-    var html="<div class='grain-title'>Grain direction</div>";
+            var html = "<div class='grain-title'>Grain direction</div>";
 
-    html+="<div class='grain-icon'>";
+            html += "<div class='grain-icon'>";
 
-    if(data.grain==="Yes"){
+            if (data.grain === "Yes") {
 
-        if(String(data.grainDirection).toLowerCase()==="vertical"){
+                if (String(data.grainDirection).toLowerCase() === "vertical") {
 
-            html+="↕";
+                    html += "↕";
 
-        }else{
+                } else {
 
-            html+="↔";
+                    html += "↔";
+
+                }
+
+            } else {
+
+                html += "—";
+
+            }
+
+            html += "</div>";
+
+            document.getElementById("grainWidget").innerHTML = html;
 
         }
 
-    }else{
+        /* ==========================================
+           SUMMARY ACCORDION
+        ========================================== */
 
-        html+="—";
+        document.querySelectorAll(".summary-toggle").forEach(function (btn) {
 
-    }
+            btn.addEventListener("click", function () {
 
-    html+="</div>";
+                const card = this.closest(".summary-card");
 
-    document.getElementById("grainWidget").innerHTML=html;
+                const body = card.querySelector(".summary-body");
 
-}
+                card.classList.toggle("open");
 
-/* ==========================================
-   SUMMARY ACCORDION
-========================================== */
+                body.classList.toggle("is-open");
 
-document.querySelectorAll(".summary-toggle").forEach(function(btn){
+            });
 
-    btn.addEventListener("click",function(){
+        });
 
-        const card=this.closest(".summary-card");
+        // DOWNLOAD CUTTING LIST CSV
+        (function () {
+            const downloadBtn = document.getElementById("downloadRowBtn");
+            if (downloadBtn) {
+                downloadBtn.addEventListener("click", function () {
+                    const trs = Array.from(document.querySelectorAll(".table-area table tr")).filter(tr =>
+                        !tr.classList.contains("header-row") &&
+                        !tr.classList.contains("section-row") &&
+                        tr.querySelector(".rownum")
+                    );
 
-        const body=card.querySelector(".summary-body");
+                    const csvRows = [];
+                    csvRows.push(['Decor code', 'Thickness', 'Length', 'Width', 'Quantity', 'Description', 'L1', 'L2', 'W1', 'W2', 'Edge finish', 'Customer note']);
 
-        card.classList.toggle("open");
+                    trs.forEach(tr => {
+                        const decorInput = tr.querySelector(".decor input");
+                        const decorVal = decorInput ? decorInput.value : "";
+                        const decorCode = decorVal ? decorVal.split(" - ")[0].trim() : "";
+                        if (!decorCode) return; // Skip empty rows
 
-        body.classList.toggle("is-open");
+                        const thickSelect = tr.querySelector(".thick select");
+                        const thickness = thickSelect ? thickSelect.value : "";
 
-    });
+                        let length = "";
+                        let width = "";
+                        if (typeof getDimInputs === "function") {
+                            const dims = getDimInputs(tr);
+                            length = dims.lengthInput ? dims.lengthInput.value : "";
+                            width = dims.widthInput ? dims.widthInput.value : "";
+                        } else {
+                            const dims = tr.querySelectorAll("td.small:not(.edging-input) input");
+                            length = dims[0] ? dims[0].value : "";
+                            width = dims[1] ? dims[1].value : "";
+                        }
 
-});
-</script>
-<script src="basket-store.js"></script>
-<script>
-    (function () {
-        var bar = document.getElementById('cbTopbar');
-        if (bar && window.CutlistBasket) {
-            var all = CutlistBasket.readAll();
-            var hasItems = Object.keys(all).some(function (k) { return (all[k] || []).length > 0; });
-            bar.style.display = hasItems ? '' : 'none';
-        }
-    })();
-</script>
-<script src="trade-gate.js"></script>
+                        const qtyInput = tr.querySelector(".qty input");
+                        const qty = qtyInput ? qtyInput.value : "";
+
+                        const descInput = tr.querySelector(".desc input");
+                        const desc = descInput ? descInput.value : "";
+
+                        const l1Input = tr.querySelector('.edging-input[data-edge="L1"] input');
+                        const l2Input = tr.querySelector('.edging-input[data-edge="L2"] input');
+                        const w1Input = tr.querySelector('.edging-input[data-edge="W1"] input');
+                        const w2Input = tr.querySelector('.edging-input[data-edge="W2"] input');
+
+                        const l1 = l1Input ? l1Input.value : "";
+                        const l2 = l2Input ? l2Input.value : "";
+                        const w1 = w1Input ? w1Input.value : "";
+                        const w2 = w2Input ? w2Input.value : "";
+
+                        let finish = "";
+                        if (typeof edgeState !== "undefined") {
+                            const state = edgeState.get(tr);
+                            finish = (state && state.finish) ? state.finish : "";
+                        }
+
+                        const note = tr.dataset.panelInfo || "";
+
+                        csvRows.push([decorCode, thickness, length, width, qty, desc, l1, l2, w1, w2, finish, note]);
+                    });
+
+                    // Escape CSV values
+                    const escapeCSV = (val) => {
+                        if (val === null || val === undefined) return '';
+                        let str = String(val);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+                            str = '"' + str.replace(/"/g, '""') + '"';
+                        }
+                        return str;
+                    };
+
+                    const csvContent = csvRows.map(row => row.map(escapeCSV).join(',')).join('\n');
+
+                    // Generate and trigger download with UTF-8 BOM
+                    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "cutting_list.csv");
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                });
+            }
+        })();
+    </script>
+    <script src="basket-store.js"></script>
+    <script>
+        (function () {
+            var bar = document.getElementById('cbTopbar');
+            if (bar && window.CutlistBasket) {
+                var all = CutlistBasket.readAll();
+                var hasItems = Object.keys(all).some(function (k) { return (all[k] || []).length > 0; });
+                bar.style.display = hasItems ? '' : 'none';
+            }
+        })();
+    </script>
+    <script src="trade-gate.js"></script>
 </body>
+
 </html>

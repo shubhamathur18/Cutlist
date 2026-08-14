@@ -17,119 +17,240 @@
             overflow-x: hidden;
         }
 
-        /* TOP BRAND BAR + SECTION TABS
-           Heights come from padding rather than fixed px so a label that
-           wraps to two lines can't overflow its tab; `stretch` then keeps
-           every tab the same height as the tallest, so a single wrapped
-           label doesn't leave the row looking ragged. */
+        /* TOP SECTION TABS — horizontal white bar with icons, numbers, and basket CTA */
         .header {
-            background: var(--tabbar-bg);
-            padding: 30px 24px 0;
+            background: #f4f5f7;
+            padding: 12px 24px;
         }
 
         .tabs {
             display: flex;
             align-items: stretch;
-            gap: 3px;
-            max-width: 1440px;
+            gap: 0;
+            max-width: 100%;
             margin: 0 auto;
-            /* Below ~5 readable tabs the row scrolls instead of crushing
-               every label — squashed tabs were the previous 20%-width
-               layout's failure mode on tablet/mobile. */
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-        }
-
-        .tabs::-webkit-scrollbar {
-            display: none;
         }
 
         .tab {
             flex: 1 1 0;
-            min-width: 148px;
+            min-width: 130px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
-            gap: 7px;
-            padding: 16px;
-            /* Transparent by default so only the active tab spends the
-               3px, keeping every label on the same baseline. */
-            border-top: 3px solid transparent;
-            border-radius: 9px 9px 0 0;
-            background: rgba(255, 255, 255, 0.06);
-            color: rgba(255, 255, 255, 0.66);
-            font-size: 15px;
-            line-height: 1.3;
-            text-align: center;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 30px 16px;
+            border: 1.5px solid #e0e3e7;
+            border-right: none;
+            background: #fff;
+            color: #555;
+            font-size: 13px;
+            line-height: 1.25;
+            text-align: left;
             text-decoration: none;
             cursor: pointer;
-            transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+            transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
         }
 
-        .tab>div {
+        .tab:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .tab:nth-child(5) {
+            border-right: 1.5px solid #e0e3e7;
+            border-radius: 0;
+        }
+
+        .tab-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #999;
+            background-color: #eee;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+        }
+
+        .tab-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 0;
+        }
+
+        .tab-number {
+            font-size: 10px;
+            font-weight: 500;
+            color: #aaa;
+            line-height: 1;
+        }
+
+        .tab-label {
+            font-size: 16px;
             font-weight: 600;
+            color: #333;
+            line-height: 1.3;
+            white-space: nowrap;
         }
 
-        /* Price is supporting information, so it sits back from the label
-           rather than competing with it at equal weight. */
-        .tab>strong {
-            font-size: 14px;
-            font-weight: 700;
-            opacity: 0.82;
-            font-variant-numeric: tabular-nums;
+        .tab-price {
+            font-size: 12px;
+            font-weight: 600;
+            color: #888;
+            line-height: 1;
         }
 
         .tab:hover {
-            background: rgba(255, 255, 255, 0.13);
-            color: #fff;
+            background: #f9faf9;
+            border-color: #c5c9ce;
+        }
+
+        .tab:hover .tab-icon {
+            color: var(--primary-color);
         }
 
         .tab:focus-visible {
-            outline: 2px solid var(--tabbar-accent);
-            outline-offset: -3px;
+            outline: 2px solid var(--primary-color);
+            outline-offset: -2px;
         }
 
-        /* The panel below is white, so a white tab reads as continuous with
-           it — the section you're on is literally the front-most surface.
-           Red is spent only here, on the one element it needs to mark. */
         .tab.active {
+            border: 2px solid var(--primary-color);
+            border-right: 2px solid var(--primary-color);
             background: #fff;
-            color: #1c1c1c;
-            border-top-color: var(--tabbar-accent);
-            box-shadow: 0 -3px 14px rgba(0, 0, 0, 0.28);
             cursor: default;
+            z-index: 1;
+            position: relative;
         }
 
-        .tab.active>strong {
-            opacity: 1;
+        .tab.active+.tab {
+            border-left: none;
         }
 
-        /* Muted colour rather than opacity: opacity fades the text into the
-           dark bar and makes it look blurred, this keeps it crisp while
-           still clearly reading as unavailable. */
+        .tab.active .tab-icon {
+            color: var(--primary-color);
+        }
+
+        .tab.active .tab-label {
+            color: var(--primary-color);
+        }
+
+        .tab.active .tab-number {
+            color: var(--primary-color);
+        }
+
+        .tab.active .tab-price {
+            color: var(--primary-color);
+        }
+
         .tab.disabled {
-            background: rgba(255, 255, 255, 0.065);
-            color: rgba(255, 255, 255);
-            cursor: not-allowed;
+            background: #fff;
+            color: #aaa;
+            cursor: default;
             pointer-events: none;
+        }
+
+        .tab.disabled .tab-icon {
+            color: #6a6a6a;
+        }
+
+        .tab.disabled .tab-label {
+            color: #888;
+        }
+
+        .tab.disabled .tab-number {
+            color: #bbb;
+        }
+
+        .tab.disabled .tab-price {
+            color: #aaa;
+        }
+
+        /* View Basket button — dark green CTA pinned to the right of the tab bar */
+        .tab-basket-btn {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 12px 18px;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 0 8px 8px 0;
+            text-decoration: none;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+            transition: background 0.18s ease;
+        }
+
+        .tab-basket-btn:hover {
+            background: #15301f;
+        }
+
+        .tab-basket-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff;
+        }
+
+        .tab-basket-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .tab-basket-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .tab-basket-price {
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .tab-basket-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #fff;
+            margin-left: 2px;
         }
 
         @media (max-width: 700px) {
             .header {
-                padding: 20px 12px 0;
+                padding: 10px 12px;
             }
 
             .tab {
-                min-width: 128px;
-                font-size: 14px;
-                padding: 13px 12px;
+                min-width: 110px;
+                font-size: 12px;
+                padding: 10px 10px;
+            }
+
+            .tabs {
+                overflow-x: auto;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none;
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .tab {
+
+            .tab,
+            .tab-basket-btn {
                 transition: none;
             }
         }
@@ -220,6 +341,7 @@
             border-left: 2px solid var(--tabbar-bg);
             border-top: 2px solid var(--tabbar-bg);
             transform: rotate(45deg) translateY(6px);
+            transition: transform 0.25s ease;
         }
 
         .arrow.down {
@@ -230,6 +352,16 @@
         .table-area {
             margin-top: 10px;
             overflow-x: auto;
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.35s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+
+        .table-area.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            overflow: hidden;
         }
 
         table {
@@ -299,6 +431,134 @@
             width: 242px;
         }
 
+        /* The decor cell shows the placeholder until a board is picked and
+           the card after. The input is never visible either way — it only
+           survives because its value is what the rest of the app parses
+           the decor code out of. */
+        .decor>input {
+            display: none;
+        }
+
+        .decor.has-decor .decor-placeholder {
+            display: none;
+        }
+
+        .decor-placeholder {
+            width: 242px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 7px 10px;
+            border: 1px solid #5da3442b;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .decor-placeholder-icon,
+        .decor-chevron {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+        }
+
+        .decor-placeholder-icon {
+            color: #6b7178;
+        }
+
+        /* Both states are the same control, so both carry the chevron. It
+           picks up the green call-to-action colour on the placeholder and
+           stays neutral on the card, where the collection line is already
+           using green right beside it. */
+        .decor-chevron {
+            margin-left: auto;
+            color: #98a1a9;
+        }
+
+        .decor-placeholder .decor-chevron {
+            color: var(--primary-color);
+        }
+
+        .decor-placeholder-hint {
+            font-size: 12px;
+            color: #333;
+            padding-bottom: 5px;
+        }
+
+        .decor-placeholder-action {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding-top: 5px;
+            border-top: 1px solid #e4e8ec;
+        }
+
+        .decor-card {
+            width: 242px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 7px 9px;
+            border: 1px solid #dfe3e8;
+            border-radius: 8px;
+            background: #fff;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .decor-card:hover {
+            border-color: #c6ccd3;
+        }
+
+        .decor-card-swatch {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 5px;
+            border: 1px solid #e2e6ea;
+            background-color: #eceff2;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .decor-card-body {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        /* All three lines clip rather than wrap — the cell is a fixed
+           width and a long decor name would otherwise change the row
+           height and break alignment with the columns beside it. */
+        .decor-card-body>span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.35;
+        }
+
+        .decor-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1c1c1c;
+        }
+
+        .decor-card-name {
+            font-size: 12px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .decor-card-collection {
+            font-size: 12px;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
         .small select {
             width: 72px;
         }
@@ -331,6 +591,7 @@
             border-radius: 8px 8px 0 0;
             padding: 8px 8px;
             vertical-align: middle;
+            color: var(--primary-color);
         }
 
         /* Each sits directly above its own column's input, so it centres on
@@ -1047,13 +1308,15 @@
             position: relative;
             width: 100%;
             border: 1px solid #d9d9d9;
-            background: #fafafa;
-            overflow: hidden
+            background: repeating-linear-gradient(45deg, #d9e7f7, #d9e7f7 6px, #fff 6px, #fff 12px);
+            overflow: hidden;
+            cursor: pointer
         }
 
         .panel {
             position: absolute;
-            border: 2px solid #2f78bd;
+            border: 1px solid #2f78bd;
+            background: #fff;
             box-sizing: border-box;
             display: flex;
             align-items: center;
@@ -1063,14 +1326,390 @@
         .offcut {
             position: absolute;
             box-sizing: border-box;
+            background: repeating-linear-gradient(45deg, #d9e7f7, #d9f7dca7 6px, #fff 6px, #fff 12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5da34445;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.4
+        }
+
+        .cut-line {
+            position: absolute;
+            background: var(--primary-color);
+            z-index: 1;
+        }
+
+        .cut-line-v {
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            margin-left: -1px;
+        }
+
+        .cut-line-h {
+            left: 0;
+            right: 0;
+            height: 2px;
+            margin-top: -1px;
+        }
+
+        .plan-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .15s;
+            z-index: 2;
+            cursor: pointer;
+        }
+
+        .box:hover .plan-overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .plan-overlay-top {
+            flex: 1;
+            background: rgba(255, 255, 255, .97);
+            padding: 16px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .plan-overlay-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .plan-overlay-desc {
+            font-size: 12.5px;
+            color: #333;
+            line-height: 1.9;
+        }
+
+        .plan-overlay-desc .param-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .plan-overlay-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(200, 226, 251, .88);
+        }
+
+        .plan-overlay-footer-desc {
+            font-size: 12px;
+            color: #2f78bd;
+            line-height: 1.4;
+        }
+
+        .plan-overlay-footer-icon {
+            flex: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1.5px solid #2f78bd;
+            color: #2f78bd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .plan-overlay-footer-icon svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* CUTTING PLAN DETAIL MODAL */
+        .cutplan-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(20, 24, 30, .6);
+            z-index: 10050;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        .cutplan-modal-overlay.open {
+            display: flex;
+        }
+
+        .cutplan-modal {
+            position: relative;
+            width: min(1100px, 100%);
+            max-height: 92vh;
+            background: #fff;
+            border-radius: 6px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .cutplan-close {
+            position: absolute;
+            top: 12px;
+            right: 14px;
+            background: none;
+            border: none;
+            font-size: 26px;
+            line-height: 1;
+            color: #666;
+            cursor: pointer;
+            z-index: 2;
+            padding: 4px 8px;
+        }
+
+        .cutplan-close:hover {
+            color: #000;
+        }
+
+        .cutplan-modal-inner {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .cutplan-sidebar {
+            width: 300px;
+            flex: none;
+            background: #f4f5f6;
+            padding: 30px 24px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+
+        .cutplan-sidebar-eyebrow {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            margin-bottom: 12px;
+        }
+
+        .cutplan-decor {
+            font-size: 19px;
+            font-weight: 600;
+            margin: 0 0 8px;
+            color: #1a1a1a;
+        }
+
+        .cutplan-size,
+        .cutplan-sheets {
+            font-size: 13px;
+            color: #444;
+            margin-bottom: 4px;
+        }
+
+        .cutplan-sidebar h3 {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: #777;
+            margin: 24px 0 10px;
+            font-weight: 600;
+        }
+
+        .cutplan-panel-list-row {
+            font-size: 13px;
+            color: #333;
+            padding: 7px 0;
+            border-bottom: 1px solid #e4e4e4;
+        }
+
+        .cutplan-panel-list-desc {
+            color: #2f78bd;
+        }
+
+        .cutplan-empty-note {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .cutplan-diagram-pane {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            box-sizing: border-box;
+            overflow: auto;
+        }
+
+        .cutplan-diagram-wrap {
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .cutplan-box {
+            position: relative;
+            width: 100%;
+            border: 1px solid #d9d9d9;
+            background: repeating-linear-gradient(45deg, #d9e7f7, #d9e7f7 6px, #fff 6px, #fff 12px);
+            overflow: visible;
+        }
+
+        .cutplan-panel {
+            position: absolute;
+            box-sizing: border-box;
+            border: 1px solid #2f78bd;
+            background: #fff;
+        }
+
+        .cutplan-panel-tooltip {
+            position: absolute;
+            top: 100%;
+            left: 100%;
+            margin-top: 6px;
+            margin-left: -18px;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .12s;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .cutplan-panel-tooltip::before {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 18px;
+            border: 6px solid transparent;
+            border-bottom-color: #1a1a1a;
+        }
+
+        .cutplan-panel:hover .cutplan-panel-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .cutplan-tip-size {
+            font-weight: 600;
+        }
+
+        .cutplan-tip-desc {
+            color: #cfe0f7;
+            margin-top: 2px;
+        }
+
+        .cutplan-offcut {
+            position: absolute;
+            box-sizing: border-box;
+            background: repeating-linear-gradient(45deg, #bcd9f7, #bcd9f7 6px, #eaf2fc 6px, #eaf2fc 12px);
+            border: 1px dashed #2f78bd;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1d5a94;
+            font-size: 12px;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        .cutplan-offcut:hover {
+            background: repeating-linear-gradient(45deg, #a7cdf5, #a7cdf5 6px, #ddeafb 6px, #ddeafb 12px);
+        }
+
+        .cutplan-offcut.selected {
+            background: #bfe3c8;
+            border-color: #2e9d4f;
+            color: #1c6d34;
+        }
+
+        .cutplan-offcut-label {
+            pointer-events: none;
+        }
+
+        .cutplan-offcut-tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 8px;
+            background: #1a1a1a;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .12s;
+            pointer-events: none;
+        }
+
+        .cutplan-offcut-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1a1a1a;
+        }
+
+        .cutplan-offcut:hover .cutplan-offcut-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .cutplan-scrap {
+            position: absolute;
+            box-sizing: border-box;
             background: repeating-linear-gradient(45deg, #d9e7f7, #d9e7f7 6px, #fff 6px, #fff 12px);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #2f78bd;
-            font-size: 12px;
-            text-align: center;
-            line-height: 1.4
+            color: #9aa7b5;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .cutplan-nav {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            padding: 16px;
+            border-top: 1px solid #e6e6e6;
+            background: #fafafa;
+            flex: none;
+        }
+
+        .cutplan-nav button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 10px;
+        }
+
+        .cutplan-nav button:disabled {
+            color: #bbb;
+            cursor: default;
         }
 
         .panel-dim-chip {
@@ -1099,14 +1738,15 @@
 
         th {
             font-size: 13px;
-            color: #777;
+            color: #333;
             text-align: left;
             border-bottom: 1px solid #ddd;
-            padding: 10px
+            padding: 10px;
+            font-weight: 600;
         }
 
         td {
-            padding: 5px;
+            padding: 15px 5px;
             border-bottom: 1px solid #eee;
             font-size: 14px
         }
@@ -1840,6 +2480,73 @@
             text-decoration: underline;
         }
 
+        /* ADDITIONAL PANEL INFORMATION POPUP — opened from a row's edit
+           (pencil) icon; see .icon.edit's click handler in cutlist-main.js,
+           which only toggles the .open class below. Position is CSS only,
+           no JS measuring/clamping: anchored to .actions-inner (position:
+           relative, set above) with right: 0, which pins it to the Actions
+           column's own right edge — since Actions is the last column, that
+           edge is also the table's own right edge, so the popup can never
+           run past it. It opens leftward over the row instead. */
+        .panel-info-popup {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 6px;
+            width: 260px;
+            box-sizing: border-box;
+            background: #fff;
+            border: 1px solid #2b78c8;
+            border-radius: 8px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+            padding: 14px;
+            z-index: 200;
+            font-family: inherit;
+            text-align: left;
+        }
+
+        .panel-info-popup.open {
+            display: block;
+        }
+
+        .panel-info-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1c1c1c;
+            margin-bottom: 10px;
+        }
+
+        .panel-info-textarea {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            height: 64px;
+            resize: vertical;
+            border: 1px solid #d6dbe1;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .panel-info-textarea:focus {
+            outline: none;
+            border-color: #2b78c8;
+        }
+
+        .panel-info-textarea::placeholder {
+            color: #a8b0b7;
+        }
+
+        .panel-info-counter {
+            margin-top: 6px;
+            text-align: right;
+            font-size: 11px;
+            color: #9aa2a9;
+        }
+
         /* DECOR SELECTION POPUP */
         .decor-popup {
             display: none;
@@ -2118,7 +2825,7 @@
             align-items: center;
             justify-content: center;
             gap: 6px;
-            height: 60px;
+            height: 103px;
         }
 
         .grain input[type="checkbox"] {
@@ -2155,6 +2862,7 @@
            than on a section row (1 icon). Anchoring to the end keeps the ×
            in the same column on every row regardless of icon count. */
         .actions-inner {
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: flex-end;
@@ -2182,6 +2890,15 @@
 
         .actions .icon.move {
             color: #b7c400;
+            cursor: grab;
+        }
+
+        /* Row currently being dragged via the move handle — see the
+           dragstart/dragend handlers in cutlist-main.js. Faded rather than
+           hidden so its place in the list stays visible while it's being
+           repositioned. */
+        tr.row-dragging {
+            opacity: 0.4;
         }
 
         .actions .icon.edit {
@@ -2262,6 +2979,11 @@
         }
 
         .section-row .icon.move {
+            /* .actions .icon is hidden until its row gets .unlocked (a
+               decor picked), which a section row never does — without
+               this override its own move handle would stay invisible and
+               undraggable forever. */
+            visibility: visible;
             color: var(--primary-color);
             cursor: grab;
         }
@@ -2428,6 +3150,14 @@
         .spray-side-btn.selected {
             background: #2b78c8;
             color: #fff;
+        }
+
+        /* A side, locked always-on — same idea as the disabled toggle
+           buttons elsewhere in this sidebar (hinge holes' A side, J
+           handle's B side): visually identical to a normal selected
+           state, just not clickable. */
+        .spray-side-btn:disabled {
+            cursor: not-allowed;
         }
 
         .spray-side-note {
@@ -2613,16 +3343,58 @@
            --primary-color: it sits over the edgebanding columns, which are
            blue throughout (tabs, highlights, diagram callouts). */
         .edge-popup {
-            --edge-accent: #2b78c8;
+            --edge-accent: #1a9d5c;
+            --edge-accent-tint: #eaf7ef;
             display: none;
             position: absolute;
-            width: 300px;
-            background: #eaf3fc;
-            border: 1px solid #bcd8f2;
-            box-shadow: 0px 2px 8px #999;
+            width: 400px;
+            background: #fff;
+            border: 1px solid #e2e6ea;
+            border-radius: 10px;
+            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.16);
             z-index: 9999;
             font-size: 14px;
             color: #333;
+            overflow: hidden;
+        }
+
+        .edge-popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 16px 10px 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .edge-popup-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #222;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        .edge-popup-close {
+            color: #8a8f94;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .edge-popup-subtitle {
+            padding: 4px 16px 0;
+            font-size: 13px;
+        }
+
+        .edge-popup-subtitle-edge {
+            color: var(--edge-accent);
+            font-weight: 700;
+        }
+
+        .edge-popup-subtitle-type {
+            color: var(--edge-accent);
+            margin-left: 2px;
         }
 
         /* One of the four edge labels around the diagram. Only the edge
@@ -2632,30 +3404,21 @@
             font-weight: bold;
         }
 
-        /* Floats in the popup's corner — there's no title row to sit in. */
-        .edge-popup-close {
-            position: absolute;
-            right: 12px;
-            top: 8px;
-            z-index: 1;
-            color: var(--edge-accent);
-            cursor: pointer;
-            font-size: 22px;
-            font-weight: bold;
-            line-height: 1;
-        }
-
-        /* Transparent: the popup's blue shows through, and only the inner
-           card is white — W1/W2/L2 read as labels around the panel. */
+        /* Tinted panel behind the diagram — the labels (W1/W2/L1/L2 and the
+           dimensions) sit on the tint, and only the drawn panel itself is a
+           plain white card. */
         .edge-diagram {
-            margin: 6px 12px 4px;
+            margin: 10px 16px 0;
+            padding: 10px 6px 12px;
+            background: var(--edge-accent-tint);
+            border-radius: 8px;
             text-align: center;
         }
 
         .edge-top-label {
-            color: #8a8f94;
+            color: #6b9c80;
             font-size: 13px;
-            padding: 6px 0 8px;
+            padding: 2px 0 8px;
         }
 
         .edge-diagram-row {
@@ -2666,7 +3429,7 @@
         }
 
         .edge-side-label {
-            color: #8a8f94;
+            color: #6b9c80;
             font-size: 13px;
             flex-shrink: 0;
         }
@@ -2683,7 +3446,7 @@
             flex-direction: column;
             justify-content: space-between;
             background: #fff;
-            border: 1px solid #333;
+            border: 1px solid #d3ded8;
             padding: 10px 12px 12px;
             width: 196px;
             height: 130px;
@@ -2711,38 +3474,41 @@
         .edge-highlight {
             position: absolute;
             background: transparent;
+            z-index: 2;
+            pointer-events: none;
+            transition: background 0.15s ease;
         }
 
         .edge-highlight.top {
-            top: -4px;
+            top: -2px;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
         }
 
         .edge-highlight.bottom {
-            bottom: -4px;
+            bottom: -2px;
             left: 0;
             right: 0;
-            height: 4px;
+            height: 3px;
         }
 
         .edge-highlight.left {
             top: 0;
             bottom: 0;
-            left: -4px;
-            width: 4px;
+            left: -2px;
+            width: 3px;
         }
 
         .edge-highlight.right {
             top: 0;
             bottom: 0;
-            right: -4px;
-            width: 4px;
+            right: -2px;
+            width: 3px;
         }
 
         .edge-highlight.active {
-            background: var(--primary-color);
+            background: #5da344;
         }
 
         .edge-dim-side {
@@ -2776,60 +3542,91 @@
 
         .edge-bottom-label {
             text-align: center;
-            color: #8a8f94;
+            color: #6b9c80;
             font-size: 13px;
-            padding: 6px 0 12px;
+            padding: 6px 0 0;
         }
 
         .edge-tabs {
             display: flex;
+            gap: 8px;
+            margin: 14px 16px 0;
         }
 
         .edge-tab {
             flex: 1;
             text-align: center;
             padding: 8px 0;
-            background: #a8cbeb;
-            color: #fff;
+            background: #fff;
+            color: #666;
             cursor: pointer;
             font-size: 13px;
-            border-right: 1px solid #eaf3fc;
+            border: 1px solid #e2e6ea;
+            border-radius: 8px;
         }
 
         .edge-tab:hover:not(.active) {
-            background: #93bfe5;
-        }
-
-        .edge-tab:last-child {
-            border-right: none;
+            border-color: #c8d0d6;
         }
 
         .edge-tab.active {
-            background: #fff;
-            color: #333;
+            background: var(--edge-accent-tint);
+            color: var(--edge-accent);
             font-weight: bold;
+            border-color: var(--edge-accent);
         }
 
         .edge-tab-value {
-            font-size: 12px;
+            font-size: 11px;
             margin-top: 2px;
+            color: #8a8f94;
+        }
+
+        .edge-tab.active .edge-tab-value {
+            color: var(--edge-accent);
+        }
+
+        .edge-section-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 16px 16px 8px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .edge-section-info {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            border: 1px solid #b0b6bb;
+            color: #8a8f94;
+            font-size: 10px;
+            font-style: italic;
+            cursor: help;
         }
 
         .edge-summary {
-            display: block;
-            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: calc(100% - 32px);
             height: auto;
-            margin: 0;
-            text-align: center;
-            padding: 14px 10px 6px;
-            background: none;
-            border: 2px solid transparent;
+            margin: 0 16px;
+            text-align: left;
+            padding: 10px 12px;
+            background: #fff;
+            border: 1px solid #e2e6ea;
+            border-radius: 8px;
             cursor: pointer;
             font: inherit;
         }
 
         .edge-summary:hover:not(:disabled) {
-            background: #dceafd;
+            border-color: #c8d0d6;
         }
 
         /* No edging tape is matched to this row's decor, so there's nothing
@@ -2843,11 +3640,38 @@
             color: #b4bcc3;
         }
 
-        /* Bordered once the tape is applied to the edge being edited. */
+        /* Tinted once the tape is applied to the edge being edited. */
         .edge-summary.selected {
             border-color: var(--edge-accent);
-            border-radius: 4px;
-            background: #fff;
+            background: var(--edge-accent-tint);
+        }
+
+        .edge-summary-radio {
+            flex: 0 0 auto;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #c8d0d6;
+            box-sizing: border-box;
+        }
+
+        .edge-summary.selected .edge-summary-radio {
+            border-color: var(--edge-accent);
+            border-width: 5px;
+        }
+
+        .edge-summary-image {
+            flex: 0 0 auto;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .edge-summary-text {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
         }
 
         .edge-summary-code {
@@ -2860,14 +3684,10 @@
             margin-top: 2px;
         }
 
-        /* Two equal halves split by a divider, on their own light band —
-           matching the reference, where the finishes read as a paired
-           choice rather than two floating cards. */
         .edge-finish-options {
             display: flex;
-            background: #f4f7fa;
-            border-top: 1px solid #dbe6f0;
-            border-bottom: 1px solid #dbe6f0;
+            gap: 10px;
+            margin: 0 16px;
         }
 
         .edge-finish-option {
@@ -2878,17 +3698,15 @@
             line-height: 1.35;
             cursor: pointer;
             padding: 14px 6px 12px;
-            border: 2px solid transparent;
-        }
-
-        .edge-finish-option + .edge-finish-option {
-            border-left: 1px solid #dbe6f0;
+            background: #fff;
+            border: 1px solid #e2e6ea;
+            border-radius: 8px;
         }
 
         .edge-finish-option.selected {
-            background: #f9dfa0;
-            border-color: #f0c060;
-            color: #333;
+            background: var(--edge-accent-tint);
+            border-color: var(--edge-accent);
+            color: #222;
         }
 
         /* Finish this tape isn't available in (Edge Tape CPT toggles).
@@ -2903,6 +3721,10 @@
         .edge-finish-option.disabled .edge-finish-icon {
             border-color: #d8dde2;
             background: #fbfcfd;
+        }
+
+        .edge-finish-option.disabled path {
+            stroke: #00000087;
         }
 
         .edge-finish-icon {
@@ -2971,12 +3793,15 @@
         }
 
         .machining-modal {
-            width: 80%;
-            height: 80%;
+            width: 92%;
+            max-width: 1400px;
+            height: 90vh;
+            max-height: 900px;
             background: #fff;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
             overflow: hidden;
         }
 
@@ -3048,99 +3873,103 @@
 
         .machining-sidebar {
             width: 380px;
-            border-right: 1px solid #ddd;
-            padding: 20px;
+            border-right: 1px solid #e5e7eb;
+            padding: 22px 18px;
             overflow-y: auto;
-            font-size: 14px;
-        }
-
-        .machining-select {
-            width: 100%;
-            height: 39px;
+            font-size: 13px;
+            background: #ffffff;
             box-sizing: border-box;
-            border: 1px solid #c8c8c8;
-            padding: 0 32px 0 10px;
-            color: #999;
-            margin-bottom: 16px;
-            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 10px center;
-            background-size: 14px;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-        }
-
-        /* Replaces the browser's default focus ring (a heavy black
-           rectangle with appearance:none on Windows Chrome/Edge) with the
-           app's usual thin accent border. */
-        .machining-select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-
-        .machining-select:disabled {
-            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z' fill='%23888'/%3E%3C/svg%3E") no-repeat right 10px center;
-            background-size: 14px;
-            opacity: 1;
-            color: #999;
-            cursor: default;
-            padding: 11px 10px;
         }
 
         .machining-select-wrap {
             position: relative;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
-        .machining-select-trigger {
+        .machining-select-wrap::before {
+            content: "Select machining option";
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 8px;
+        }
+
+        .machining-select-trigger,
+        .machining-selected-value {
             width: 100%;
-            height: 39px;
+            min-height: 52px;
             box-sizing: border-box;
-            border: 1px solid #c8c8c8;
-            padding: 0 10px;
-            color: #999;
-            background: #fff;
+            border: 1.5px solid var(--primary-color);
+            border-radius: 10px;
+            padding: 8px 14px;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
             cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .machining-select-trigger:hover {
-            border-color: var(--primary-color);
-        }
-
-        .machining-select-wrap.open .machining-select-arrow svg {
-            transform: rotate(180deg);
+        .machining-select-trigger:hover,
+        .machining-selected-value:hover {
+            border-color: #146c43;
+            box-shadow: 0 0 0 3px rgba(25, 135, 84, 0.12);
         }
 
         .machining-selected-row {
             display: flex;
             align-items: center;
             gap: 8px;
+            width: 100%;
         }
 
-        .machining-selected-value {
-            flex: 1;
-            height: 39px;
-            box-sizing: border-box;
-            border: 1px solid #c8c8c8;
-            padding: 0 10px;
+        .machining-selected-content {
             display: flex;
             align-items: center;
-            color: #333;
-            cursor: pointer;
+            gap: 12px;
+            flex: 1;
         }
 
-        .machining-selected-value:hover {
-            border-color: var(--primary-color);
+        .machining-selected-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563;
+        }
+
+        .machining-selected-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .machining-selected-group {
+            font-size: 11px;
+            color: #6b7280;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+
+        .machining-selected-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.3;
+        }
+
+        .machining-selected-chevron {
+            color: #6b7280;
+            display: flex;
+            align-items: center;
         }
 
         .machining-add-btn {
-            height: 39px;
+            height: 52px;
             padding: 0 18px;
             border: 1px solid var(--primary-color);
-            background: #eaf2fc;
-            color: var(--primary-color);
+            border-radius: 10px;
+            background: var(--primary-color);
+            color: #ffffff;
             font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
@@ -3148,8 +3977,7 @@
         }
 
         .machining-add-btn:hover {
-            background: var(--primary-color);
-            color: #fff;
+            background: #146c43;
         }
 
         .machining-option-dropdown {
@@ -3160,7 +3988,7 @@
             right: 0;
             background: #fff;
             border: 1px solid #d6d6d6;
-            border-radius: 4px;
+            border-radius: 8px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
             padding: 6px 14px;
             z-index: 20;
@@ -3183,9 +4011,21 @@
         }
 
         .machining-option-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             color: #444;
-            padding: 6px 0 6px 14px;
+            padding: 8px 10px;
             cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.15s ease;
+        }
+
+        .machining-option-item-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
         .machining-option-item:hover {
@@ -3209,8 +4049,12 @@
         }
 
         .machining-applied-item {
-            margin-bottom: 10px;
-            border: 1px solid #d6d6d6;
+            margin-bottom: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
         }
 
         .machining-applied-chip {
@@ -3218,11 +4062,25 @@
             align-items: center;
             justify-content: space-between;
             background: var(--primary-color);
-            color: #fff;
-            padding: 8px 10px;
-            font-size: 13px;
-            font-weight: 600;
+            color: #ffffff;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 700;
             cursor: pointer;
+        }
+
+        .machining-applied-chip-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .machining-applied-collapse-btn {
+            font-size: 18px;
+            font-weight: 400;
+            color: #ffffff;
+            cursor: pointer;
+            line-height: 1;
         }
 
         /* Hinge holes chip is blue rather than the app's green — matches
@@ -3245,10 +4103,11 @@
             cursor: pointer;
             flex-shrink: 0;
             margin-left: 8px;
+            border-radius: 4px;
         }
 
         .machining-applied-detail {
-            padding: 12px;
+            padding: 18px 16px;
             font-size: 13px;
         }
 
@@ -3323,7 +4182,7 @@
             min-width: 0;
         }
 
-        
+
 
         /* Shown instead of the count when the panel is too small to take
            hinges — explains why rather than leaving an empty control. */
@@ -3391,18 +4250,39 @@
            panel-shaping one, so this panel carries the blue accent from the
            reference instead of the app's green. Scoped so the angled-cut,
            groove and hinge panels keep theirs. */
-        .machining-applied-item--shelf .machining-applied-chip {
-            background: #2b78c8;
+        .machining-applied-item--shelf .machining-applied-chip,
+        .machining-applied-item--jhandle .machining-applied-chip {
+            background: var(--primary-color);
         }
 
-        .machining-applied-item--shelf .machining-toggle-btn {
-            border-color: #2b78c8;
-            color: #2b78c8;
+        .machining-applied-item--shelf .machining-toggle-btn,
+        .machining-applied-item--jhandle .machining-toggle-btn {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
         }
 
-        .machining-applied-item--shelf .machining-toggle-btn.selected {
-            background: #2b78c8;
+        .machining-applied-item--shelf .machining-toggle-btn.selected,
+        .machining-applied-item--jhandle .machining-toggle-btn.selected {
+            background: var(--primary-color);
             color: #fff;
+        }
+
+        /* The disabled face keeps the greyed treatment, not the blue one
+           above — it has to read as unavailable, not merely unselected. */
+        .machining-applied-item--jhandle .machining-toggle-btn:disabled {
+            border-color: #e0e4e8;
+            color: #a8b0b7;
+        }
+
+        /* Holds the second column open so a lone control (Handle width,
+           Handle ends) lines up under the second End points field instead
+           of stretching across the row. */
+        .machining-offset-field--spacer {
+            visibility: hidden;
+        }
+
+        .machining-jhandle-edges {
+            gap: 14px;
         }
 
         .machining-corner-picker {
@@ -3526,7 +4406,7 @@
         .machining-canvas {
             flex: 1;
             position: relative;
-            background: #dceafd;
+            background: #e4f2dc;
             padding: 30px;
             overflow: auto;
         }
@@ -3535,6 +4415,10 @@
             position: absolute;
             top: 30px;
             left: 30px;
+            /* The panel diagram is centered in the canvas and grows with
+               panel size/zoom — without this it can paint over this box
+               and hide the spray-area readout on shorter viewports. */
+            z-index: 2;
         }
 
         .machining-grain-label {
@@ -3567,7 +4451,7 @@
         }
 
         /* Machining's diagram is a single <canvas> now (see
-           drawTechnicalDiagram() in proto-main.js) — override the shared
+           drawTechnicalDiagram() in cutlist-main.js) — override the shared
            grid layout above just for this instance; #sprayDiagram still
            uses the div/grid version untouched. */
         #machiningDiagram {
@@ -3583,7 +4467,7 @@
             height: 32px;
             border-radius: 50%;
             border: 1px solid #999;
-            background: #dceafd;
+            background: #e4f2dc;
             color: #666;
             font-size: 13px;
             display: flex;
@@ -3617,7 +4501,7 @@
             width: 100%;
             height: 100%;
             background: #fff;
-            border: 2px solid var(--primary-color);
+            border: 1px solid #000;
             position: relative;
         }
 
@@ -3669,7 +4553,7 @@
         }
 
         .machining-dim-value {
-            background: #dceafd;
+            background: #e4f2dc;
             padding: 2px 6px;
             z-index: 1;
         }
@@ -3678,6 +4562,7 @@
             position: absolute;
             bottom: 30px;
             left: 30px;
+            z-index: 2;
         }
 
         .machining-face-box {
@@ -7193,6 +8078,7 @@
 
         .header .tabs a.tab {
             text-decoration: none;
+            cursor: pointer;
         }
 
         .is-layout-constrained> :where(:not(.alignleft):not(.alignright):not(.alignfull)) {

@@ -41,6 +41,34 @@
             "ui_off_text": ""
         },
         {
+            "key": "field_spray_finish_paint_brands",
+            "label": "Paint brands",
+            "name": "paint_brands",
+            "aria-label": "",
+            "type": "textarea",
+            "instructions": "One brand per line. These appear as dropdown options in the Spray Finishing overlay when a customer picks this finish.",
+            "required": false,
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_spray_finish_paint_fields",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ],
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "rows": 4,
+            "new_lines": "",
+            "default_value": "Farrow & Ball\nDulux\nLittle Greene\nRAL Classic",
+            "maxlength": "",
+            "placeholder": ""
+        },
+        {
             "key": "field_spray_finish_finishes",
             "label": "Finishes",
             "name": "finishes",

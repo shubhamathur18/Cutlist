@@ -43,7 +43,7 @@ function cutlist_proto_get_boards() {
 
 /**
  * Flattens the Edge Tape catalogue into the exact { code, name, size,
- * unitPrice } shape the prototype's Select2 picker already expects — one
+ * unitPrice, image } shape the prototype's Select2 picker already expects — one
  * option per (tape, matched board) pair, e.g. tape "G1-22" matched to
  * both H1227-TM12 and H1228-TM12 produces two selectable rows, same as
  * the prototype's hardcoded convention. A tape with no matched boards
@@ -71,6 +71,7 @@ function cutlist_proto_get_edge_tape_options() {
 				'name' => $tape['product_name'] . ' - ' . $board['decor_name'],
 				'size' => $size,
 				'unitPrice' => $tape['unit_price'],
+				'image' => $tape['image'],
 				// Which board (by decor code) this option is matched to — the
 				// front end only offers a tape option once its matched board
 				// has actually been added to the cutting list.
@@ -86,7 +87,7 @@ function cutlist_proto_get_edge_tape_options() {
 }
 
 /**
- * Every published Spray Finish, in the shape proto-main.js's SPRAY_OPTIONS
+ * Every published Spray Finish, in the shape cutlist-main.js's SPRAY_OPTIONS
  * object used to be hardcoded as (see cutlist_format_spray_finish() in
  * rest-endpoints.php) — the front end keys this array by `slug` to rebuild
  * that same object at runtime.
@@ -147,6 +148,65 @@ function cutlist_proto_render_decor_popup_inner($boards) {
 }
 
 /**
+ * Inner markup for a decor cell, shared by the cutting-list and full-sheet
+ * rows. Three layers live here: the input, which is never visible but
+ * still carries the value every other reader parses the decor code out of;
+ * the empty-state placeholder; and — added by renderDecorCard() in
+ * cutlist-main.js once a board is picked — the decor card. CSS picks which
+ * of the last two shows, keyed off .has-decor on the cell.
+ */
+function cutlist_proto_render_decor_cell() {
+	ob_start();
+	?>
+	<input placeholder="<?php esc_attr_e('Enter decor code or name', 'cutlist-catalogue'); ?>">
+	<div class="decor-placeholder">
+		<span class="decor-placeholder-icon" aria-hidden="true">
+			<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+				<circle cx="10.5" cy="10.5" r="6.5"></circle>
+				<line x1="21" y1="21" x2="15.5" y2="15.5"></line>
+			</svg>
+		</span>
+		<span class="decor-card-body">
+			<span class="decor-placeholder-hint"><?php esc_html_e('Search decor code or name', 'cutlist-catalogue'); ?></span>
+			<span class="decor-placeholder-action"><?php esc_html_e('Select a board', 'cutlist-catalogue'); ?></span>
+		</span>
+		<span class="decor-chevron" aria-hidden="true">
+			<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+				<path d="M4.5 7.5 10 13l5.5-5.5"></path>
+			</svg>
+		</span>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
+ * The "Additional panel information" popup, nested inside a row's own
+ * .actions-inner (right after the edit icon) rather than living once as a
+ * shared body-level overlay the way the decor/edge popups do. That's
+ * deliberate: it lets the popup be positioned purely with CSS — .actions
+ * -inner is `position: relative` and the popup anchors to it with
+ * `right: 0`, which pins it to the Actions column's own right edge (the
+ * last column, so that edge never overflows the table) instead of needing
+ * JS to measure the viewport and clamp a body-level element into it.
+ * Every row gets its own instance, so createRow()'s cloneNode duplicates
+ * it automatically — same reasoning as the decor cell above, just without
+ * a JS-rendered state to clear (clearPanelInfoPopup() in cutlist-main.js
+ * only has to blank the textarea and close it).
+ */
+function cutlist_proto_render_panel_info_popup() {
+	ob_start();
+	?>
+	<div class="panel-info-popup">
+		<div class="panel-info-title"><?php esc_html_e('Additional panel information', 'cutlist-catalogue'); ?></div>
+		<textarea class="panel-info-textarea" maxlength="50" placeholder="<?php esc_attr_e('Type here', 'cutlist-catalogue'); ?>"></textarea>
+		<div class="panel-info-counter"><span class="panel-info-counter-value">50</span> <?php esc_html_e('Characters left', 'cutlist-catalogue'); ?></div>
+	</div>
+	<?php
+	return ob_get_clean();
+}
+
+/**
  * pmProducts object for the "More info" panel modal — same shape the
  * prototype's hardcoded mock object used (fullCode/title/name/brand/
  * length/width/material/desc/bside/chars/thicknesses/price_sheet/
@@ -181,6 +241,10 @@ function cutlist_proto_build_pm_products($boards) {
 			'title' => trim($board['brand'] . ' ' . $board['decor_code']),
 			'name' => $board['decor_name'],
 			'brand' => $board['brand'],
+			// Both feed the decor card the cutting list shows once a board
+			// is picked (swatch + title + name + collection).
+			'collection' => $board['collection'],
+			'swatch' => $board['swatch'] ?: '',
 			'length' => $board['length_mm'],
 			'width' => $board['width_mm'],
 			'material' => $board['core'] ?: '–',
@@ -209,10 +273,10 @@ add_shortcode('cutlist_table', function () {
 	$spray_finishes = cutlist_proto_get_spray_finishes();
 
 	wp_enqueue_style(
-		'cutlist-proto-css',
-		cutlist_proto_asset_url('css/proto-extracted.css'),
+		'cutlist-css',
+		cutlist_proto_asset_url('css/cutlist-main.css'),
 		[],
-		filemtime(cutlist_proto_asset_path('css/proto-extracted.css'))
+		filemtime(cutlist_proto_asset_path('css/cutlist-main.css'))
 	);
 
 	// A real PHP template (not a static HTML asset string-replaced at
@@ -255,15 +319,25 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/konva.min.js')),
 		true
 	);
+	// Vendored locally (assets/js/xlsx.min.js, SheetJS Community Edition
+	// 0.18.5, Apache-2.0) — same self-hosted pattern as Konva above. Reads
+	// both .xlsx and .csv uploads for the "Upload cutting list" button.
 	wp_enqueue_script(
-		'cutlist-proto-main',
-		cutlist_proto_asset_url('js/proto-main.js'),
-		['cutlist-proto-basket-store', 'cutlist-konva'],
-		filemtime(cutlist_proto_asset_path('js/proto-main.js')),
+		'cutlist-xlsx',
+		cutlist_proto_asset_url('js/xlsx.min.js'),
+		[],
+		filemtime(cutlist_proto_asset_path('js/xlsx.min.js')),
+		true
+	);
+	wp_enqueue_script(
+		'cutlist-main',
+		cutlist_proto_asset_url('js/cutlist-main.js'),
+		['cutlist-proto-basket-store', 'cutlist-konva', 'cutlist-xlsx'],
+		filemtime(cutlist_proto_asset_path('js/cutlist-main.js')),
 		true
 	);
 	wp_add_inline_script(
-		'cutlist-proto-main',
+		'cutlist-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .
 			'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
 			'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';' .
@@ -271,14 +345,14 @@ add_shortcode('cutlist_table', function () {
 		'before'
 	);
 	wp_add_inline_script(
-		'cutlist-proto-main',
+		'cutlist-main',
 		file_get_contents(cutlist_proto_asset_path('js/proto-small.js')),
 		'after'
 	);
 	wp_enqueue_script(
 		'cutlist-proto-trade-gate',
 		cutlist_proto_asset_url('js/trade-gate.js'),
-		['cutlist-proto-main'],
+		['cutlist-main'],
 		filemtime(cutlist_proto_asset_path('js/trade-gate.js')),
 		true
 	);

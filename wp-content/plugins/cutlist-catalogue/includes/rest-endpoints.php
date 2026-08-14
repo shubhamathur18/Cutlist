@@ -129,6 +129,7 @@ function cutlist_format_edge_tape($post) {
 		'unit_price' => (float) get_field('unit_price', $post->ID),
 		'radius_edge_finish' => ($radius === null ? true : (bool) $radius),
 		'square_edge_finish' => ($square === null ? true : (bool) $square),
+		'image' => get_the_post_thumbnail_url($post->ID, 'thumbnail') ?: null,
 		'boards' => $boards,
 	];
 }
@@ -161,7 +162,7 @@ function cutlist_format_machining_option($post) {
 	return [
 		'id' => $post->ID,
 		// post_name is the stable key rows store in machiningApplied, and
-		// what the behaviour switch in proto-main.js branches on.
+		// what the behaviour switch in cutlist-main.js branches on.
 		'slug' => $post->post_name,
 		'label' => $post->post_title,
 		'group' => $group,
@@ -215,6 +216,10 @@ function cutlist_format_spray_finish($post) {
 		'label' => $post->post_title,
 		'panelFill' => get_field('panel_fill_colour', $post->ID) ?: '#dddddd',
 		'paintFields' => (bool) get_field('show_paint_fields', $post->ID),
+		'paintBrands' => array_values(array_filter(array_map(
+			'trim',
+			explode("\n", get_field('paint_brands', $post->ID) ?: '')
+		))),
 		'finishes' => $finishes,
 		'bOption' => $b_option,
 	];

@@ -21,6 +21,7 @@
                 "groove": "Groove (slot)",
                 "hinge-holes": "Hinge holes (Blum etc.)",
                 "shelf-holes": "Shelf holes (pin rows)",
+                "j-handle": "J handle (edge recess)",
                 "simple": "No settings (label only)"
             },
             "default_value": "simple",

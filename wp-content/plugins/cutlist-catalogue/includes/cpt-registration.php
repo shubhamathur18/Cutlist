@@ -57,13 +57,13 @@ function cutlist_register_post_types() {
 		'public' => true,
 		'show_in_rest' => false,
 		'menu_icon' => 'dashicons-editor-outdent',
-		'supports' => ['title'],
+		'supports' => ['title', 'thumbnail'],
 		'has_archive' => false,
 		'rewrite' => false,
 	]);
 
 	// `spray_finish`: the options offered in the Spray Finishing overlay —
-	// previously a hardcoded SPRAY_OPTIONS object in proto-main.js. Each
+	// previously a hardcoded SPRAY_OPTIONS object in cutlist-main.js. Each
 	// post is one finish type (White primer, Solid colour paint, ...); its
 	// post_title is used directly as the customer-facing label, so there's
 	// no separate "label" field to keep in sync. 'page-attributes' gives it
@@ -200,7 +200,7 @@ function cutlist_seed_default_machining_options() {
 			'slug' => 'j-handle',
 			'title' => 'J handle',
 			'group' => 'Surface shaping',
-			'behaviour' => 'simple',
+			'behaviour' => 'j-handle',
 			'available' => 0,
 		],
 		[
@@ -228,7 +228,7 @@ function cutlist_seed_default_machining_options() {
 			'slug' => 'hole-7-5mm',
 			'title' => '7.5mm ⌀ diameter hole',
 			'group' => 'Shelf holes',
-			'behaviour' => 'simple',
+			'behaviour' => 'shelf-holes',
 			'available' => 1,
 		],
 	];
@@ -276,6 +276,7 @@ function cutlist_seed_default_spray_finishes() {
 			'title' => 'Solid colour paint',
 			'panel_fill_colour' => '#dcc8dc',
 			'show_paint_fields' => 1,
+			'paint_brands' => "Farrow & Ball\nDulux\nLittle Greene\nRAL Classic",
 			'finishes' => "Satin finish | colour, 25% sheen | 60.35\nMatt finish | colour, 5% sheen | 62.95",
 			'b_side_text' => 'Spray B side with white primer only',
 			'b_side_price' => '25.00',
@@ -303,6 +304,7 @@ function cutlist_seed_default_spray_finishes() {
 		update_field('panel_fill_colour', $d['panel_fill_colour'], $post_id);
 		update_field('show_paint_fields', $d['show_paint_fields'], $post_id);
 		update_field('finishes', $d['finishes'], $post_id);
+		update_field('paint_brands', $d['paint_brands'] ?? '', $post_id);
 		update_field('b_side_text', $d['b_side_text'], $post_id);
 		update_field('b_side_price', $d['b_side_price'], $post_id);
 	}
