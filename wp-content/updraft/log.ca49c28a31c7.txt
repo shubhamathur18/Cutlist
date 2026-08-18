@@ -1,0 +1,26 @@
+0000.001 (0) Opened log file at time: Fri, 14 Aug 2026 12:12:02 +0000 on http://cutlist.local
+0000.010 (0) UpdraftPlus WordPress backup plugin (https://updraftplus.com): 1.26.6 WP: 7.0.2 PHP: 8.2.27 (cgi-fcgi, Windows NT DESKTOP-01HFOBC 10.0 build 19045 (Windows 10) AMD64) MySQL: 8.0.35 (max packet size=1073741824) WPLANG: en_US Server: nginx/1.26.1 safe_mode: 0 max_execution_time: 900 memory_limit: 256M (used: 14M | 16M) multisite: N openssl: OpenSSL 3.0.15 3 Sep 2024 mcrypt: N LANG:  WP Proxy: disabled ZipArchive::addFile: Y
+0000.017 (0) Free space on disk containing Updraft's temporary directory: 27283 MB
+0000.036 (0) Tasks: Backup files: 1 (schedule: unset) Backup DB: 1 (schedule: unset)
+0000.055 (0) Requesting semaphore lock (fd) (apparently not via scheduler)
+0000.094 (0) Set semaphore last lock (fd) time to 2026-08-14 12:12:02
+0000.103 (0) Semaphore lock (fd) complete
+0000.204 (0) Backup run: resumption=0, nonce=ca49c28a31c7, file_nonce=ca49c28a31c7 begun at=1786709522 (0s ago), job type=backup
+0000.230 (0) Scheduling a resumption (1) after 514 seconds (1786710036) in case this run gets aborted
+0000.310 (0) Checking if we have a zip executable available
+0000.329 (0) Creation of backups of directories: beginning
+0000.368 (0) Beginning creation of dump of plugins (split every: 400 MB)
+0005.141 (0) Total entities for the zip file: 1365 directories, 8160 files (0 skipped as non-modified), 111.5 MB
+0005.164 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 2.0 seconds have passed since the last write (0 MB, 1 (1) files added so far); re-opening (prior size: 0 KB)
+0005.371 (0) Zip: backup_2026-08-14-1212_Cutlist_ca49c28a31c7-plugins.zip.tmp: 100 files added (on-disk size: 268.7 KB)
+0005.516 (0) Zip: backup_2026-08-14-1212_Cutlist_ca49c28a31c7-plugins.zip.tmp: 200 files added (on-disk size: 268.7 KB)
+0005.649 (0) Zip: backup_2026-08-14-1212_Cutlist_ca49c28a31c7-plugins.zip.tmp: 300 files added (on-disk size: 268.7 KB)
+0005.723 (0) Zip: backup_2026-08-14-1212_Cutlist_ca49c28a31c7-plugins.zip.tmp: 400 files added (on-disk size: 268.7 KB)
+0005.805 (0) Zip: backup_2026-08-14-1212_Cutlist_ca49c28a31c7-plugins.zip.tmp: 500 files added (on-disk size: 268.7 KB)
+0005.841 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 25 MB added on this batch (25.2 MB, 8160 files batched, 539 (540) added so far); re-opening (prior size: 268.7 KB)
+0010.352 (0) User request for abort: backup job will be immediately halted
+0010.368 (0) Decremented the semaphore (fd) by 1
+0010.389 (0) Semaphore (fd) unlocked
+0010.403 (0) There were no errors in the uploads, so the 'resume' event (1) is being unscheduled
+0010.421 (0) No email will/can be sent - the user has not configured an email address.
+0010.427 (0) The backup was aborted by the user

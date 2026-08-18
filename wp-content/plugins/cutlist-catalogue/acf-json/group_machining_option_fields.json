@@ -22,6 +22,7 @@
                 "hinge-holes": "Hinge holes (Blum etc.)",
                 "shelf-holes": "Shelf holes (pin rows)",
                 "j-handle": "J handle (edge recess)",
+                "grain-matching": "Grain matching (cluster matching)",
                 "simple": "No settings (label only)"
             },
             "default_value": "simple",
@@ -53,12 +54,52 @@
             "ui_off_text": "No"
         },
         {
+            "key": "field_machining_option_service_code",
+            "label": "Service code",
+            "name": "service_code",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "Short code shown in the order summary's Additional services table, e.g. ADJ-1S. Leave blank to show a dash.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": 20,
+            "placeholder": "ADJ-1S",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_machining_option_short_description",
+            "label": "Short description",
+            "name": "short_description",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "One line shown next to the service name in the order summary — say what it covers and how it is charged, e.g. \"Library shelf hole drilling on one side – charged per hole pair\".",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "maxlength": 120,
+            "placeholder": "Library shelf hole drilling on one side – charged per hole pair",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_machining_option_price",
             "label": "Price",
             "name": "price",
             "aria-label": "",
             "type": "number",
-            "instructions": "Charged per item applied. Leave at 0 until machining pricing is switched on.",
+            "instructions": "Charged per chargeable unit, per panel. Hinge holes are charged per hole; shelf holes per cluster position (a hole pair — one hole in each row); everything else once per operation applied. Leave at 0 until pricing is switched on.",
             "required": false,
             "conditional_logic": false,
             "wrapper": {
@@ -72,6 +113,48 @@
             "max": "",
             "placeholder": "",
             "prepend": "£",
+            "append": ""
+        },
+        {
+            "key": "field_machining_option_edging_price",
+            "label": "Edging Price (Optional)",
+            "name": "edging_price",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Additional price charged when optional edging tape is selected for this machining operation (e.g. 28.87 for angled cut edging). Defaults to 28.87 if left blank.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "step": "0.01",
+            "default_value": 28.87,
+            "min": 0,
+            "max": "",
+            "placeholder": "28.87",
+            "prepend": "£",
+            "append": ""
+        },
+        {
+            "key": "field_machining_option_edging_service_code",
+            "label": "Edging Service Code (Optional)",
+            "name": "edging_service_code",
+            "aria-label": "",
+            "type": "text",
+            "instructions": "Service code shown in order summary for optional edging (e.g. MC-ANG-EDGE). Leave blank for default.",
+            "required": false,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "50",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "MC-ANG-EDGE",
+            "maxlength": 20,
+            "placeholder": "MC-ANG-EDGE",
+            "prepend": "",
             "append": ""
         }
     ],
@@ -93,5 +176,5 @@
     "active": true,
     "description": "",
     "show_in_rest": 1,
-    "modified": 1786081736
+    "modified": 1999999999
 }

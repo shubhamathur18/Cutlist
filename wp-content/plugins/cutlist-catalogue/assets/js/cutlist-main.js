@@ -152,32 +152,31 @@ function getDimInputs(row) {
 
 
 function toggleInvalid(input) {
-
     if (!input) return;
-
-    if (!input.disabled && input.value.trim() === "") {
-
-        input.classList.add("invalid");
-
-    } else {
-
+    var row = input.closest("tr");
+    if (row && row.classList.contains("fs-row")) {
         input.classList.remove("invalid");
-
+        return;
     }
 
+    if (!input.disabled && input.value.trim() === "") {
+        input.classList.add("invalid");
+    } else {
+        input.classList.remove("invalid");
+    }
 }
 
 
 // A part can't be cut larger than the selected board's own length/width (minus
 // the 40mm cutting margin, stored as data-max-length/data-max-width when a
 function checkMaxDimension(input, row) {
+    if (!input || !row) return;
     var isLength = getDimInputs(row).lengthInput === input;
-    var max = isLength ? row.dataset.maxLength : row.dataset.maxWidth;
+    var defaultMax = isLength ? (SHEET_LENGTH - 2 * SUMMARY_EDGE_TRIM) : (SHEET_WIDTH - 2 * SUMMARY_EDGE_TRIM);
+    var max = row.dataset[isLength ? 'maxLength' : 'maxWidth'] || defaultMax;
     var label = isLength ? 'length' : 'width';
 
     hideMaxTooltip(input);
-
-    if (!max) return;
 
     var value = parseInt(input.value, 10);
     if (!isNaN(value) && value > parseInt(max, 10)) {
@@ -428,13 +427,19 @@ function openEdgePopup(row, edge, anchorEl) {
     let cell = (anchorEl.closest(".edging-input") || anchorEl).getBoundingClientRect();
     let popupHeight = edgePopup.offsetHeight;
 
+    let adminBar = document.getElementById("wpadminbar");
+    let adminBarH = adminBar ? adminBar.offsetHeight : 0;
+
+    let minTop = window.scrollY + adminBarH + 8;
+    let maxTop = window.scrollY + window.innerHeight - popupHeight - 8;
+
     let top = cell.top + window.scrollY + (cell.height / 2) - (popupHeight / 2);
 
-    // Centring pushes the popup above the fold for rows near the top of the page,
-    // so keep it within the viewport — preferring the top edge when the popup is
-    let minTop = window.scrollY + 8;
-    let maxTop = window.scrollY + window.innerHeight - popupHeight - 8;
-    top = maxTop > minTop ? Math.min(Math.max(top, minTop), maxTop) : minTop;
+    if (maxTop >= minTop) {
+        top = Math.min(Math.max(top, minTop), maxTop);
+    } else {
+        top = minTop;
+    }
 
     edgePopup.style.left = anchor.left + "px";
     edgePopup.style.top = top + "px";
@@ -473,13 +478,13 @@ function closeEdgePopup() {
 
 // Scales the Machining/Spray diagram grid's centre cell proportionally to
 // the row's real length/width, capped to a 320x320 envelope.
-function scaleMachiningDiagramPanel(diagramEl, lengthValue, widthValue) {
+function scaleMachiningDiagramPanel(diagramEl, lengthValue, widthValue, customMaxSize) {
     if (!diagramEl) return;
 
     var length = parseFloat(lengthValue);
     var width = parseFloat(widthValue);
-    var maxSize = 320;
-    var minSize = 90;
+    var maxSize = customMaxSize || 220;
+    var minSize = 80;
     var w = maxSize;
     var h = maxSize;
 
@@ -1204,6 +1209,29 @@ function collectCuttingListItems() {
             edges[cell.dataset.edge] = input ? input.value.trim() : "";
         });
 
+        // Machining details
+        var machiningApplied = [];
+        try {
+            var rawM = row.dataset.machiningApplied || "";
+            if (rawM) machiningApplied = JSON.parse(rawM);
+        } catch (e) {}
+
+        // Spray finishing details
+        var sprayInfo = null;
+        if (typeof sprayStateByRow !== "undefined" && sprayStateByRow && sprayStateByRow.has(row)) {
+            var spraySt = sprayStateByRow.get(row);
+            if (spraySt && spraySt.option) {
+                sprayInfo = {
+                    option: spraySt.option,
+                    option_name: spraySt.option_name || spraySt.option,
+                    aSide: !!spraySt.aSide,
+                    bSide: !!spraySt.bSide,
+                    paintBrand: spraySt.paintBrand || "",
+                    paintColour: spraySt.paintColour || ""
+                };
+            }
+        }
+
         items.push({
             id: CutlistBasket.makeId("ces"),
             decor: decor,
@@ -1216,6 +1244,8 @@ function collectCuttingListItems() {
             edgeL2: edges.L2 || "",
             edgeW1: edges.W1 || "",
             edgeW2: edges.W2 || "",
+            machining: machiningApplied,
+            spray: sprayInfo,
             unitPrice: 0
         });
 
@@ -1223,6 +1253,91 @@ function collectCuttingListItems() {
 
     return items;
 
+}
+
+function collectSelectedOffcuts() {
+    var offcuts = [];
+    if (typeof planOffcutSelection === "undefined" || !planOffcutSelection) return offcuts;
+
+    Object.keys(planOffcutSelection).forEach(function (key) {
+        if (!planOffcutSelection[key]) return;
+        offcuts.push({
+            id: key,
+            dimensions: key,
+            qty: 1,
+            unitPrice: 0
+        });
+    });
+
+    return offcuts;
+}
+
+function sendCutlistToWcCart(options) {
+    options = options || {};
+
+    if (typeof validateGrainFilesBeforeCart === "function" && !validateGrainFilesBeforeCart()) {
+        return;
+    }
+
+    var cutItems = collectCuttingListItems();
+    var fsItems = collectFullSheetItems();
+    var etItems = collectEdgingTapeItems();
+    var mcItems = collectMachiningItems();
+    var selectedOffcuts = collectSelectedOffcuts();
+
+    // Price each panel from its sheet group
+    var sheetGroups = computeCutSheetGroups(cutItems);
+    cutItems.forEach(function (item) {
+        var g = sheetGroups.groups[item.decor + "|" + item.thick];
+        item.unitPrice = g ? g.unitPrice : 0;
+    });
+
+    if (window.CutlistBasket) {
+        CutlistBasket.setCategory("cut-edge-spray", cutItems);
+        CutlistBasket.setCategory("full-sheets", fsItems);
+        CutlistBasket.setCategory("edging-tape", etItems);
+        CutlistBasket.setCategory("machining", mcItems);
+        updateTabBasketPrice();
+    }
+
+    if (typeof cutlistWcVars === "undefined" || !cutlistWcVars.ajax_url) {
+        if (options.redirect === "cart" && typeof cutlistWcVars !== "undefined" && cutlistWcVars.cart_url) {
+            window.location.href = cutlistWcVars.cart_url;
+        } else if (options.redirect === "checkout" && typeof cutlistWcVars !== "undefined" && cutlistWcVars.checkout_url) {
+            window.location.href = cutlistWcVars.checkout_url;
+        }
+        return;
+    }
+
+    var formData = new FormData();
+    formData.append("action", "cutlist_add_to_cart");
+    formData.append("nonce", cutlistWcVars.nonce);
+    formData.append("data", JSON.stringify({
+        clear_cart: true,
+        cutItems: cutItems,
+        fullSheetItems: fsItems,
+        edgingTapeItems: etItems,
+        machiningItems: mcItems,
+        selectedOffcuts: selectedOffcuts
+    }));
+
+    fetch(cutlistWcVars.ajax_url, {
+        method: "POST",
+        body: formData
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (res) {
+        if (res && res.success && res.data) {
+            if (options.redirect === "cart") {
+                window.location.href = res.data.cart_url || (typeof cutlistWcVars !== "undefined" ? cutlistWcVars.cart_url : "/cart/");
+            } else if (options.redirect === "checkout") {
+                window.location.href = res.data.checkout_url || (typeof cutlistWcVars !== "undefined" ? cutlistWcVars.checkout_url : "/checkout/");
+            }
+        }
+    })
+    .catch(function (err) {
+        console.error("WooCommerce Cart Error:", err);
+    });
 }
 
 function collectFullSheetItems() {
@@ -1284,22 +1399,187 @@ function collectEdgingTapeItems() {
 
 }
 
+// Every machining operation applied across the cutting list, grouped by
+// option so the summary shows one line per option rather than one per
+// panel. Charge is per operation per physical panel: an option applied
+// twice to a row of 3 panels is 6 chargeable operations, matching how the
+// Full sheets / Edging tape sections already price (qty x unit price).
+// Price comes from the machining_option CPT (Machining Options -> Price),
+// exposed on each option as `price` by cutlist_format_machining_option().
+function collectMachiningItems() {
+
+    var byOption = {};
+
+    table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+
+        var decorInput = row.querySelector(".decor input");
+        if (!decorInput || !decorInput.value.trim() || decorInput.value.trim() === "-") return;
+
+        // A row with no quantity typed yet still describes one panel.
+        var qtyInput = row.querySelector(".qty input");
+        var panels = parseInt(qtyInput ? qtyInput.value : "", 10);
+        if (!(panels > 0)) panels = 1;
+
+        var dims = machiningRowDims(row);
+
+        // 1. Process applied machining options (angled cut, groove, etc.)
+        var raw = row.dataset.machiningApplied || "";
+        if (raw) {
+            var applied = null;
+            try {
+                applied = JSON.parse(raw);
+            } catch (err) {
+                applied = null;
+            }
+
+            if (Array.isArray(applied) && applied.length) {
+                applied.forEach(function (item) {
+                    var opt = machiningOptionForItem(item);
+                    // An option deleted in wp-admin after a row referenced it has no
+                    // price to charge, so it's listed at zero rather than dropped.
+                    var price = opt && isFinite(parseFloat(opt.price)) ? parseFloat(opt.price) : 0;
+                    var label = (opt && opt.label) || item.label || item.option || "Machining";
+                    var key = (opt && opt.slug) || item.option || label;
+                    var units = machiningChargeUnits(item, opt, dims, applied);
+
+                    if (!byOption[key]) {
+                        byOption[key] = {
+                            label: label,
+                            code: (opt && opt.serviceCode) || "",
+                            description: (opt && opt.shortDescription) || "",
+                            qty: 0,
+                            unitPrice: price,
+                            unit: units.unit
+                        };
+                    }
+                    byOption[key].qty += units.count * panels;
+
+                    // Optional Edging on Angled Cut
+                    if ((item.option === "angled-cut" || (opt && opt.behaviour === "angled-cut")) && item.edgeTapeCode) {
+                        var edgeKey = "angled_cut_edging";
+                        var edgePrice = (opt && isFinite(parseFloat(opt.edgingPrice)) && parseFloat(opt.edgingPrice) >= 0) ? parseFloat(opt.edgingPrice) : 28.87;
+                        var edgeCode = (opt && opt.edgingServiceCode) ? opt.edgingServiceCode : "ANG-EDG";
+                        var edgeLabel = "Edge-banding angled edge";
+                        var edgeDesc = "Edging of panel on diagonally cut edge – charged per edge";
+                        if (!byOption[edgeKey]) {
+                            byOption[edgeKey] = {
+                                label: edgeLabel,
+                                code: edgeCode,
+                                description: edgeDesc,
+                                qty: 0,
+                                unitPrice: edgePrice,
+                                unit: "operation"
+                            };
+                        }
+                        byOption[edgeKey].qty += 1 * panels;
+                    }
+                });
+            }
+        }
+
+        // 2. Grain matching charge per panel (from table row Grain match checkbox)
+        var grainInput = row.querySelector("td.grain input[type='checkbox']");
+        if (grainInput && grainInput.checked) {
+            var grainOpt = (window.cutlistMachiningOptions || []).filter(function (o) {
+                return o.slug === "grain-matching" || o.behaviour === "grain-matching" || o.slug === "grn-mtch";
+            })[0] || null;
+
+            var grainPrice = (typeof cutlistWcVars !== "undefined" && isFinite(parseFloat(cutlistWcVars.grain_match_price)))
+                ? parseFloat(cutlistWcVars.grain_match_price)
+                : ((grainOpt && isFinite(parseFloat(grainOpt.price))) ? parseFloat(grainOpt.price) : 12.70);
+
+            var grainCode = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.grain_match_code)
+                ? cutlistWcVars.grain_match_code
+                : ((grainOpt && grainOpt.serviceCode) ? grainOpt.serviceCode : "GRN-MTCH");
+
+            var grainLabel = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.grain_match_name)
+                ? cutlistWcVars.grain_match_name
+                : ((grainOpt && grainOpt.label) ? grainOpt.label : "Grain-matching of panels in clusters");
+
+            var grainDesc = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.grain_match_desc)
+                ? cutlistWcVars.grain_match_desc
+                : ((grainOpt && grainOpt.shortDescription) ? grainOpt.shortDescription : "Grain-matching of panels based on customer requirements – charged per panel");
+
+            var grainKey = "grain_matching";
+
+            if (!byOption[grainKey]) {
+                byOption[grainKey] = {
+                    label: grainLabel,
+                    code: grainCode,
+                    description: grainDesc,
+                    qty: 0,
+                    unitPrice: grainPrice,
+                    unit: "panel"
+                };
+            }
+            byOption[grainKey].qty += panels;
+        }
+
+    });
+
+    return Object.keys(byOption).map(function (key) {
+        return byOption[key];
+    });
+
+}
+
+// A cutting-list row's own length/width. Pricing runs across every row,
+// while machiningCurrentDims() only knows the one row currently open in the
+// machining overlay, so hole counts have to be measured from the row itself.
+function machiningRowDims(row) {
+    var d = getDimInputs(row);
+    return {
+        length: parseFloat(d.lengthInput ? d.lengthInput.value : ""),
+        width: parseFloat(d.widthInput ? d.widthInput.value : "")
+    };
+}
+
+// How many chargeable units one applied item is worth on a single panel.
+// Hinge holes bill per hole. Shelf holes bill per cluster position rather
+// than per drilled hole: a position is one shelf-pin location, which the
+// canvas draws twice (once in each of the two parallel rows), so the drawn
+// dot count is deliberately double the chargeable count. Everything else is
+// one charge per operation. Counts come from the row's live dimensions via
+// the same helpers that lay the holes out, so a resized panel re-prices.
+function machiningChargeUnits(item, opt, dims, appliedItems) {
+    var behaviour = opt ? opt.behaviour : item.option;
+
+    if (behaviour === "hinge-holes") {
+        var edgeLen = machiningHingeEdgeLength(item.edge, dims);
+        var clearance = machiningHingeCutClearance(item.edge, dims, appliedItems);
+        var positions = machiningHingeResolvedPositions(item, edgeLen, clearance);
+        // Same fallback the panel summary uses when the edge is too short to
+        // lay the pattern out — the count the user asked for still bills.
+        return { unit: "hole", count: positions.length || Math.max(2, Number(item.holes) || 2) };
+    }
+
+    if (behaviour === "shelf-holes") {
+        var axes = machiningShelfAxes(item.edge, dims);
+        var geom = machiningShelfGeom(item);
+        var starts = machiningShelfResolvedClusterStarts(item, axes.run);
+        var clusters = starts.length || geom.clusters;
+        return { unit: "position", count: clusters * geom.positions };
+    }
+
+    return { unit: "operation", count: 1 };
+}
+
 // Demo prices for the prototype summary
 var SUMMARY_SHEET_PRICE = 106.10;   // per 2800 x 2070 sheet
 var SUMMARY_TAPE_PRICE = 5.57;      // per metre of edging tape
 
 var SHEET_LENGTH = 2800;
 var SHEET_WIDTH = 2070;
-var SUMMARY_KERF = 25; // saw kerf / trim allowed between the panel and its offcuts, in mm
+var SUMMARY_KERF = 0; // zero gap between boards or offcuts, only border margin of 50mm
 var SUMMARY_EDGE_TRIM = 50; // clearance kept clear of all 4 raw-sheet edges for the cut, in mm
 
 function summaryMoney(n) {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Any leftover strip narrower than this on its shortest side is too thin to
-// reuse — it's scrap, not a marked offcut.
-var SUMMARY_SCRAP_MIN_SIDE = 125;
+function isPocketOffcut(w, h) {
+    return Math.min(w, h) >= 150 && Math.max(w, h) >= 300;
+}
 
 // Pure packing geometry — how many copies of one panel size fit into a grid
 // on a single sheet (to scale, inside the edge-trim margin), and what's left
@@ -1332,8 +1612,8 @@ function computeSheetLayout(panelLength, panelWidth, qty, sheetLength, sheetWidt
     // columns; the grid's actual width is only as wide as the fullest row needs,
     var gridWidthCols = rows > 1 ? perRow : count;
 
-    var gridWidth = gridWidthCols * panelL + (gridWidthCols - 1) * SUMMARY_KERF;
-    var gridHeight = rows * panelW + (rows - 1) * SUMMARY_KERF;
+    var gridWidth = gridWidthCols * panelL;
+    var gridHeight = rows * panelW;
 
     var panels = [];
     for (var i = 0; i < count; i++) {
@@ -1348,18 +1628,20 @@ function computeSheetLayout(panelLength, panelWidth, qty, sheetLength, sheetWidt
 
     var lastRowCount = count - (rows - 1) * perRow;
     if (rows > 1 && lastRowCount < perRow) {
-        var emptyW = (perRow - lastRowCount) * panelL + (perRow - lastRowCount - 1) * SUMMARY_KERF;
+        var emptyW = (perRow - lastRowCount) * panelL;
         pockets.push({ x: TRIM + lastRowCount * colPitch, y: TRIM + (rows - 1) * rowPitch, w: emptyW, h: panelW });
     }
 
-    var rightW = usableLength - gridWidth - SUMMARY_KERF;
-    if (rightW > 0) {
-        pockets.push({ x: TRIM + gridWidth + SUMMARY_KERF, y: TRIM, w: rightW, h: usableWidth });
+    var bottomH = usableWidth - gridHeight;
+    var rightW = usableLength - gridWidth;
+
+    if (bottomH > 0) {
+        pockets.push({ x: TRIM, y: TRIM + gridHeight, w: usableLength, h: bottomH });
     }
 
-    var bottomH = usableWidth - gridHeight - SUMMARY_KERF;
-    if (bottomH > 0) {
-        pockets.push({ x: TRIM, y: TRIM + gridHeight + SUMMARY_KERF, w: gridWidth, h: bottomH });
+    if (rightW > 0) {
+        var rightH = bottomH > 0 ? gridHeight : usableWidth;
+        pockets.push({ x: TRIM + gridWidth, y: TRIM, w: rightW, h: rightH });
     }
 
     // Saw-cut lines, edge-to-edge across the usable rectangle like a
@@ -1379,7 +1661,7 @@ function computeSheetLayout(panelLength, panelWidth, qty, sheetLength, sheetWidt
 
     return {
         sheetLength: sheetLength, sheetWidth: sheetWidth,
-        panelL: panelL, panelW: panelW, count: count,
+        panelL: panelL, panelW: panelW, count: count, maxPerSheet: maxPerSheet,
         panels: panels, pockets: pockets,
         cutLinesV: cutLinesV, cutLinesH: cutLinesH,
         TRIM: TRIM, usableLength: usableLength, usableWidth: usableWidth
@@ -1395,7 +1677,7 @@ function sheetLayoutRectStyle(layout, xMm, yMm, wMm, hMm) {
 }
 
 // Renders the small "Sheets to be cut" preview box + its hover summary card.
-function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, planKey) {
+function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, planKey, description) {
 
     var L = computeSheetLayout(panelLength, panelWidth, qty, sheetLength, sheetWidth);
 
@@ -1413,24 +1695,28 @@ function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, p
 
     var html = "<div class=\"box\" data-plan-key=\"" + planKey + "\" style=\"aspect-ratio:" + L.sheetLength + "/" + L.sheetWidth + "\">";
 
+    var hoverText = Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm" + (description ? " " + description : "");
+
     L.panels.forEach(function (p, i) {
-        html += "<div class=\"panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
-            (i === 0 ? "<span class=\"panel-dim-chip\">" + L.panelL + " x " + L.panelW + "mm</span>" : "") +
+        html += "<div class=\"panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\" title=\"" + panelSummaryEscape(hoverText) + "\">" +
+            (i === 0 ? "<span class=\"panel-dim-chip\">" + Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm</span>" : "") +
+            "<div class=\"panel-hover-chip\">" + panelSummaryEscape(hoverText) + "</div>" +
             "</div>";
     });
 
     var offcutCount = 0;
     L.pockets.forEach(function (p) {
-        if (Math.min(p.w, p.h) >= SUMMARY_SCRAP_MIN_SIDE) {
+        if (isPocketOffcut(p.w, p.h)) {
             html += "<div class=\"offcut\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
                 "Offcut<br>" + Math.round(p.w) + " x " + Math.round(p.h) +
                 "</div>";
             offcutCount++;
+        } else {
+            html += "<div class=\"scrap\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
+                "<div class=\"panel-hover-chip\">Scrap (" + Math.round(p.w) + " x " + Math.round(p.h) + "mm)</div>" +
+                "</div>";
         }
     });
-
-    L.cutLinesV.forEach(function (x) { html += vLine(x); });
-    L.cutLinesH.forEach(function (y) { html += hLine(y); });
 
     // Hover summary — sheet yield is the drawn panels' combined area against
     // the full sheet; "per sheet" and "per plan" match since this one layout
@@ -1503,8 +1789,15 @@ function computeCutSheetGroups(cutItems) {
     var totalSheets = 0;
     Object.keys(groups).forEach(function (key) {
         var g = groups[key];
-        // Rough demo estimate: panel area + 25% waste, at least one sheet
-        g.sheets = Math.max(1, Math.ceil((g.area * 1.25) / (SHEET_LENGTH * SHEET_WIDTH)));
+        if (g.bestItem) {
+            var layoutOne = computeSheetLayout(g.bestItem.length, g.bestItem.width, 9999, SHEET_LENGTH, SHEET_WIDTH);
+            var maxPerSheet = Math.max(1, layoutOne.maxPerSheet || 1);
+            g.maxPerSheet = maxPerSheet;
+            g.sheets = Math.ceil(g.qty / maxPerSheet);
+        } else {
+            g.maxPerSheet = 1;
+            g.sheets = 1;
+        }
         g.price = g.sheets * SUMMARY_SHEET_PRICE;
         g.unitPrice = g.qty ? g.price / g.qty : 0;
         totalSheets += g.sheets;
@@ -1514,7 +1807,7 @@ function computeCutSheetGroups(cutItems) {
 
 }
 
-function buildSummaryHTML(cutItems, fsItems, etItems) {
+function buildSummaryHTML(cutItems, fsItems, etItems, mcItems) {
 
     var html = "<h2 class=\"summary-title\">Cut, edge &amp; spray summary</h2>";
     var grandTotal = 0;
@@ -1619,12 +1912,59 @@ function buildSummaryHTML(cutItems, fsItems, etItems) {
         html += summaryCardHTML("Edging tape", summaryMoney(etTotal), "", etBody, false);
     }
 
-    if (!cutItems.length && !fsItems.length && !etItems.length) {
+    // ---- Additional services (machining) ----
+    // One line per option. Qty counts chargeable units, which differ per
+    // option (holes / hole pairs / operations — see machiningChargeUnits),
+    // so the unit is named next to the service rather than in the header.
+    var mcTotal = 0;
+    var mcBody = EMPTY_BODY;
+    mcItems = mcItems || [];
+
+    if (mcItems.length) {
+
+        var mcRows = mcItems.map(function (item) {
+            var line = item.qty * item.unitPrice;
+            mcTotal += line;
+            // The description is authored per option in wp-admin and normally
+            // says how it's charged; fall back to naming the unit ourselves so
+            // a large qty is never unexplained.
+            var desc = item.description
+                ? panelSummaryEscape(item.description)
+                : (item.unit && item.unit !== "operation"
+                    ? "Charged per " + panelSummaryEscape(item.unit)
+                    : "");
+            return "<tr><td>" + item.qty + "</td>" +
+                "<td>" + panelSummaryEscape(item.code || "-") + "</td>" +
+                "<td>" + panelSummaryEscape(item.label) + "</td>" +
+                "<td class=\"summary-note\">" + desc + "</td>" +
+                "<td>" + summaryMoney(item.unitPrice) + "</td>" +
+                "<td>" + summaryMoney(line) + "</td></tr>";
+        }).join("");
+
+        grandTotal += mcTotal;
+
+        mcBody =
+            "<table><tr><th>Qty</th><th>Service code</th><th>Service name</th>" +
+            "<th>Short description</th><th>Unit price</th><th>Line total</th></tr>" + mcRows + "</table>" +
+            "<div class=\"total\"><strong>This section: " + summaryMoney(mcTotal) + "</strong><div>With VAT: " + summaryMoney(mcTotal * 1.2) + "</div></div>";
+
+        html += summaryCardHTML("Additional services", summaryMoney(mcTotal), "", mcBody, false);
+
+    }
+
+    if (!cutItems.length && !fsItems.length && !etItems.length && !mcItems.length) {
         html += "<p class=\"summary-note\">Nothing to summarise yet — add panels, full sheets or edging tape above.</p>";
     } else {
+        var cartUrl = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.cart_url) ? cutlistWcVars.cart_url : "/cart/";
+        var checkoutUrl = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.checkout_url) ? cutlistWcVars.checkout_url : "/checkout/";
+
         html += "<div class=\"grand\">" +
             "<div class=\"price\">Total: " + summaryMoney(grandTotal) + "</div>" +
             "<div class=\"vat\">With VAT: " + summaryMoney(grandTotal * 1.2) + "</div>" +
+            "<div class=\"summary-cart-actions\" style=\"margin-top: 18px; display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;\">" +
+            "<a href=\"" + cartUrl + "\" class=\"btn-wc-cart\" id=\"btnWcCart\" style=\"background:#2f78bd; color:#fff; padding:12px 22px; border-radius:4px; font-weight:600; text-decoration:none; display:inline-block;\">View Shopping Cart</a>" +
+            "<a href=\"" + checkoutUrl + "\" class=\"btn-wc-checkout\" id=\"btnWcCheckout\" style=\"background:#5da344; color:#fff; padding:12px 22px; border-radius:4px; font-weight:600; text-decoration:none; display:inline-block;\">Proceed to Checkout &rarr;</a>" +
+            "</div>" +
             "</div>";
     }
 
@@ -1642,11 +1982,16 @@ function buildSummaryHTML(cutItems, fsItems, etItems) {
 
 var cutPlanModalState = null; // { sheetGroups, orderedKeys, index }
 var planOffcutSelection = {}; // "<planKey>|<pocketIndex>" -> true, visual-only (not wired to the basket)
+var planOffcutSplits = {};    // "<planKey>|<pocketIndex>" -> { axis: 'h'|'v', pos: mm }
 
 function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
         return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c];
     });
+}
+
+function isOffcutSplittable(w, h) {
+    return Math.round(w) >= 1220 || Math.round(h) >= 1220;
 }
 
 // Renders the modal's full-size diagram: real panel size + description on
@@ -1666,12 +2011,11 @@ function cutPlanModalDiagramHTML(L, planKey, description) {
 
     var html = "<div class=\"cutplan-box\" style=\"aspect-ratio:" + L.sheetLength + "/" + L.sheetWidth + "\">";
 
-    var descHtml = description ? "<div class=\"cutplan-tip-desc\">" + escapeHtml(description) + "</div>" : "";
+    var hoverText = Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm" + (description ? " " + description : "");
     L.panels.forEach(function (p) {
-        html += "<div class=\"cutplan-panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
+        html += "<div class=\"cutplan-panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\" title=\"" + panelSummaryEscape(hoverText) + "\">" +
             "<div class=\"cutplan-panel-tooltip\">" +
-            "<div class=\"cutplan-tip-size\">" + L.panelL + " x " + L.panelW + "mm</div>" +
-            descHtml +
+            "<div class=\"cutplan-tip-size\">" + panelSummaryEscape(hoverText) + "</div>" +
             "</div>" +
             "</div>";
     });
@@ -1679,21 +2023,77 @@ function cutPlanModalDiagramHTML(L, planKey, description) {
     var selectedList = [];
     L.pockets.forEach(function (p, idx) {
         var w = Math.round(p.w), h = Math.round(p.h);
-        if (Math.min(p.w, p.h) >= SUMMARY_SCRAP_MIN_SIDE) {
+        if (isPocketOffcut(p.w, p.h)) {
             var offcutKey = planKey + "|" + idx;
-            var selected = !!planOffcutSelection[offcutKey];
-            if (selected) selectedList.push(w + " x " + h + "mm x 1");
-            html += "<div class=\"cutplan-offcut" + (selected ? " selected" : "") + "\" data-offcut-key=\"" + offcutKey + "\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
-                "<div class=\"cutplan-offcut-label\">" + (selected ? "Selected offcut<br>" : "") + w + "<br>x<br>" + h + "</div>" +
-                "<div class=\"cutplan-offcut-tooltip\">" + w + " x " + h + "mm offcut</div>" +
-                "</div>";
+            var splittable = isOffcutSplittable(p.w, p.h);
+            var split = splittable ? planOffcutSplits[offcutKey] : null;
+
+            if (split) {
+                var axis = split.axis || ((w >= 1220 && h < 1220) ? 'v' : 'h');
+                var maxDim = (axis === 'h' ? p.h : p.w);
+                var pos = Math.max(100, Math.min(maxDim - 100, split.pos || Math.round(maxDim / 2)));
+
+                var sub0 = (axis === 'h')
+                    ? { x: p.x, y: p.y, w: p.w, h: pos }
+                    : { x: p.x, y: p.y, w: pos, h: p.h };
+                var sub1 = (axis === 'h')
+                    ? { x: p.x, y: p.y + pos, w: p.w, h: p.h - pos }
+                    : { x: p.x + pos, y: p.y, w: p.w - pos, h: p.h };
+
+                var subKey0 = offcutKey + "_sub0";
+                var subKey1 = offcutKey + "_sub1";
+                var sel0 = !!planOffcutSelection[subKey0];
+                var sel1 = !!planOffcutSelection[subKey1];
+
+                var w0 = Math.round(sub0.w), h0 = Math.round(sub0.h);
+                var w1 = Math.round(sub1.w), h1 = Math.round(sub1.h);
+
+                if (sel0) selectedList.push(w0 + " x " + h0 + "mm x 1");
+                if (sel1) selectedList.push(w1 + " x " + h1 + "mm x 1");
+
+                // Render Sub-offcut 0
+                html += "<div class=\"cutplan-offcut cutplan-sub-offcut" + (sel0 ? " selected" : "") + "\" data-offcut-key=\"" + subKey0 + "\" style=\"" + rect(sub0.x, sub0.y, sub0.w, sub0.h) + "\">" +
+                    "<div class=\"cutplan-offcut-label\">" + (sel0 ? "Selected offcut<br>" : "") + w0 + "<br>x<br>" + h0 + "</div>" +
+                    "<div class=\"cutplan-offcut-tooltip\">" + w0 + " x " + h0 + "mm offcut</div>" +
+                    "</div>";
+
+                // Render Sub-offcut 1
+                html += "<div class=\"cutplan-offcut cutplan-sub-offcut" + (sel1 ? " selected" : "") + "\" data-offcut-key=\"" + subKey1 + "\" style=\"" + rect(sub1.x, sub1.y, sub1.w, sub1.h) + "\">" +
+                    "<div class=\"cutplan-offcut-label\">" + (sel1 ? "Selected offcut<br>" : "") + w1 + "<br>x<br>" + h1 + "</div>" +
+                    "<div class=\"cutplan-offcut-tooltip\">" + w1 + " x " + h1 + "mm offcut</div>" +
+                    "</div>";
+
+                // Render Split Line & Center Knob Controls
+                var lineStyle = (axis === 'h')
+                    ? "left:" + sheetLayoutPct(p.x, L.sheetLength) + "%;top:" + sheetLayoutPct(p.y + pos, L.sheetWidth) + "%;width:" + sheetLayoutPct(p.w, L.sheetLength) + "%;"
+                    : "left:" + sheetLayoutPct(p.x + pos, L.sheetLength) + "%;top:" + sheetLayoutPct(p.y, L.sheetWidth) + "%;height:" + sheetLayoutPct(p.h, L.sheetWidth) + "%;";
+
+                var showAxisToggle = (w >= 1220 && h >= 1220);
+
+                html += "<div class=\"cutplan-split-line cutplan-split-line-" + axis + "\" style=\"" + lineStyle + "\" data-offcut-key=\"" + offcutKey + "\" data-axis=\"" + axis + "\" data-px=\"" + p.x + "\" data-py=\"" + p.y + "\" data-pw=\"" + p.w + "\" data-ph=\"" + p.h + "\" data-pos=\"" + pos + "\" data-sheet-length=\"" + L.sheetLength + "\" data-sheet-width=\"" + L.sheetWidth + "\">" +
+                    "<div class=\"cutplan-split-handle-wrap\">" +
+                    "<button type=\"button\" class=\"cutplan-split-reset-btn\" title=\"Click to remove split, drag to adjust\">✕</button>" +
+                    (showAxisToggle ? "<button type=\"button\" class=\"cutplan-split-axis-btn\" title=\"Toggle split direction\">" + (axis === 'h' ? "⇄" : "⇅") + "</button>" : "") +
+                    "</div>" +
+                    "</div>";
+
+            } else {
+                // Whole offcut region
+                var selected = !!planOffcutSelection[offcutKey];
+                if (selected) selectedList.push(w + " x " + h + "mm x 1");
+
+                html += "<div class=\"cutplan-offcut" + (splittable ? " splittable" : "") + (selected ? " selected" : "") + "\" data-offcut-key=\"" + offcutKey + "\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
+                    "<div class=\"cutplan-offcut-label\">" + (selected ? "Selected offcut<br>" : "") + w + "<br>x<br>" + h + "</div>" +
+                    (splittable ? "<button type=\"button\" class=\"cutplan-split-trigger\" data-offcut-key=\"" + offcutKey + "\" data-pw=\"" + p.w + "\" data-ph=\"" + p.h + "\" title=\"Split offcut\">+ Split Offcut</button>" : "") +
+                    "<div class=\"cutplan-offcut-tooltip\">" + w + " x " + h + "mm offcut" + (splittable ? " (Splittable)" : "") + "</div>" +
+                    "</div>";
+            }
         } else {
-            html += "<div class=\"cutplan-scrap\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">Scrap</div>";
+            html += "<div class=\"cutplan-scrap\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
+                "<div class=\"cutplan-offcut-tooltip\">Scrap (" + w + " x " + h + "mm)</div>" +
+                "</div>";
         }
     });
-
-    L.cutLinesV.forEach(function (x) { html += vLine(x); });
-    L.cutLinesH.forEach(function (y) { html += hLine(y); });
 
     html += "</div>";
 
@@ -1723,11 +2123,13 @@ function ensureCutPlanModal() {
         "<h3>Selected offcuts</h3>" +
         "<div class=\"cutplan-selected-offcuts\"></div>" +
         "</div>" +
-        "<div class=\"cutplan-diagram-pane\"><div class=\"cutplan-diagram-wrap\"></div></div>" +
-        "</div>" +
+        "<div class=\"cutplan-diagram-pane\">" +
+        "<div class=\"cutplan-diagram-wrap\"></div>" +
         "<div class=\"cutplan-nav\">" +
         "<button type=\"button\" class=\"cutplan-prev\">&larr; Previous</button>" +
         "<button type=\"button\" class=\"cutplan-next\">Next &rarr;</button>" +
+        "</div>" +
+        "</div>" +
         "</div>" +
         "</div>";
     document.body.appendChild(overlay);
@@ -1739,12 +2141,173 @@ function ensureCutPlanModal() {
     overlay.querySelector(".cutplan-prev").addEventListener("click", function () { stepCutPlanModal(-1); });
     overlay.querySelector(".cutplan-next").addEventListener("click", function () { stepCutPlanModal(1); });
 
-    overlay.querySelector(".cutplan-diagram-wrap").addEventListener("click", function (e) {
+    var diagramWrap = overlay.querySelector(".cutplan-diagram-wrap");
+
+    diagramWrap.addEventListener("click", function (e) {
+        // 1. Reset split button clicked
+        var resetBtn = e.target.closest(".cutplan-split-reset-btn");
+        if (resetBtn) {
+            e.stopPropagation();
+            var line = resetBtn.closest(".cutplan-split-line");
+            if (line) {
+                var key = line.dataset.offcutKey;
+                delete planOffcutSplits[key];
+                delete planOffcutSelection[key + "_sub0"];
+                delete planOffcutSelection[key + "_sub1"];
+                renderCutPlanModal();
+            }
+            return;
+        }
+
+        // 2. Axis toggle button clicked
+        var axisBtn = e.target.closest(".cutplan-split-axis-btn");
+        if (axisBtn) {
+            e.stopPropagation();
+            var line = axisBtn.closest(".cutplan-split-line");
+            if (line) {
+                var key = line.dataset.offcutKey;
+                var currentAxis = line.dataset.axis || 'h';
+                var pw = parseFloat(line.dataset.pw);
+                var ph = parseFloat(line.dataset.ph);
+
+                // Only toggle if both dimensions are >= 1220mm
+                if (pw >= 1220 && ph >= 1220) {
+                    var newAxis = (currentAxis === 'h' ? 'v' : 'h');
+                    planOffcutSplits[key] = {
+                        axis: newAxis,
+                        pos: Math.round((newAxis === 'h' ? ph : pw) / 2)
+                    };
+                    delete planOffcutSelection[key + "_sub0"];
+                    delete planOffcutSelection[key + "_sub1"];
+                    renderCutPlanModal();
+                }
+            }
+            return;
+        }
+
+        // 3. "+ Split Offcut" trigger button clicked
+        var splitTrigger = e.target.closest(".cutplan-split-trigger");
+        if (splitTrigger) {
+            e.stopPropagation();
+            var key = splitTrigger.dataset.offcutKey;
+            var pw = parseFloat(splitTrigger.dataset.pw);
+            var ph = parseFloat(splitTrigger.dataset.ph);
+            var defaultAxis = (pw >= 1220 && ph < 1220) ? 'v' : 'h';
+            var maxDim = (defaultAxis === 'h' ? ph : pw);
+
+            planOffcutSplits[key] = {
+                axis: defaultAxis,
+                pos: Math.round(maxDim / 2)
+            };
+            delete planOffcutSelection[key];
+            renderCutPlanModal();
+            return;
+        }
+
+        // 4. Offcut or Sub-offcut click
         var offcutEl = e.target.closest(".cutplan-offcut");
-        if (!offcutEl) return;
-        planOffcutSelection[offcutEl.dataset.offcutKey] = !planOffcutSelection[offcutEl.dataset.offcutKey];
-        renderCutPlanModal();
+        if (offcutEl && !e.target.closest(".cutplan-split-line")) {
+            var key = offcutEl.dataset.offcutKey;
+            if (key) {
+                planOffcutSelection[key] = !planOffcutSelection[key];
+                renderCutPlanModal();
+            }
+        }
     });
+
+    // Drag handling on split line / thumb
+    var isDraggingSplit = false;
+    var dragSplitData = null;
+
+    function onPointerDown(e) {
+        var thumb = e.target.closest(".cutplan-split-reset-btn, .cutplan-split-handle-wrap, .cutplan-split-line");
+        if (!thumb || e.target.closest(".cutplan-split-axis-btn")) return;
+
+        var line = thumb.closest(".cutplan-split-line");
+        if (!line) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        var boxEl = line.closest(".cutplan-box");
+        if (!boxEl) return;
+
+        var boxRect = boxEl.getBoundingClientRect();
+        isDraggingSplit = true;
+        dragSplitData = {
+            lineEl: line,
+            boxRect: boxRect,
+            key: line.dataset.offcutKey,
+            axis: line.dataset.axis,
+            px: parseFloat(line.dataset.px),
+            py: parseFloat(line.dataset.py),
+            pw: parseFloat(line.dataset.pw),
+            ph: parseFloat(line.dataset.ph),
+            sheetLength: parseFloat(line.dataset.sheetLength),
+            sheetWidth: parseFloat(line.dataset.sheetWidth),
+            startClientX: e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0),
+            startClientY: e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0),
+            startPos: parseFloat(line.dataset.pos)
+        };
+
+        window.addEventListener("mousemove", onPointerMove);
+        window.addEventListener("mouseup", onPointerUp);
+        window.addEventListener("touchmove", onPointerMove, { passive: false });
+        window.addEventListener("touchend", onPointerUp);
+    }
+
+    function onPointerMove(e) {
+        if (!isDraggingSplit || !dragSplitData) return;
+        if (e.preventDefault) e.preventDefault();
+
+        var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+        var d = dragSplitData;
+        var axis = d.axis;
+
+        if (axis === 'h') {
+            var relY = clientY - d.boxRect.top;
+            var pctY = relY / d.boxRect.height * 100;
+            var offcutTopPct = (d.py / d.sheetWidth) * 100;
+            var offcutHeightPct = (d.ph / d.sheetWidth) * 100;
+            var ratio = (pctY - offcutTopPct) / offcutHeightPct;
+            var newPos = Math.round(ratio * d.ph);
+            newPos = Math.max(100, Math.min(d.ph - 100, newPos));
+
+            if (planOffcutSplits[d.key]) {
+                planOffcutSplits[d.key].pos = newPos;
+            }
+        } else {
+            var relX = clientX - d.boxRect.left;
+            var pctX = relX / d.boxRect.width * 100;
+            var offcutLeftPct = (d.px / d.sheetLength) * 100;
+            var offcutWidthPct = (d.pw / d.sheetLength) * 100;
+            var ratio = (pctX - offcutLeftPct) / offcutWidthPct;
+            var newPos = Math.round(ratio * d.pw);
+            newPos = Math.max(100, Math.min(d.pw - 100, newPos));
+
+            if (planOffcutSplits[d.key]) {
+                planOffcutSplits[d.key].pos = newPos;
+            }
+        }
+
+        renderCutPlanModal();
+    }
+
+    function onPointerUp(e) {
+        if (!isDraggingSplit) return;
+        isDraggingSplit = false;
+        dragSplitData = null;
+        window.removeEventListener("mousemove", onPointerMove);
+        window.removeEventListener("mouseup", onPointerUp);
+        window.removeEventListener("touchmove", onPointerMove);
+        window.removeEventListener("touchend", onPointerUp);
+        renderCutPlanModal();
+    }
+
+    diagramWrap.addEventListener("mousedown", onPointerDown);
+    diagramWrap.addEventListener("touchstart", onPointerDown, { passive: false });
 
     return overlay;
 
@@ -1757,14 +2320,17 @@ function renderCutPlanModal() {
     if (!overlay) return;
 
     var state = cutPlanModalState;
-    var key = state.orderedKeys[state.index];
-    var g = state.sheetGroups.groups[key];
+    var sheetObj = state.allSheets[state.index];
+    if (!sheetObj) return;
+
+    var g = sheetObj.group;
+    var key = sheetObj.key;
 
     overlay.querySelector(".cutplan-index").textContent = state.index + 1;
-    overlay.querySelector(".cutplan-count").textContent = state.orderedKeys.length;
-    overlay.querySelector(".cutplan-decor").textContent = g.decor || "";
+    overlay.querySelector(".cutplan-count").textContent = state.allSheets.length;
+    overlay.querySelector(".cutplan-decor").textContent = (g.decor || "") + (sheetObj.totalSheetsInGroup > 1 ? " (Sheet " + sheetObj.sheetNumber + " of " + sheetObj.totalSheetsInGroup + ")" : "");
     overlay.querySelector(".cutplan-size").textContent = SHEET_LENGTH + " x " + SHEET_WIDTH + (g.thick ? " x " + g.thick + "mm" : "");
-    overlay.querySelector(".cutplan-sheets").textContent = g.sheets + (g.sheets === 1 ? " sheet" : " sheets");
+    overlay.querySelector(".cutplan-sheets").textContent = g.sheets + (g.sheets === 1 ? " sheet total" : " sheets total") + " • " + sheetObj.qtyOnThisSheet + (sheetObj.qtyOnThisSheet === 1 ? " unit on this sheet" : " units on this sheet");
 
     overlay.querySelector(".cutplan-panel-list").innerHTML = g.items.map(function (item) {
         return "<div class=\"cutplan-panel-list-row\">" + Math.round(item.length) + " x " + Math.round(item.width) + " x " + item.qty +
@@ -1772,10 +2338,10 @@ function renderCutPlanModal() {
             "</div>";
     }).join("") || "<div class=\"cutplan-empty-note\">No panels</div>";
 
-    var multi = state.orderedKeys.length > 1;
+    var multi = state.allSheets.length > 1;
     overlay.querySelector(".cutplan-prev").disabled = !multi;
     overlay.querySelector(".cutplan-next").disabled = !multi;
-    overlay.querySelector(".cutplan-nav").style.display = multi ? "" : "none";
+    overlay.querySelector(".cutplan-nav").style.display = multi ? "flex" : "none";
 
     var wrap = overlay.querySelector(".cutplan-diagram-wrap");
     var selectedBox = overlay.querySelector(".cutplan-selected-offcuts");
@@ -1786,8 +2352,9 @@ function renderCutPlanModal() {
         return;
     }
 
-    var layout = computeSheetLayout(g.bestItem.length, g.bestItem.width, g.bestItem.qty, SHEET_LENGTH, SHEET_WIDTH);
-    var rendered = cutPlanModalDiagramHTML(layout, key, g.bestItem.description);
+    var sheetPlanKey = key + "_s" + sheetObj.sheetNumber;
+    var layout = computeSheetLayout(g.bestItem.length, g.bestItem.width, sheetObj.qtyOnThisSheet, SHEET_LENGTH, SHEET_WIDTH);
+    var rendered = cutPlanModalDiagramHTML(layout, sheetPlanKey, g.bestItem.description);
     wrap.innerHTML = rendered.html;
 
     selectedBox.innerHTML = rendered.selectedList.length
@@ -1803,8 +2370,8 @@ function closeCutPlanModal() {
 }
 
 function stepCutPlanModal(dir) {
-    if (!cutPlanModalState) return;
-    var n = cutPlanModalState.orderedKeys.length;
+    if (!cutPlanModalState || !cutPlanModalState.allSheets) return;
+    var n = cutPlanModalState.allSheets.length;
     cutPlanModalState.index = (cutPlanModalState.index + dir + n) % n;
     renderCutPlanModal();
 }
@@ -1813,13 +2380,40 @@ function openCutPlanModal(planKey) {
 
     var cutItems = collectCuttingListItems();
     var sheetGroups = computeCutSheetGroups(cutItems);
-    var orderedKeys = Object.keys(sheetGroups.groups);
-    if (!orderedKeys.length) return;
+    var keys = Object.keys(sheetGroups.groups);
+    if (!keys.length) return;
 
-    var index = orderedKeys.indexOf(planKey);
-    if (index < 0) index = 0;
+    var allSheets = [];
+    keys.forEach(function (k) {
+        var g = sheetGroups.groups[k];
+        var totalSheets = g.sheets || 1;
+        var maxPerSheet = g.maxPerSheet || 1;
+        var remainingQty = g.qty;
 
-    cutPlanModalState = { sheetGroups: sheetGroups, orderedKeys: orderedKeys, index: index };
+        for (var s = 0; s < totalSheets; s++) {
+            var qtyOnThisSheet = Math.min(remainingQty, maxPerSheet);
+            remainingQty = Math.max(0, remainingQty - qtyOnThisSheet);
+            allSheets.push({
+                key: k,
+                group: g,
+                sheetNumber: s + 1,
+                totalSheetsInGroup: totalSheets,
+                qtyOnThisSheet: qtyOnThisSheet
+            });
+        }
+    });
+
+    var startIndex = 0;
+    if (planKey) {
+        for (var i = 0; i < allSheets.length; i++) {
+            if (allSheets[i].key === planKey) {
+                startIndex = i;
+                break;
+            }
+        }
+    }
+
+    cutPlanModalState = { sheetGroups: sheetGroups, allSheets: allSheets, index: startIndex };
 
     ensureCutPlanModal().classList.add("open");
     renderCutPlanModal();
@@ -1830,6 +2424,20 @@ function openCutPlanModal(planKey) {
 // Details toggles (and the plan boxes' click-to-open) are wired via
 // delegation instead of per-element listeners.
 summarySection.addEventListener("click", function (e) {
+
+    var cartBtn = e.target.closest("#btnWcCart, .btn-wc-cart");
+    if (cartBtn) {
+        e.preventDefault();
+        sendCutlistToWcCart({ redirect: "cart" });
+        return;
+    }
+
+    var checkoutBtn = e.target.closest("#btnWcCheckout, .btn-wc-checkout");
+    if (checkoutBtn) {
+        e.preventDefault();
+        sendCutlistToWcCart({ redirect: "checkout" });
+        return;
+    }
 
     var box = e.target.closest(".box");
     if (box && box.dataset.planKey) {
@@ -1850,9 +2458,14 @@ summarySection.addEventListener("click", function (e) {
 
 updateBasketBtn.addEventListener("click", function () {
 
+    if (typeof validateGrainFilesBeforeCart === "function" && !validateGrainFilesBeforeCart()) {
+        return;
+    }
+
     var cutItems = collectCuttingListItems();
     var fsItems = collectFullSheetItems();
     var etItems = collectEdgingTapeItems();
+    var mcItems = collectMachiningItems();
 
     // Price each panel from its sheet group so the basket's per-item totals
     // match the "Sheets to be cut" total shown in the summary below.
@@ -1862,16 +2475,12 @@ updateBasketBtn.addEventListener("click", function () {
         item.unitPrice = g ? g.unitPrice : 0;
     });
 
-    if (window.CutlistBasket) {
-        CutlistBasket.setCategory("cut-edge-spray", cutItems);
-        CutlistBasket.setCategory("full-sheets", fsItems);
-        CutlistBasket.setCategory("edging-tape", etItems);
-        var bar = document.getElementById("cbTopbar");
-        if (bar) bar.style.display = "";
-        updateTabBasketPrice();
-    }
+    sendCutlistToWcCart();
 
-    summarySection.innerHTML = buildSummaryHTML(cutItems, fsItems, etItems);
+    var bar = document.getElementById("cbTopbar");
+    if (bar) bar.style.display = "";
+
+    summarySection.innerHTML = buildSummaryHTML(cutItems, fsItems, etItems, mcItems);
     summarySection.style.display = "block";
     summarySection.scrollIntoView({
         behavior: "smooth",
@@ -1882,25 +2491,157 @@ updateBasketBtn.addEventListener("click", function () {
 
 });
 
-function markDirty() {
-    updateBasketBtn.disabled = false;
+document.addEventListener("click", function (e) {
+    var topbarView = e.target.closest(".cb-topbar-view, .tab-basket-btn");
+    if (topbarView) {
+        if (typeof hasValidItemsToBasket === "function" && hasValidItemsToBasket()) {
+            e.preventDefault();
+            sendCutlistToWcCart({ redirect: "cart" });
+        }
+        return;
+    }
+    var topbarCheckout = e.target.closest(".cb-topbar-checkout");
+    if (topbarCheckout) {
+        if (typeof hasValidItemsToBasket === "function" && hasValidItemsToBasket()) {
+            e.preventDefault();
+            sendCutlistToWcCart({ redirect: "checkout" });
+        }
+        return;
+    }
+});
+
+function hasValidItemsToBasket() {
+    var hasCut = false;
+    if (table) {
+        table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+            var decorInput = row.querySelector(".decor input");
+            var dims = getDimInputs(row);
+            var qtyInput = row.querySelector(".qty input");
+            var decorVal = decorInput ? decorInput.value.trim() : "";
+            if (decorVal !== "" && decorVal !== "-") {
+                var len = dims.lengthInput ? parseFloat(dims.lengthInput.value) : 0;
+                var wid = dims.widthInput ? parseFloat(dims.widthInput.value) : 0;
+                var qty = qtyInput ? parseFloat(qtyInput.value) : 0;
+                if (!isNaN(len) && len > 0 && !isNaN(wid) && wid > 0 && !isNaN(qty) && qty > 0) {
+                    hasCut = true;
+                }
+            }
+        });
+    }
+
+    var hasFs = false;
+    var fsTable = document.getElementById("fsTable");
+    if (fsTable) {
+        fsTable.querySelectorAll("tr.fs-row").forEach(function (row) {
+            var decorInput = row.querySelector(".decor input");
+            var qtyInput = row.querySelector(".qty input");
+            var decorVal = decorInput ? decorInput.value.trim() : "";
+            if (decorVal !== "" && decorVal !== "-") {
+                var qty = qtyInput ? parseFloat(qtyInput.value) : 0;
+                if (!isNaN(qty) && qty > 0) {
+                    hasFs = true;
+                }
+            }
+        });
+    }
+
+    var hasEt = false;
+    var etTbody = document.getElementById("etTbody");
+    if (etTbody) {
+        etTbody.querySelectorAll("tr").forEach(function (row) {
+            var sel = row.querySelector(".Select2");
+            var qtyInp = row.querySelector(".et-qty-input");
+            var codeEl = sel ? sel.querySelector(".Select2__input .code") : null;
+            var nameEl = sel ? sel.querySelector(".Select2__input .name") : null;
+            var codeStr = codeEl ? codeEl.textContent.trim() : "";
+            var nameStr = nameEl ? nameEl.textContent.trim() : "";
+
+            if ((codeStr !== "" && codeStr !== "-") || (nameStr !== "" && nameStr !== "-") || (sel && !sel.classList.contains("isEmpty"))) {
+                var qty = qtyInp ? parseFloat(qtyInp.value) : 0;
+                if (!isNaN(qty) && qty > 0) {
+                    hasEt = true;
+                }
+            }
+        });
+    }
+
+    return hasCut || hasFs || hasEt;
 }
-table.addEventListener('input', markDirty);
 
-document.getElementById('decorPopup').addEventListener('click', function (e) {
-    if (e.target.closest('.product-row')) markDirty();
+function hasInvalidFilledInputs() {
+    var isInvalid = false;
+
+    if (table) {
+        table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+            var decorInput = row.querySelector(".decor input");
+            var decorVal = decorInput ? decorInput.value.trim() : "";
+            if (decorVal !== "" && decorVal !== "-") {
+                row.querySelectorAll("input.invalid").forEach(function () {
+                    isInvalid = true;
+                });
+            }
+        });
+    }
+
+    var fsTable = document.getElementById("fsTable");
+    if (fsTable) {
+        fsTable.querySelectorAll("tr.fs-row").forEach(function (row) {
+            var decorInput = row.querySelector(".decor input");
+            var decorVal = decorInput ? decorInput.value.trim() : "";
+            if (decorVal !== "" && decorVal !== "-") {
+                row.querySelectorAll("input.invalid").forEach(function () {
+                    isInvalid = true;
+                });
+            }
+        });
+    }
+
+    var etTbody = document.getElementById("etTbody");
+    if (etTbody) {
+        etTbody.querySelectorAll("tr").forEach(function (row) {
+            var sel = row.querySelector(".Select2");
+            if (sel && !sel.classList.contains("isEmpty")) {
+                row.querySelectorAll("input.invalid").forEach(function () {
+                    isInvalid = true;
+                });
+            }
+        });
+    }
+
+    return isInvalid;
+}
+
+function markDirty() {
+    if (table) {
+        table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+            var decorInput = row.querySelector(".decor input");
+            if (decorInput && decorInput.value.trim() !== "" && decorInput.value.trim() !== "-") {
+                var dims = getDimInputs(row);
+                if (dims.lengthInput) checkMaxDimension(dims.lengthInput, row);
+                if (dims.widthInput) checkMaxDimension(dims.widthInput, row);
+            }
+        });
+    }
+
+    var hasInvalid = hasInvalidFilledInputs();
+    var hasValid = hasValidItemsToBasket();
+
+    if (updateBasketBtn) {
+        updateBasketBtn.disabled = hasInvalid || !hasValid;
+    }
+}
+
+document.addEventListener('input', markDirty);
+document.addEventListener('change', markDirty);
+document.addEventListener('keyup', markDirty);
+document.addEventListener('click', function () {
+    markDirty();
+    setTimeout(markDirty, 50);
 });
 
-document.getElementById('fsTable').addEventListener('input', markDirty);
-
-document.getElementById('etTableArea').addEventListener('click', function (e) {
-    if (e.target.closest('.Select2__option')) markDirty();
-});
-document.getElementById('etTableArea').addEventListener('input', markDirty);
-
-document.getElementById('addRowBtn').addEventListener('click', markDirty, true);
-document.getElementById('addFsRowBtn').addEventListener('click', markDirty, true);
-document.getElementById('addEtRowBtn').addEventListener('click', markDirty, true);
+markDirty();
+setTimeout(markDirty, 200);
+setTimeout(markDirty, 500);
 
 
 // SECTION COLLAPSE / EXPAND (full-width — entire section-title is the click
@@ -2179,10 +2920,10 @@ document.querySelectorAll(".product-row")
             }
 
             // Largest part cuttable from this sheet (length/width minus
-            // 40mm), stored so the input handler can validate as-you-type.
+            // 2 * SUMMARY_EDGE_TRIM), stored so the input handler can validate as-you-type.
             if (selectedBoard && selectedBoard.length && selectedBoard.width) {
-                currentRow.dataset.maxLength = selectedBoard.length - 40;
-                currentRow.dataset.maxWidth = selectedBoard.width - 40;
+                currentRow.dataset.maxLength = selectedBoard.length - 2 * SUMMARY_EDGE_TRIM;
+                currentRow.dataset.maxWidth = selectedBoard.width - 2 * SUMMARY_EDGE_TRIM;
             } else {
                 delete currentRow.dataset.maxLength;
                 delete currentRow.dataset.maxWidth;
@@ -2213,22 +2954,22 @@ document.querySelectorAll(".product-row")
 
 
             if (currentRow.classList.contains("fs-row")) {
-
                 const brand = this.dataset.brand || "";
-                const size = this.dataset.size || "";   // e.g. "2800x2050"
+                const size = this.dataset.size || "";
 
                 const brandCell = currentRow.querySelector(".fs-brand");
                 if (brandCell) brandCell.textContent = brand || "–";
 
-                if (size) {
+                const lenIn = currentRow.querySelector(".fs-length input");
+                const widIn = currentRow.querySelector(".fs-width input");
+
+                if (selectedBoard && selectedBoard.length && selectedBoard.width) {
+                    if (lenIn) { lenIn.value = selectedBoard.length; lenIn.disabled = true; lenIn.classList.remove("invalid"); }
+                    if (widIn) { widIn.value = selectedBoard.width; widIn.disabled = true; widIn.classList.remove("invalid"); }
+                } else if (size) {
                     const parts = size.split("x");
-                    const lenIn = currentRow.querySelector(".fs-length input");
-                    const widIn = currentRow.querySelector(".fs-width input");
-                    // A full sheet is the board's fixed factory size, not a custom
-                    // cut — lock these back down after filling them in so they can't
-                    // be overtyped with an arbitrary value.
-                    if (lenIn) { lenIn.value = parts[0] || ""; lenIn.disabled = true; }
-                    if (widIn) { widIn.value = parts[1] || ""; widIn.disabled = true; }
+                    if (lenIn) { lenIn.value = parts[0] || ""; lenIn.disabled = true; lenIn.classList.remove("invalid"); }
+                    if (widIn) { widIn.value = parts[1] || ""; widIn.disabled = true; widIn.classList.remove("invalid"); }
                 }
 
                 if (selectedBoard && selectedBoard.price_sheet) {
@@ -2241,7 +2982,12 @@ document.querySelectorAll(".product-row")
                 } else {
                     delete currentRow.dataset.priceSheet;
                 }
+            }
 
+            var rowQtyInput = currentRow.querySelector(".qty input");
+            if (rowQtyInput) {
+                rowQtyInput.disabled = false;
+                rowQtyInput.classList.remove("invalid");
             }
 
 
@@ -2345,37 +3091,140 @@ table.addEventListener("click", function (e) {
     }
 });
 
-document.getElementById("grainAddFiles").addEventListener("click", function () {
-    document.getElementById("grainFileInput").click();
-});
+var grainUploadedFiles = [];
 
-function listGrainFiles(files) {
-    document.getElementById("grainFileList").innerHTML =
-        Array.prototype.map.call(files, function (f) {
-            return "<div>&#10003; " + f.name + "</div>";
-        }).join("");
+function showGrainFileUploadError() {
+    var dropzone = document.getElementById("grainDropzone");
+    var section = document.getElementById("grainMatchSection");
+    var errorMsg = document.getElementById("grainFileErrorMsg");
+
+    if (!errorMsg && dropzone) {
+        errorMsg = document.createElement("div");
+        errorMsg.id = "grainFileErrorMsg";
+        errorMsg.className = "grain-file-error-msg";
+        errorMsg.style.cssText = "color:#d32f2f; background:#ffebee; border:1px solid #ef5350; padding:10px 14px; margin-top:10px; border-radius:6px; font-weight:600; font-size:13px; display:flex; align-items:center; gap:8px;";
+        errorMsg.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#d32f2f" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>A drawing file detailing the grain matching cluster is required. Please upload your file before updating the basket.</span>';
+        dropzone.appendChild(errorMsg);
+    } else if (errorMsg) {
+        errorMsg.style.display = "flex";
+    }
+
+    if (dropzone) {
+        dropzone.style.border = "2px dashed #d32f2f";
+        dropzone.style.backgroundColor = "#fff8f8";
+    }
+
+    if (section) {
+        section.style.display = "";
+        section.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
 }
 
-document.getElementById("grainFileInput").addEventListener("change", function () {
-    listGrainFiles(this.files);
-});
+function clearGrainFileUploadError() {
+    var dropzone = document.getElementById("grainDropzone");
+    var errorMsg = document.getElementById("grainFileErrorMsg");
+    if (dropzone) {
+        dropzone.style.border = "";
+        dropzone.style.backgroundColor = "";
+    }
+    if (errorMsg) {
+        errorMsg.style.display = "none";
+    }
+}
+
+function validateGrainFilesBeforeCart() {
+    var anyGrainChecked = !!table.querySelector(".grain input:checked");
+    if (!anyGrainChecked) return true;
+
+    var hasGrainFiles = (grainUploadedFiles && grainUploadedFiles.length > 0);
+    if (!hasGrainFiles) {
+        var fileInput = document.getElementById("grainFileInput");
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
+            hasGrainFiles = true;
+        }
+    }
+
+    if (!hasGrainFiles) {
+        showGrainFileUploadError();
+        return false;
+    }
+    clearGrainFileUploadError();
+    return true;
+}
+
+var grainAddFilesBtn = document.getElementById("grainAddFiles");
+if (grainAddFilesBtn) {
+    grainAddFilesBtn.addEventListener("click", function () {
+        var input = document.getElementById("grainFileInput");
+        if (input) input.click();
+    });
+}
+
+function listGrainFiles(files) {
+    if (files && files.length) {
+        for (var i = 0; i < files.length; i++) {
+            grainUploadedFiles.push(files[i]);
+        }
+    }
+    renderGrainFileList();
+}
+
+function renderGrainFileList() {
+    var container = document.getElementById("grainFileList");
+    if (!container) return;
+    if (!grainUploadedFiles.length) {
+        container.innerHTML = "";
+        return;
+    }
+    container.innerHTML = grainUploadedFiles.map(function (f, idx) {
+        var sizeMb = f.size ? (f.size / (1024 * 1024)).toFixed(2) + " MB" : "";
+        return '<div class="grain-file-item" style="display:flex; align-items:center; justify-content:space-between; margin-top:6px; padding:6px 10px; background:#e8f5e9; border:1px solid #c8e6c9; border-radius:4px; font-size:12px; color:#2e7d32;">' +
+            '<span>&#10003; <strong>' + panelSummaryEscape(f.name) + '</strong> ' + (sizeMb ? '(' + sizeMb + ')' : '') + '</span>' +
+            '<button type="button" class="grain-file-remove" data-index="' + idx + '" style="background:none; border:none; color:#c62828; font-weight:bold; font-size:16px; cursor:pointer; padding:0 4px; margin-left:8px;" title="Remove file">&times;</button>' +
+            '</div>';
+    }).join("");
+
+    clearGrainFileUploadError();
+}
+
+var grainFileListEl = document.getElementById("grainFileList");
+if (grainFileListEl) {
+    grainFileListEl.addEventListener("click", function (e) {
+        var btn = e.target.closest(".grain-file-remove");
+        if (btn) {
+            var idx = parseInt(btn.dataset.index, 10);
+            if (!isNaN(idx) && idx >= 0 && idx < grainUploadedFiles.length) {
+                grainUploadedFiles.splice(idx, 1);
+                renderGrainFileList();
+            }
+        }
+    });
+}
+
+var grainFileInputEl = document.getElementById("grainFileInput");
+if (grainFileInputEl) {
+    grainFileInputEl.addEventListener("change", function () {
+        listGrainFiles(this.files);
+    });
+}
 
 var grainDropzone = document.getElementById("grainDropzone");
+if (grainDropzone) {
+    grainDropzone.addEventListener("dragover", function (e) {
+        e.preventDefault();
+        grainDropzone.classList.add("dragover");
+    });
 
-grainDropzone.addEventListener("dragover", function (e) {
-    e.preventDefault();
-    grainDropzone.classList.add("dragover");
-});
+    grainDropzone.addEventListener("dragleave", function () {
+        grainDropzone.classList.remove("dragover");
+    });
 
-grainDropzone.addEventListener("dragleave", function () {
-    grainDropzone.classList.remove("dragover");
-});
-
-grainDropzone.addEventListener("drop", function (e) {
-    e.preventDefault();
-    grainDropzone.classList.remove("dragover");
-    if (e.dataTransfer.files.length) listGrainFiles(e.dataTransfer.files);
-});
+    grainDropzone.addEventListener("drop", function (e) {
+        e.preventDefault();
+        grainDropzone.classList.remove("dragover");
+        if (e.dataTransfer.files.length) listGrainFiles(e.dataTransfer.files);
+    });
+}
 
 
 // PANEL MODAL (More info)
@@ -2577,8 +3426,6 @@ function updatePanelSummaryChrome(data) {
         grainArrow.style.visibility = data.grain === 'Yes' ? 'visible' : 'hidden';
         grainArrow.innerHTML = String(data.grainDirection).toLowerCase() === 'vertical' ? '&#8597;' : '&#8596;';
     }
-    var faceBox = document.getElementById('panelSummaryFaceBox');
-    if (faceBox) faceBox.innerHTML = '<div>FRONT</div><div>FACE</div>';
 }
 
 function updatePanelSummaryNav() {
@@ -2592,9 +3439,277 @@ function updatePanelSummaryNav() {
     if (nextBtn) nextBtn.disabled = panelSummaryCurrentIndex >= panelSummaryRows.length - 1;
 }
 
+function hasEdgebandingTape(rowObj, edge) {
+    if (!rowObj) return false;
+    var td = rowObj.querySelector('.edging-input[data-edge="' + edge + '"]');
+    var input = td ? td.querySelector('input') : null;
+    return !!(input && input.value && input.value.trim());
+}
+
+var panelSummaryStage = null;
+var panelSummaryLayer = null;
+var panelSummaryShapes = null;
+
+function initPanelSummaryStage() {
+    if (panelSummaryStage || typeof Konva === "undefined") return;
+
+    var container = document.getElementById("panelSummaryKonvaStage");
+    if (!container) return;
+
+    panelSummaryStage = new Konva.Stage({ container: "panelSummaryKonvaStage", width: 500, height: 460 });
+    panelSummaryLayer = new Konva.Layer();
+    panelSummaryStage.add(panelSummaryLayer);
+
+    panelSummaryShapes = {
+        panel: new Konva.Line({ closed: true, fill: "#fff", stroke: "#000", strokeWidth: 1 }),
+        edgeHighlightL1: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightL2: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightW1: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightW2: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+
+        badgeL1: buildMachiningBadge("L1"),
+        badgeL2: buildMachiningBadge("L2"),
+        badgeW1: buildMachiningBadge("W1"),
+        badgeW2: buildMachiningBadge("W2"),
+        dimLength: buildMachiningDimLine(),
+        dimWidth: buildMachiningDimLine(),
+        cutBand: new Konva.Rect({
+            fill: "#fff", stroke: "#5da344", strokeWidth: 1, height: 16,
+            offsetY: 8, visible: false
+        }),
+        cutLengthLabel: new Konva.Text({
+            fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#5da344", visible: false
+        }),
+        hLabel: buildMachiningPositionLabel(),
+        vLabel: buildMachiningPositionLabel(),
+        grooveBar: new Konva.Rect({ fill: "#c9c9c9", stroke: "#888", strokeWidth: 1, visible: false }),
+        grooveLengthLabel: new Konva.Text({
+            fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#5da344", visible: false
+        }),
+        grooveEnd1Label: buildMachiningPositionLabel(),
+        grooveEnd2Label: buildMachiningPositionLabel(),
+        grooveDistLabel: buildMachiningPositionLabel(),
+        hingeGroup: new Konva.Group(),
+        jHandleGroup: new Konva.Group(),
+        shelfGroup: new Konva.Group(),
+        grooveGroup: new Konva.Group(),
+
+        boardClip: new Konva.Group(),
+        hingeMaterial: new Konva.Group(),
+        shelfMaterial: new Konva.Group(),
+        jHandleMaterial: new Konva.Group()
+    };
+
+    panelSummaryLayer.add(panelSummaryShapes.panel);
+    panelSummaryLayer.add(panelSummaryShapes.edgeHighlightL1);
+    panelSummaryLayer.add(panelSummaryShapes.edgeHighlightL2);
+    panelSummaryLayer.add(panelSummaryShapes.edgeHighlightW1);
+    panelSummaryLayer.add(panelSummaryShapes.edgeHighlightW2);
+
+    panelSummaryShapes.boardClip.clipFunc(function (ctx) {
+        var pts = panelSummaryShapes.panel.points();
+        if (!pts || pts.length < 6) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0], pts[1]);
+        for (var i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+        ctx.closePath();
+    });
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.cutBand);
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.grooveBar);
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.grooveGroup);
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.hingeMaterial);
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.shelfMaterial);
+    panelSummaryShapes.boardClip.add(panelSummaryShapes.jHandleMaterial);
+    panelSummaryLayer.add(panelSummaryShapes.boardClip);
+
+    panelSummaryLayer.add(panelSummaryShapes.badgeL1, panelSummaryShapes.badgeL2, panelSummaryShapes.badgeW1, panelSummaryShapes.badgeW2);
+    panelSummaryLayer.add(panelSummaryShapes.dimLength.group, panelSummaryShapes.dimWidth.group);
+    panelSummaryLayer.add(panelSummaryShapes.cutLengthLabel);
+    panelSummaryLayer.add(panelSummaryShapes.hLabel.group, panelSummaryShapes.vLabel.group);
+    panelSummaryLayer.add(panelSummaryShapes.grooveLengthLabel);
+    panelSummaryLayer.add(panelSummaryShapes.grooveEnd1Label.group, panelSummaryShapes.grooveEnd2Label.group, panelSummaryShapes.grooveDistLabel.group);
+    panelSummaryLayer.add(panelSummaryShapes.hingeGroup);
+    panelSummaryLayer.add(panelSummaryShapes.shelfGroup);
+    panelSummaryLayer.add(panelSummaryShapes.jHandleGroup);
+}
+
+function redrawPanelSummaryCanvas(row) {
+    initPanelSummaryStage();
+    if (!panelSummaryStage || !panelSummaryShapes) return;
+
+    if (!row) row = panelSummaryRows[panelSummaryCurrentIndex];
+    if (!row) return;
+
+    var dims = getDimInputs(row);
+    var length = parseFloat(dims.lengthInput ? dims.lengthInput.value : 0);
+    var width = parseFloat(dims.widthInput ? dims.widthInput.value : 0);
+
+    var rawApplied = row.dataset.machiningApplied || "";
+    var appliedItems = [];
+    try {
+        appliedItems = rawApplied ? JSON.parse(rawApplied) : [];
+    } catch (e) {
+        appliedItems = [];
+    }
+
+    var angledItem = appliedItems.filter(function (i) { return i.option === "angled-cut"; })[0] || null;
+    var grooveItem = appliedItems.filter(function (i) { return i.option === "groove"; })[0] || null;
+    var hingeItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "hinge-holes";
+    })[0] || null;
+    var shelfItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "shelf-holes";
+    })[0] || null;
+    var jHandleItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "j-handle";
+    })[0] || null;
+
+    var cfg = MACHINING_CANVAS_CFG;
+    var rectW = 190;
+    var rectH = 120;
+    if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
+        var scale = Math.min(cfg.maxW / length, cfg.maxH / width);
+        rectW = Math.max(70, Math.round(length * scale));
+        rectH = Math.max(45, Math.round(width * scale));
+    }
+
+    var x = cfg.x;
+    var y = cfg.y;
+    var right = x + rectW;
+    var bottom = y + rectH;
+    var midX = x + rectW / 2;
+    var midY = y + rectH / 2;
+
+    var flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+
+    var panelFill = "#ffffff";
+    var spraySt = sprayStateByRow ? sprayStateByRow.get(row) : null;
+    if (spraySt && spraySt.option && SPRAY_OPTIONS[spraySt.option]) {
+        panelFill = SPRAY_OPTIONS[spraySt.option].panelFill || "#ffffff";
+    }
+    panelSummaryShapes.panel.fill(panelFill);
+
+    panelSummaryShapes.badgeL1.position({ x: midX, y: flipLength ? bottom + cfg.badgeOffset : y - cfg.badgeOffset });
+    panelSummaryShapes.badgeL2.position({ x: midX, y: flipLength ? y - cfg.badgeOffset : bottom + cfg.badgeOffset });
+    panelSummaryShapes.badgeW1.position({ x: x - cfg.badgeOffset, y: midY });
+    panelSummaryShapes.badgeW2.position({ x: right + cfg.badgeOffset, y: midY });
+
+    var faceBox = document.getElementById("panelSummaryFaceBox");
+    if (faceBox) {
+        faceBox.classList.toggle("flipped", flipLength);
+    }
+
+    var geo = { x: x, y: y, right: right, bottom: bottom, rectW: rectW, rectH: rectH, length: length, width: width, appliedItems: appliedItems, overallFlip: flipLength };
+
+    updateMachiningNotch(angledItem, geo, false, panelSummaryShapes);
+    updateMachiningGroove(grooveItem, geo, false, panelSummaryShapes);
+    updateMachiningHinge(hingeItem, geo, false, panelSummaryShapes);
+    updateMachiningShelf(shelfItem, geo, false, panelSummaryShapes);
+    updateMachiningJHandle(jHandleItem, geo, false, panelSummaryShapes);
+
+    var lengthRulerY = geo.lengthAtTop ? (y - cfg.rulerOffset) : (bottom + cfg.rulerOffset);
+    var widthRulerX = geo.cornerW === "W1" ? (x - cfg.rulerOffset) : (right + cfg.rulerOffset);
+
+    var lengthLabelA = "-";
+    var lengthLabelB = null;
+    if (geo.splitLenAt != null && !isNaN(length)) {
+        var segA = Math.round((geo.splitLenAt - x) * (length / rectW));
+        lengthLabelA = segA + " mm";
+        lengthLabelB = Math.max(0, length - segA) + " mm";
+    } else if (!isNaN(length)) {
+        lengthLabelA = length + " mm";
+    }
+
+    var widthLabelA = "-";
+    var widthLabelB = null;
+    if (geo.splitWidAt != null && !isNaN(width)) {
+        var segC = Math.round((geo.splitWidAt - y) * (width / rectH));
+        widthLabelA = segC + " mm";
+        widthLabelB = Math.max(0, width - segC) + " mm";
+    } else if (!isNaN(width)) {
+        widthLabelA = width + " mm";
+    }
+
+    var lengthSign = geo.lengthAtTop ? -1 : 1;
+    var widthSign = geo.cornerW === "W1" ? -1 : 1;
+    updateMachiningDimLine(panelSummaryShapes.dimLength, x, lengthRulerY, right, lengthRulerY, false, geo.splitLenAt, lengthLabelA, lengthLabelB, lengthSign);
+    updateMachiningDimLine(panelSummaryShapes.dimWidth, widthRulerX, y, widthRulerX, bottom, true, geo.splitWidAt, widthLabelA, widthLabelB, widthSign);
+
+    // Update edge highlights on the canvas
+    var pts = panelSummaryShapes.panel.points();
+    var topEdgePts = [];
+    var rightEdgePts = [];
+    var bottomEdgePts = [];
+    var leftEdgePts = [];
+
+    if (pts && pts.length === 8) {
+        topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+        rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+        bottomEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+        leftEdgePts = [pts[6], pts[7], pts[0], pts[1]];
+    } else if (pts && pts.length === 10) {
+        var cutIndex = -1;
+        var hasTL = false, hasTR = false, hasBR = false, hasBL = false;
+        for (var i = 0; i < 10; i += 2) {
+            var px = pts[i], py = pts[i + 1];
+            if (Math.abs(px - x) < 1 && Math.abs(py - y) < 1) hasTL = true;
+            if (Math.abs(px - right) < 1 && Math.abs(py - y) < 1) hasTR = true;
+            if (Math.abs(px - right) < 1 && Math.abs(py - bottom) < 1) hasBR = true;
+            if (Math.abs(px - x) < 1 && Math.abs(py - bottom) < 1) hasBL = true;
+        }
+        if (!hasTL) cutIndex = 0;
+        else if (!hasTR) cutIndex = 1;
+        else if (!hasBR) cutIndex = 2;
+        else if (!hasBL) cutIndex = 3;
+
+        if (cutIndex === 0) {
+            topEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            rightEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 1) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 2) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 3) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            bottomEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        }
+    }
+
+    if (topEdgePts.length > 0 && panelSummaryShapes.edgeHighlightL1) {
+        panelSummaryShapes.edgeHighlightL1.points(flipLength ? bottomEdgePts : topEdgePts);
+        panelSummaryShapes.edgeHighlightL1.visible(hasEdgebandingTape(row, "L1"));
+
+        panelSummaryShapes.edgeHighlightL2.points(flipLength ? topEdgePts : bottomEdgePts);
+        panelSummaryShapes.edgeHighlightL2.visible(hasEdgebandingTape(row, "L2"));
+
+        panelSummaryShapes.edgeHighlightW1.points(leftEdgePts);
+        panelSummaryShapes.edgeHighlightW1.visible(hasEdgebandingTape(row, "W1"));
+
+        panelSummaryShapes.edgeHighlightW2.points(rightEdgePts);
+        panelSummaryShapes.edgeHighlightW2.visible(hasEdgebandingTape(row, "W2"));
+    }
+
+    panelSummaryLayer.batchDraw();
+}
+
 function renderPanelSummaryDrawing() {
-    document.getElementById('panelSummaryDrawingContainer').innerHTML =
-        buildPanelSummaryDrawing(panelSummaryCurrentData);
+    var row = panelSummaryRows[panelSummaryCurrentIndex];
+    if (row) {
+        redrawPanelSummaryCanvas(row);
+    }
     panelSummaryInitZoom();
 }
 
@@ -2667,6 +3782,7 @@ function panelSummaryEscape(value) {
 function getPanelSummaryData(row) {
     var dims = row ? getDimInputs(row) : {};
     var grainInput = row ? row.querySelector('.grain input') : null;
+    var spraySt = row && typeof sprayStateByRow !== "undefined" ? sprayStateByRow.get(row) : null;
     return {
         decor: panelSummaryValue(row ? row.querySelector('.decor input') : null),
         thickness: panelSummaryValue(row ? row.querySelector('.thick select') : null),
@@ -2675,10 +3791,10 @@ function getPanelSummaryData(row) {
         qty: panelSummaryValue(row ? row.querySelector('.qty input') : null),
         desc: panelSummaryValue(row ? row.querySelector('.desc input') : null),
 
-        // NEW
         image: row ? (row.dataset.image || "") : "",
 
         grain: grainInput && grainInput.checked ? 'Yes' : '-',
+        grainMatch: row && row.dataset.grainMatch ? row.dataset.grainMatch : (grainInput && grainInput.checked ? 'Yes' : 'No'),
         grainDirection: row && row.dataset.grainDirection ? row.dataset.grainDirection : 'horizontal',
 
         L1: panelSummaryEdgeValue(row, 'L1'),
@@ -2686,7 +3802,8 @@ function getPanelSummaryData(row) {
         W1: panelSummaryEdgeValue(row, 'W1'),
         W2: panelSummaryEdgeValue(row, 'W2'),
 
-        machining: getPanelSummaryMachining(row)
+        machining: getPanelSummaryMachining(row),
+        spray: spraySt
     };
 }
 
@@ -2817,27 +3934,88 @@ function buildPanelSummaryEdgingText(data) {
     }).join(', ');
 }
 
-// Reads row.dataset.machiningData, written by saveMachiningAppliedItems().
-function buildPanelSummaryMachiningText(data) {
-    if (!data.machining || !data.machining.length) return 'No additional machining';
+// An angled cut removes material from the panel's own outline (it changes
+// the panel's shape), so it belongs under "Panel shaping" — everything else
+// (grooves, hinge/shelf holes, J-handle) cuts into the flat face without
+// altering the outline, so it's "Surface shaping".
+var PANEL_SHAPING_BEHAVIOURS = ['angled-cut'];
+var SURFACE_SHAPING_BEHAVIOURS = ['groove', 'j-handle'];
+var DRILLING_BEHAVIOURS = ['hinge-holes', 'shelf-holes'];
 
-    return data.machining.map(function (item) {
-        var type = panelSummaryEscape(item.type || item.kind || 'Machining');
-        var side = item.side ? ' on ' + panelSummaryEscape(item.side) : '';
+function panelSummaryMachiningItemHTML(item) {
+    var type = panelSummaryEscape(item.type || item.kind || 'Machining');
+    var side = item.side ? ' on ' + panelSummaryEscape(item.side) : '';
 
-        // Angled cut (see saveMachiningAppliedItems()) sends a ready-made
-        // description instead of the w/h/length triplet below.
-        if (item.detail) {
-            return '<div class="panel-summary-machining-item">' + type + side + '<br>' + panelSummaryEscape(item.detail) + '</div>';
-        }
+    if (item.behaviour === 'angled-cut') {
+        var detailStr = item.detail ? ': ' + panelSummaryEscape(item.detail) : '';
+        return '<div class="panel-summary-machining-item">' + type + side + detailStr + '</div>';
+    }
 
-        var dims = [];
-        if (item.w) dims.push(panelSummaryEscape(item.w) + 'mm wide');
-        if (item.h) dims.push(panelSummaryEscape(item.h) + 'mm deep');
-        if (item.length) dims.push(panelSummaryEscape(item.length) + 'mm long');
-        var dimsText = dims.length ? '<br>' + dims.join(', ') : '';
-        return '<div class="panel-summary-machining-item">' + type + side + dimsText + '</div>';
-    }).join('');
+    if (item.detail) {
+        return '<div class="panel-summary-machining-item">' + type + side + '<br>' + panelSummaryEscape(item.detail) + '</div>';
+    }
+
+    var dims = [];
+    if (item.w) dims.push(panelSummaryEscape(item.w) + 'mm wide');
+    if (item.h) dims.push(panelSummaryEscape(item.h) + 'mm deep');
+    if (item.length) dims.push(panelSummaryEscape(item.length) + 'mm long');
+    var dimsText = dims.length ? '<br>' + dims.join(', ') : '';
+    return '<div class="panel-summary-machining-item">' + type + side + dimsText + '</div>';
+}
+
+function buildPanelSummaryMachiningText(data, category) {
+    var all = data.machining || [];
+    var items = all.filter(function (item) {
+        var beh = item.behaviour || item.option;
+        if (category === 'panel') return PANEL_SHAPING_BEHAVIOURS.indexOf(beh) !== -1;
+        if (category === 'surface') return SURFACE_SHAPING_BEHAVIOURS.indexOf(beh) !== -1;
+        if (category === 'drilling') return DRILLING_BEHAVIOURS.indexOf(beh) !== -1;
+        return false;
+    });
+
+    if (!items.length) {
+        if (category === 'panel') return 'No panel shaping applied';
+        if (category === 'surface') return 'No surface shaping applied';
+        if (category === 'drilling') return 'No drilling applied';
+        return 'None';
+    }
+
+    return items.map(panelSummaryMachiningItemHTML).join('');
+}
+
+function buildPanelSummarySprayText(data) {
+    var spray = data ? data.spray : null;
+    if (!spray || !spray.option) {
+        return 'No spray finishing applied';
+    }
+
+    var cfg = (typeof SPRAY_OPTIONS !== 'undefined' && SPRAY_OPTIONS[spray.option]) ? SPRAY_OPTIONS[spray.option] : null;
+    var optTitle = cfg ? (cfg.title || cfg.name || spray.option) : spray.option;
+
+    var sideText = 'Side A';
+    if (spray.bOnly) {
+        sideText = 'Side B';
+    } else if (spray.sides && spray.sides.A && spray.sides.B) {
+        sideText = 'Side A & B';
+    }
+
+    var titleLine = panelSummaryEscape(sideText + ': ' + optTitle);
+
+    var colourParts = [];
+    if (spray.brand) colourParts.push(panelSummaryEscape(spray.brand));
+    if (spray.colour) colourParts.push(panelSummaryEscape(spray.colour));
+
+    var colourLine = colourParts.length ? '<br>' + colourParts.join(' - ') : '';
+
+    return titleLine + colourLine;
+}
+
+function buildPanelSummaryGrainText(data) {
+    var isGrainMatch = data && (data.grain === 'Yes' || data.grainMatch === 'Yes');
+    if (!isGrainMatch) {
+        return 'No grain matching applied';
+    }
+    return 'This panel is part of grain matching cluster';
 }
 
 function buildPanelSummaryInfo(data) {
@@ -2860,6 +4038,55 @@ function buildPanelSummaryInfo(data) {
 
     var brandLine = (brand ? panelSummaryEscape(brand) + ' ' : '') + panelSummaryEscape(code || '-');
 
+    var edgingText = buildPanelSummaryEdgingText(data);
+    var panelShapingText = buildPanelSummaryMachiningText(data, 'panel');
+    var surfaceShapingText = buildPanelSummaryMachiningText(data, 'surface');
+    var drillingText = buildPanelSummaryMachiningText(data, 'drilling');
+    var sprayText = buildPanelSummarySprayText(data);
+    var grainText = buildPanelSummaryGrainText(data);
+
+    var sectionsHTML = '';
+
+    sectionsHTML += `<div class="panel-summary-section">
+    <h4>Edging details</h4>
+    <p>${edgingText}</p>
+</div>`;
+
+    if (panelShapingText && panelShapingText !== 'No panel shaping applied') {
+        sectionsHTML += `<div class="panel-summary-section">
+    <h4>Panel shaping summary</h4>
+    <p>${panelShapingText}</p>
+</div>`;
+    }
+
+    if (surfaceShapingText && surfaceShapingText !== 'No surface shaping applied') {
+        sectionsHTML += `<div class="panel-summary-section">
+    <h4>Surface shaping summary</h4>
+    <p>${surfaceShapingText}</p>
+</div>`;
+    }
+
+    if (drillingText && drillingText !== 'No drilling applied') {
+        sectionsHTML += `<div class="panel-summary-section">
+    <h4>Drilling summary</h4>
+    <p>${drillingText}</p>
+</div>`;
+    }
+
+    if (sprayText && sprayText !== 'No spray finishing applied') {
+        sectionsHTML += `<div class="panel-summary-section">
+    <h4>Spray finishing summary</h4>
+    <p>${sprayText}</p>
+</div>`;
+    }
+
+    if (grainText && grainText !== 'No grain matching applied') {
+        sectionsHTML += `<div class="panel-summary-section">
+    <h4>Grain matching</h4>
+    <p>${grainText}</p>
+</div>`;
+    }
+
     return `
 <div class="panel-summary-size">${size}</div>
 
@@ -2870,15 +4097,7 @@ function buildPanelSummaryInfo(data) {
 
 <div class="panel-summary-qty">&times;${panelSummaryEscape(data.qty)}</div>
 
-<div class="panel-summary-section">
-    <h4>Edging details</h4>
-    <p>${buildPanelSummaryEdgingText(data)}</p>
-</div>
-
-<div class="panel-summary-section">
-    <h4>Surface shaping summary</h4>
-    <p>${buildPanelSummaryMachiningText(data)}</p>
-</div>
+${sectionsHTML}
 `;
 }
 
@@ -2888,12 +4107,12 @@ function panelSummaryInitZoom() {
 
     panelZoom = 1;
 
-    const svg = document.querySelector(".panel-summary-drawing");
+    const diagram = document.getElementById("panelSummaryDiagram") || document.querySelector(".panel-summary-drawing");
 
-    if (!svg) return;
+    if (!diagram) return;
 
-    svg.style.transformOrigin = "center center";
-    svg.style.transform = "scale(1)";
+    diagram.style.transformOrigin = "center center";
+    diagram.style.transform = "translate(-50%, -50%) scale(1)";
 
     const zoomInBtn = document.getElementById("panelZoomIn");
     const zoomOutBtn = document.getElementById("panelZoomOut");
@@ -2904,14 +4123,14 @@ function panelSummaryInitZoom() {
 
         panelZoom = Math.min(panelZoom + 0.1, 3);
 
-        svg.style.transform = "scale(" + panelZoom + ")";
+        diagram.style.transform = "translate(-50%, -50%) scale(" + panelZoom + ")";
     };
 
     zoomOutBtn.onclick = function () {
 
         panelZoom = Math.max(panelZoom - 0.1, 0.5);
 
-        svg.style.transform = "scale(" + panelZoom + ")";
+        diagram.style.transform = "translate(-50%, -50%) scale(" + panelZoom + ")";
     };
 
 }
@@ -3111,6 +4330,21 @@ function machiningOptionBySlug(slug) {
     return MACHINING_OPTIONS.filter(function (o) { return o.slug === slug; })[0] || null;
 }
 
+// The CPT option behind an applied item. Angled cut and groove items are
+// pushed with their *behaviour* as `option` ("angled-cut" / "groove") while
+// hinge/shelf/J-handle items store the real CPT slug, so a slug lookup
+// alone silently misses those two if their post is ever given a different
+// slug in wp-admin. Falling back to a behaviour match keeps their price
+// (and anything else read off the option) working either way.
+function machiningOptionForItem(item) {
+    if (!item) return null;
+    var opt = machiningOptionBySlug(item.option);
+    if (opt) return opt;
+    return MACHINING_OPTIONS.filter(function (o) {
+        return o.behaviour === item.option;
+    })[0] || null;
+}
+
 // The board behind a row, looked up by decor code — same lookup the grain
 // checkbox and edging picker already use.
 function machiningBoardForRow(row) {
@@ -3124,7 +4358,7 @@ function machiningBoardForRow(row) {
 
 // Why an option can't be used on this row, or "" if it can. Checked in the
 // order a person would explain it: switched off entirely, then not for this
-function machiningOptionBlockedReason(opt, row) {
+function machiningOptionBlockedReason(opt, row, currentItem) {
     if (!opt) return "";
 
     if (opt.available === false) {
@@ -3171,7 +4405,9 @@ function machiningOptionBlockedReason(opt, row) {
     }
 
     // ── Mutual-exclusion rules (based on already-applied items) ───────────────
-    var applied = machiningAppliedItems || [];
+    var applied = (machiningAppliedItems || []).filter(function (i) {
+        return i !== currentItem;
+    });
 
     var hasHinge = applied.some(function (item) {
         var o = machiningOptionBySlug(item.option);
@@ -3191,14 +4427,24 @@ function machiningOptionBlockedReason(opt, row) {
     var hasSpray = row && sprayStateByRow && sprayStateByRow.has(row) &&
         !!(sprayStateByRow.get(row) || {}).option;
 
-    // Rule: angled cut is blocked if ANY other machining or spray is present
-    // (Angled cut itself does NOT block anything else — rule 1)
     if (behaviour === "angled-cut") {
-        if (hasGroove || hasHinge || hasShelf || hasJHandle) {
-            return "Once other machining options are added, it is no longer possible to shape the panel";
+        var angledCount = applied.filter(function (i) {
+            return i.option === "angled-cut" || i.behaviour === "angled-cut";
+        }).length;
+        if (angledCount >= 4) {
+            return "All four panel corners already have an angled cut.";
         }
-        if (hasSpray) {
-            return "Once spray finishing has been added it is no longer possible to shape the panel";
+    }
+
+    if (behaviour === "groove") {
+        var grooveLCount = applied.filter(function (i) {
+            return (i.option === "groove" || i.behaviour === "groove") && i.edge !== "W1-W2";
+        }).length;
+        var grooveWCount = applied.filter(function (i) {
+            return (i.option === "groove" || i.behaviour === "groove") && i.edge === "W1-W2";
+        }).length;
+        if (grooveLCount >= 3 && grooveWCount >= 3) {
+            return "Maximum 3 groove cuts allowed along L1-L2 and 3 along W1-W2.";
         }
     }
 
@@ -3221,6 +4467,11 @@ function machiningOptionBlockedReason(opt, row) {
     }
     if (behaviour === "shelf-holes" && hasJHandle) {
         return "Once J handle is added, it is no longer possible to add shelf holes";
+    }
+
+    // Rule: only one J handle operation per panel
+    if (behaviour === "j-handle" && hasJHandle) {
+        return "Only one J handle operation is allowed per panel";
     }
 
     // Rule: only one shelf-holes operation per panel
@@ -3328,7 +4579,7 @@ function pruneDisallowedMachiningItems() {
     var kept = machiningAppliedItems.filter(function (item) {
         var opt = machiningOptionBySlug(item.option);
         if (!opt) return true;
-        return !machiningOptionBlockedReason(opt, machiningCurrentRow);
+        return !machiningOptionBlockedReason(opt, machiningCurrentRow, item);
     });
 
     if (kept.length === machiningAppliedItems.length) return false;
@@ -3719,6 +4970,8 @@ function initMachiningStage() {
         // Shelf-pin rows — same rebuild-per-redraw approach as hingeGroup, for the
         // same reason: the hole count varies with clusters, positions and the two
         shelfGroup: new Konva.Group(),
+        angledGroup: new Konva.Group(),
+        grooveGroup: new Konva.Group(),
 
         // Everything that represents material actually removed from the board goes in
         // here rather than straight on the layer. The clip is the panel's own outline,
@@ -3746,6 +4999,7 @@ function initMachiningStage() {
     });
     machiningShapes.boardClip.add(machiningShapes.cutBand);
     machiningShapes.boardClip.add(machiningShapes.grooveBar);
+    machiningShapes.boardClip.add(machiningShapes.grooveGroup);
     machiningShapes.boardClip.add(machiningShapes.hingeMaterial);
     machiningShapes.boardClip.add(machiningShapes.shelfMaterial);
     machiningShapes.boardClip.add(machiningShapes.jHandleMaterial);
@@ -3760,11 +5014,12 @@ function initMachiningStage() {
     machiningLayer.add(machiningShapes.hingeGroup);
     machiningLayer.add(machiningShapes.shelfGroup);
     machiningLayer.add(machiningShapes.jHandleGroup);
+    machiningLayer.add(machiningShapes.angledGroup);
 
     // Click a groove callout to type its value directly, same pattern as the
     // angled-cut hLabel/vLabel callouts above — no drag support for groove yet,
     machiningShapes.grooveEnd1Label.group.on("click tap", function () {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!item) return;
         var dims = machiningCurrentDims();
         var runMax = item.edge === "W1-W2"
@@ -3777,7 +5032,7 @@ function initMachiningStage() {
         });
     });
     machiningShapes.grooveEnd2Label.group.on("click tap", function () {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!item) return;
         var dims = machiningCurrentDims();
         var runMax = item.edge === "W1-W2"
@@ -3790,7 +5045,7 @@ function initMachiningStage() {
         });
     });
     machiningShapes.grooveDistLabel.group.on("click tap", function () {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!item) return;
         var dims = machiningCurrentDims();
         var distMax = item.edge === "W1-W2"
@@ -3809,15 +5064,16 @@ function initMachiningStage() {
     machiningBindGrabCursor(machiningShapes.grooveEnd1Label.arrow);
     machiningShapes.grooveEnd1Label.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return pos;
         // Bounded by the board's real span at this groove's position, not the full
         // rectangle — past an angled cut there is nothing to cut into, so the arrow
         var span = machiningGrooveSpanMm(item, geo);
         if (item.edge === "W1-W2") {
             var scaleY = geo.width > 0 ? geo.rectH / geo.width : 0;
-            var loY = machiningYFromL1(geo, span.min * scaleY, item.view === "B");
-            var hiY = machiningYFromL1(geo, span.max * scaleY, item.view === "B");
+            var endsFlipped = (item.view === "B") !== machiningFaceMismatch(item, geo);
+            var loY = machiningYFromL1(geo, span.min * scaleY, endsFlipped);
+            var hiY = machiningYFromL1(geo, span.max * scaleY, endsFlipped);
             return {
                 x: geo.x - POS_TIP_GAP,
                 y: Math.max(Math.min(loY, hiY), Math.min(Math.max(loY, hiY), pos.y))
@@ -3831,7 +5087,7 @@ function initMachiningStage() {
     });
     machiningShapes.grooveEnd1Label.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return;
         var isVertical = item.edge === "W1-W2";
         var runTotal = isVertical ? geo.width : geo.length;
@@ -3840,7 +5096,7 @@ function initMachiningStage() {
         // A vertical groove's end1 is measured from L1, which sits at the
         // bottom of the canvas in the B-side view.
         var px = isVertical
-            ? machiningPxFromL1(geo, machiningShapes.grooveEnd1Label.arrow.y(), item.view === "B")
+            ? machiningPxFromL1(geo, machiningShapes.grooveEnd1Label.arrow.y(), (item.view === "B") !== machiningFaceMismatch(item, geo))
             : machiningShapes.grooveEnd1Label.arrow.x() - geo.x;
         // Held inside the board's real span here as well as in dragBoundFunc: the
         // pointer stops at the cut, and so does the value, so the two can't disagree
@@ -3861,15 +5117,16 @@ function initMachiningStage() {
     machiningBindGrabCursor(machiningShapes.grooveEnd2Label.arrow);
     machiningShapes.grooveEnd2Label.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return pos;
         // Bounded by the board's real span at this groove's position, not the full
         // rectangle — past an angled cut there is nothing to cut into, so the arrow
         var span = machiningGrooveSpanMm(item, geo);
         if (item.edge === "W1-W2") {
             var scaleY = geo.width > 0 ? geo.rectH / geo.width : 0;
-            var loY = machiningYFromL1(geo, span.min * scaleY, item.view === "B");
-            var hiY = machiningYFromL1(geo, span.max * scaleY, item.view === "B");
+            var endsFlipped = (item.view === "B") !== machiningFaceMismatch(item, geo);
+            var loY = machiningYFromL1(geo, span.min * scaleY, endsFlipped);
+            var hiY = machiningYFromL1(geo, span.max * scaleY, endsFlipped);
             return {
                 x: geo.x - POS_TIP_GAP,
                 y: Math.max(Math.min(loY, hiY), Math.min(Math.max(loY, hiY), pos.y))
@@ -3883,7 +5140,7 @@ function initMachiningStage() {
     });
     machiningShapes.grooveEnd2Label.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return;
         var isVertical = item.edge === "W1-W2";
         var runTotal = isVertical ? geo.width : geo.length;
@@ -3892,7 +5149,7 @@ function initMachiningStage() {
         // Measured from the *far* edge (W2/L2), unlike end1 above — and L2
         // is the one that moves to the top in the B-side view.
         var pxFromFar = isVertical
-            ? machiningPxFromL2(geo, machiningShapes.grooveEnd2Label.arrow.y(), item.view === "B")
+            ? machiningPxFromL2(geo, machiningShapes.grooveEnd2Label.arrow.y(), (item.view === "B") !== machiningFaceMismatch(item, geo))
             : geo.right - machiningShapes.grooveEnd2Label.arrow.x();
         // Clamped through the end's *position* rather than its inset, so
         // the same board span limits both ends.
@@ -3916,7 +5173,7 @@ function initMachiningStage() {
     machiningBindGrabCursor(machiningShapes.grooveDistLabel.arrow);
     machiningShapes.grooveDistLabel.arrow.dragBoundFunc(function (pos) {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return pos;
         if (item.edge === "W1-W2") {
             return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.y - POS_TIP_GAP };
@@ -3925,21 +5182,24 @@ function initMachiningStage() {
     });
     machiningShapes.grooveDistLabel.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0];
+        var item = activeGrooveItem();
         if (!geo || !item) return;
         var isVertical = item.edge === "W1-W2";
         var crossTotal = isVertical ? geo.length : geo.width;
         var crossPx = isVertical ? geo.rectW : geo.rectH;
         if (!(crossTotal > 0)) return;
+        var dragMismatch = machiningFaceMismatch(item, geo);
         var mm;
         if (isVertical) {
             var xPos = machiningShapes.grooveDistLabel.arrow.x();
-            mm = item.distanceEdge === "W2" ? (geo.right - xPos) * (crossTotal / crossPx) : (xPos - geo.x) * (crossTotal / crossPx);
+            var vEdge = machiningMirrorEdge(item.distanceEdge, dragMismatch);
+            mm = vEdge === "W2" ? (geo.right - xPos) * (crossTotal / crossPx) : (xPos - geo.x) * (crossTotal / crossPx);
         } else {
             // Measured off L1/L2, so it follows the B-side flip.
             var yPos = machiningShapes.grooveDistLabel.arrow.y();
             var flipped = item.view === "B";
-            var pxFromEdge = item.distanceEdge === "L2"
+            var hEdge = machiningMirrorEdge(item.distanceEdge, dragMismatch);
+            var pxFromEdge = hEdge === "L2"
                 ? machiningPxFromL2(geo, yPos, flipped)
                 : machiningPxFromL1(geo, yPos, flipped);
             mm = pxFromEdge * (crossTotal / crossPx);
@@ -3958,7 +5218,7 @@ function initMachiningStage() {
     // Click either callout (box or arrow, no movement) to type the cut position
     // directly — commits immediately, same as a drag's dragend, rather than
     machiningShapes.hLabel.group.on("click tap", function () {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        var item = activeAngledCutItem();
         if (!item) return;
         var dims = machiningCurrentDims();
         promptMachiningPositionEdit(machiningShapes.hLabel.group, parseFloat(item.offsetH), 0, isNaN(dims.length) ? 9998 : dims.length - 1, function (val) {
@@ -3968,7 +5228,7 @@ function initMachiningStage() {
         });
     });
     machiningShapes.vLabel.group.on("click tap", function () {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        var item = activeAngledCutItem();
         if (!item) return;
         var dims = machiningCurrentDims();
         promptMachiningPositionEdit(machiningShapes.vLabel.group, parseFloat(item.offsetV), 0, isNaN(dims.width) ? 9998 : dims.width - 1, function (val) {
@@ -3981,7 +5241,7 @@ function initMachiningStage() {
     // The cut length isn't stored — it's derived from the two offsets — so typing
     // a new one scales both legs by the same factor.
     function promptMachiningCutLengthEdit() {
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        var item = activeAngledCutItem();
         if (!item) return;
 
         var dims = machiningCurrentDims();
@@ -4045,7 +5305,7 @@ function initMachiningStage() {
     });
     machiningShapes.hLabel.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        var item = activeAngledCutItem();
         if (!geo || !item || !(geo.length > 0)) return;
 
         // dragBoundFunc already clamps the arrow's x to [geo.x, geo.right],
@@ -4074,7 +5334,7 @@ function initMachiningStage() {
     });
     machiningShapes.vLabel.arrow.on("dragmove", function () {
         var geo = machiningLastGeometry;
-        var item = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
+        var item = activeAngledCutItem();
         if (!geo || !item || !(geo.width > 0)) return;
 
         // Same reasoning as the hLabel handler above, for the width axis.
@@ -4092,70 +5352,152 @@ function initMachiningStage() {
     });
 }
 
-// Builds the panel outline with the cut corner removed: whichever of the
-// rect's 4 corners sits at (cornerCx, cornerCy) is dropped and replaced by the
-function machiningCutPanelPoints(geo, cornerCx, cornerCy, ptOnLEdge, ptOnWEdge) {
-    // Clockwise from top-left, so the polygon winds consistently.
-    var corners = [
-        [geo.x, geo.y],          // top-left
-        [geo.right, geo.y],      // top-right
-        [geo.right, geo.bottom], // bottom-right
-        [geo.x, geo.bottom]      // bottom-left
-    ];
-    var cutIndex = -1;
-    for (var i = 0; i < corners.length; i++) {
-        if (corners[i][0] === cornerCx && corners[i][1] === cornerCy) { cutIndex = i; break; }
+function activeAngledCutItem() {
+    var activeItem = machiningAppliedItems[machiningActiveIndex];
+    if (activeItem && (activeItem.option === "angled-cut" || activeItem.behaviour === "angled-cut")) {
+        return activeItem;
     }
-    if (cutIndex === -1) {
-        return [geo.x, geo.y, geo.right, geo.y, geo.right, geo.bottom, geo.x, geo.bottom];
-    }
+    return machiningAppliedItems.filter(function (i) {
+        return i.option === "angled-cut" || i.behaviour === "angled-cut";
+    })[0] || null;
+}
 
-    // Walking clockwise, the edge arriving at top-left/bottom-right is the
-    // vertical one, so its chamfer endpoint (the point on the W edge) comes first;
-    var arrivesVertical = (cutIndex === 0 || cutIndex === 2);
-    var first = arrivesVertical ? ptOnWEdge : ptOnLEdge;
-    var second = arrivesVertical ? ptOnLEdge : ptOnWEdge;
+function machiningCutPanelPointsMulti(geo, allCuts) {
+    var cornersDef = [
+        { name: "L1-W1", defaultCx: geo.x, defaultCy: geo.y, arrivesVert: true },
+        { name: "L1-W2", defaultCx: geo.right, defaultCy: geo.y, arrivesVert: false },
+        { name: "L2-W2", defaultCx: geo.right, defaultCy: geo.bottom, arrivesVert: true },
+        { name: "L2-W1", defaultCx: geo.x, defaultCy: geo.bottom, arrivesVert: false }
+    ];
+
+    var cutsByScreenCorner = {};
+    (allCuts || []).forEach(function (cut) {
+        if (!cut || !cut.corner) return;
+        var mismatch = machiningFaceMismatch(cut, geo);
+        var cornerL = machiningMirrorEdge(cut.corner.split("-")[0], mismatch);
+        var cornerW = machiningMirrorEdge(cut.corner.split("-")[1], mismatch);
+        var flipLength = cut.view === "B";
+        var lengthAtTop = (cornerL === "L1") !== flipLength;
+        var screenL = lengthAtTop ? "L1" : "L2";
+        var screenKey = screenL + "-" + cornerW;
+        cutsByScreenCorner[screenKey] = cut;
+    });
 
     var points = [];
-    corners.forEach(function (corner, idx) {
-        if (idx === cutIndex) {
+
+    cornersDef.forEach(function (c) {
+        var cut = cutsByScreenCorner[c.name];
+        if (cut) {
+            var mismatch = machiningFaceMismatch(cut, geo);
+            var cornerL = machiningMirrorEdge(cut.corner.split("-")[0], mismatch);
+            var cornerW = machiningMirrorEdge(cut.corner.split("-")[1], mismatch);
+            var flipLength = cut.view === "B";
+            var lengthAtTop = (cornerL === "L1") !== flipLength;
+            var cornerCx = cornerW === "W1" ? geo.x : geo.right;
+            var cornerCy = lengthAtTop ? geo.y : geo.bottom;
+            var dirX = cornerW === "W1" ? 1 : -1;
+            var dirY = lengthAtTop ? 1 : -1;
+
+            var offsetH = parseFloat(cut.offsetH);
+            var offsetV = parseFloat(cut.offsetV);
+            var nearH = (!isNaN(offsetH) && geo.length > 0) ? Math.max(0, geo.length - offsetH) : null;
+            var nearV = (!isNaN(offsetV) && geo.width > 0) ? Math.max(0, geo.width - offsetV) : null;
+            var insetH = nearH != null ? nearH * (geo.rectW / geo.length) : MACHINING_MIN_INSET;
+            var insetV = nearV != null ? nearV * (geo.rectH / geo.width) : MACHINING_MIN_INSET;
+
+            var ptOnLEdge = { x: cornerCx + dirX * insetH, y: cornerCy };
+            var ptOnWEdge = { x: cornerCx, y: cornerCy + dirY * insetV };
+
+            var first = c.arrivesVert ? ptOnWEdge : ptOnLEdge;
+            var second = c.arrivesVert ? ptOnLEdge : ptOnWEdge;
+
             points.push(first.x, first.y, second.x, second.y);
         } else {
-            points.push(corner[0], corner[1]);
+            points.push(c.defaultCx, c.defaultCy);
         }
     });
+
     return points;
 }
 
-function updateMachiningNotch(angledCut, geo, active) {
-    // The length/width rulers default to the L2 (bottom) / W2 (right) side — same
-    // as before this edge became cut-aware — and only move to whichever side the
+// Builds the panel outline with the cut corner removed: whichever of the
+// rect's 4 corners sits at (cornerCx, cornerCy) is dropped and replaced by the
+function machiningCutPanelPoints(geo, cornerCx, cornerCy, ptOnLEdge, ptOnWEdge) {
+    var allAngledCuts = (geo && geo.appliedItems)
+        ? geo.appliedItems.filter(function (i) { return i.option === "angled-cut" || i.behaviour === "angled-cut"; })
+        : machiningAppliedItems.filter(function (i) { return i.option === "angled-cut" || i.behaviour === "angled-cut"; });
+    return machiningCutPanelPointsMulti(geo, allAngledCuts);
+}
+
+// Whether ANY angled cut sits on the back face. A panel can carry up to
+// four cuts with independent A/B views, so the diagram's flip can't be
+// decided from just the first or the active one — any single back-face cut
+// is enough to turn the panel round.
+function machiningAnyAngledCutOnB(appliedItems) {
+    return (appliedItems || []).some(function (i) {
+        return (i.option === "angled-cut" || i.behaviour === "angled-cut") && i.view === "B";
+    });
+}
+
+// True when this item sits on the face the diagram is NOT currently
+// showing — e.g. it's on A side (front) but some other B-side item forced
+// the whole diagram to show the back. geo.overallFlip (set by the redraw
+// functions from all applied items' views) is what's actually shown;
+// item.view is which face this one is physically on.
+function machiningFaceMismatch(item, geo) {
+    var overallFlip = !!(geo && geo.overallFlip);
+    var nativeFlip = item.view === "B";
+    return overallFlip && !nativeFlip;
+}
+
+// Swaps L1<->L2 for an edge/corner label when the item is being viewed
+// inverted (see machiningFaceMismatch).
+function machiningMirrorEdge(edge, mismatch) {
+    if (!mismatch) return edge;
+    if (edge === "L1") return "L2";
+    if (edge === "L2") return "L1";
+    if (edge === "W1") return "W1";
+    if (edge === "W2") return "W2";
+    return edge;
+}
+
+function updateMachiningNotch(angledCut, geo, active, targetShapes) {
+    var shapes = targetShapes || machiningShapes;
     geo.cornerL = "L2";
     geo.cornerW = "W2";
     geo.lengthAtTop = false;
     geo.splitLenAt = null;
     geo.splitWidAt = null;
 
+    var allAngledCuts = (geo && geo.appliedItems)
+        ? geo.appliedItems.filter(function (i) { return i.option === "angled-cut" || i.behaviour === "angled-cut"; })
+        : machiningAppliedItems.filter(function (i) { return i.option === "angled-cut" || i.behaviour === "angled-cut"; });
+
+    // 1. Render panel outline polygon with ALL corner chamfers in a single draw cycle
+    shapes.panel.points(machiningCutPanelPointsMulti(geo, allAngledCuts));
+
+    // 2. Clear angledGroup
+    if (shapes.angledGroup) {
+        shapes.angledGroup.destroyChildren();
+    }
+
     if (!angledCut || !angledCut.corner) {
-        // No cut — the panel outline is the plain full rectangle.
-        machiningShapes.panel.points([geo.x, geo.y, geo.right, geo.y, geo.right, geo.bottom, geo.x, geo.bottom]);
-        machiningShapes.cutBand.visible(false);
-        machiningShapes.cutLengthLabel.visible(false);
-        machiningShapes.hLabel.group.visible(false);
-        machiningShapes.vLabel.group.visible(false);
+        shapes.cutBand.visible(false);
+        shapes.cutLengthLabel.visible(false);
+        shapes.hLabel.group.visible(false);
+        shapes.vLabel.group.visible(false);
         return;
     }
 
-    // "B side" swaps which length badge renders at the top (see
-    // redrawMachiningCanvas) — XOR'd below so the cut stays next to whichever
+    // 3. Position and update controls for the ACTIVE cut
     var flipLength = angledCut.view === "B";
-
-    var cornerL = angledCut.corner.split("-")[0]; // "L1" | "L2"
-    var cornerW = angledCut.corner.split("-")[1]; // "W1" | "W2"
+    var mismatch = machiningFaceMismatch(angledCut, geo);
+    var cornerL = machiningMirrorEdge(angledCut.corner.split("-")[0], mismatch);
+    var cornerW = machiningMirrorEdge(angledCut.corner.split("-")[1], mismatch);
     var lengthAtTop = (cornerL === "L1") !== flipLength;
     var cornerCx = cornerW === "W1" ? geo.x : geo.right;
     var cornerCy = lengthAtTop ? geo.y : geo.bottom;
-    var dirX = cornerW === "W1" ? 1 : -1; // which way is "into the board" from this corner
+    var dirX = cornerW === "W1" ? 1 : -1;
     var dirY = lengthAtTop ? 1 : -1;
 
     geo.cornerCx = cornerCx;
@@ -4166,30 +5508,20 @@ function updateMachiningNotch(angledCut, geo, active) {
     geo.cornerW = cornerW;
     geo.lengthAtTop = lengthAtTop;
 
-    // Near-edge distance = total minus the "From {far edge}" offset, scaled
-    // to the panel rect's px/mm ratio.
     var offsetH = parseFloat(angledCut.offsetH);
     var offsetV = parseFloat(angledCut.offsetV);
     var nearH = (!isNaN(offsetH) && geo.length > 0) ? Math.max(0, geo.length - offsetH) : null;
     var nearV = (!isNaN(offsetV) && geo.width > 0) ? Math.max(0, geo.width - offsetV) : null;
-    // offsetH/offsetV are already clamped to their valid mm range elsewhere, so
-    // converting straight to px (no extra pixel-space clamp) is what lets the
     var insetH = nearH != null ? nearH * (geo.rectW / geo.length) : MACHINING_MIN_INSET;
     var insetV = nearV != null ? nearV * (geo.rectH / geo.width) : MACHINING_MIN_INSET;
 
     var ptOnLEdge = { x: cornerCx + dirX * insetH, y: cornerCy };
     var ptOnWEdge = { x: cornerCx, y: cornerCy + dirY * insetV };
 
-    // Splitting the board's own rulers into "576 mm | 424 mm" is the cut
-    // annotating itself, so it only happens while the cut is the option being
     if (active) {
         geo.splitLenAt = ptOnLEdge.x;
         geo.splitWidAt = ptOnWEdge.y;
     }
-
-    // The cut corner is removed from the panel's own outline, so the diagonal IS
-    // one of the polygon's edges — drawn by the same single border stroke as the
-    machiningShapes.panel.points(machiningCutPanelPoints(geo, cornerCx, cornerCy, ptOnLEdge, ptOnWEdge));
 
     // angleDeg/midX/midY describe the cut line for the band + label below.
     var dxPx = ptOnWEdge.x - ptOnLEdge.x;
@@ -4213,42 +5545,42 @@ function updateMachiningNotch(angledCut, geo, active) {
     var nearH_mm = nearH != null ? nearH : (geo.length > 0 ? insetH * (geo.length / geo.rectW) : insetH);
     var nearV_mm = nearV != null ? nearV : (geo.width > 0 ? insetV * (geo.width / geo.rectH) : insetV);
     var cutLengthMm = Math.round(Math.sqrt(nearH_mm * nearH_mm + nearV_mm * nearV_mm));
-    machiningShapes.cutLengthLabel.text(cutLengthMm + "");
+    shapes.cutLengthLabel.text(cutLengthMm + "");
     // Centre the label on its own text box so rotating it pivots in place
     // instead of swinging around its top-left corner.
-    var labelW = machiningShapes.cutLengthLabel.width();
-    var labelH = machiningShapes.cutLengthLabel.height();
-    machiningShapes.cutLengthLabel.offsetX(labelW / 2);
-    machiningShapes.cutLengthLabel.offsetY(labelH / 2);
+    var labelW = shapes.cutLengthLabel.width();
+    var labelH = shapes.cutLengthLabel.height();
+    shapes.cutLengthLabel.offsetX(labelW / 2);
+    shapes.cutLengthLabel.offsetY(labelH / 2);
 
     // Band spans the full cut, but never shrinks below what the value inside it
     // needs — a short cut is only a few px long on screen, and a band clamped to
     var bandH = Math.max(16, labelH + 6);
     var bandW = Math.max(cutPixLen, labelW + 10);
-    machiningShapes.cutBand.height(bandH);
-    machiningShapes.cutBand.offsetY(bandH / 2);
-    machiningShapes.cutBand.width(bandW);
-    machiningShapes.cutBand.offsetX(bandW / 2);
+    shapes.cutBand.height(bandH);
+    shapes.cutBand.offsetY(bandH / 2);
+    shapes.cutBand.width(bandW);
+    shapes.cutBand.offsetX(bandW / 2);
     // Pushed half its own thickness inward, so its outer long edge lies on the cut
     // — the panel's green diagonal border then reads as the band's fourth side,
-    machiningShapes.cutBand.rotation(angleDeg);
-    machiningShapes.cutBand.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
+    shapes.cutBand.rotation(angleDeg);
+    shapes.cutBand.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
     // The band is only the backdrop the cut-length value sits on, not the removed
     // material — the chamfer itself is the panel's own outline.
-    machiningShapes.cutBand.visible(!!active);
+    shapes.cutBand.visible(!!active);
     // Same line angle as the handle, but folded back into -90..90 so the digits
     // never render upside-down (a line and its 180°-rotated self are the same
     var labelAngle = angleDeg;
     if (labelAngle > 90) labelAngle -= 180;
     else if (labelAngle < -90) labelAngle += 180;
-    machiningShapes.cutLengthLabel.rotation(labelAngle);
+    shapes.cutLengthLabel.rotation(labelAngle);
     // Same centre as the band, so the value sits inside it.
-    machiningShapes.cutLengthLabel.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
-    machiningShapes.cutLengthLabel.visible(!!active);
+    shapes.cutLengthLabel.position({ x: midX + normX * bandH / 2, y: midY + normY * bandH / 2 });
+    shapes.cutLengthLabel.visible(!!active);
 
     if (!active) {
-        machiningShapes.hLabel.group.visible(false);
-        machiningShapes.vLabel.group.visible(false);
+        shapes.hLabel.group.visible(false);
+        shapes.vLabel.group.visible(false);
         return;
     }
 
@@ -4258,8 +5590,8 @@ function updateMachiningNotch(angledCut, geo, active) {
     var displayV = !isNaN(offsetV) ? offsetV : (geo.width > 0 ? geo.width - insetV * (geo.width / geo.rectH) : insetV);
     // Each callout goes on the far side of the edge it's anchored to, so it always
     // sits outside the board: above a top edge but below a bottom one, left of a
-    updateMachiningPositionLabel(machiningShapes.hLabel, displayH, ptOnLEdge.x, ptOnLEdge.y, false, dirY < 0);
-    updateMachiningPositionLabel(machiningShapes.vLabel, displayV, ptOnWEdge.x, ptOnWEdge.y, true, dirX < 0);
+    updateMachiningPositionLabel(shapes.hLabel, displayH, ptOnLEdge.x, ptOnLEdge.y, false, dirY < 0);
+    updateMachiningPositionLabel(shapes.vLabel, displayV, ptOnWEdge.x, ptOnWEdge.y, true, dirX < 0);
 }
 
 // Viewing the B side shows the panel flipped top-to-bottom, so L1 and L2 swap
@@ -4283,41 +5615,79 @@ function machiningPxFromL2(geo, yPos, flipped) {
 // Shortest groove worth sending to the machine.
 var MACHINING_GROOVE_MIN_LENGTH_MM = 50;
 
-// The panel's outer boundary, with the angled cut's corner replaced by the
+// How far one angled cut eats into its own corner along each of the two
+// edges meeting there, in real panel millimetres. offsetH/offsetV are
+// measured from the *far* edge, so the leg is whatever's left of the panel
+// dimension. Returns null when the cut has no usable offsets yet.
+function machiningCutLegsMm(cut, lengthMm, widthMm) {
+    if (!cut || !cut.corner) return null;
+
+    var offsetH = parseFloat(cut.offsetH);
+    var offsetV = parseFloat(cut.offsetV);
+    if (!isFinite(offsetH) || !isFinite(offsetV)) return null;
+
+    var legX = lengthMm - offsetH;
+    var legY = widthMm - offsetV;
+    if (!(legX > 0) || !(legY > 0)) return null;
+
+    return { legX: legX, legY: legY };
+}
+
+// The panel's outer boundary, with each angled cut's corner replaced by the
 // diagonal between its two edge points. Vertices stay ordered around the
-function machiningPanelOutlineMm(angledCut, lengthMm, widthMm) {
+// perimeter. Takes either one cut (legacy callers) or an array of them — a
+// panel can carry up to one cut per corner, and every cut clips its own
+// corner off this one shared outline, so a groove/hinge measured against it
+// is stopped by whichever cut is actually in its way, not just the first.
+function machiningPanelOutlineMm(angledCuts, lengthMm, widthMm) {
     var tl = { x: 0, y: 0 };
     var tr = { x: lengthMm, y: 0 };
     var br = { x: lengthMm, y: widthMm };
     var bl = { x: 0, y: widthMm };
-    var rect = [tl, tr, br, bl];
 
-    if (!angledCut || !angledCut.corner) return rect;
+    var cuts = !angledCuts ? []
+        : (Array.isArray(angledCuts) ? angledCuts : [angledCuts]);
 
-    var offsetH = parseFloat(angledCut.offsetH);
-    var offsetV = parseFloat(angledCut.offsetV);
-    if (!isFinite(offsetH) || !isFinite(offsetV)) return rect;
+    // Keyed by corner so a corner is only ever clipped once, matching the
+    // "one angled cut per corner" rule the sidebar already enforces.
+    var cutsByCorner = {};
+    cuts.forEach(function (cut) {
+        if (cut && cut.corner) cutsByCorner[cut.corner] = cut;
+    });
 
-    // offsetH/offsetV are measured from the *far* edge, so what's left is
-    // the cut's leg along each edge at the corner itself.
-    var legX = lengthMm - offsetH;
-    var legY = widthMm - offsetV;
-    if (!(legX > 0) || !(legY > 0)) return rect;
+    // Walked in perimeter order (tl -> tr -> br -> bl). `wFirst` says which
+    // of the corner's two cut points comes first when tracing it — the same
+    // ordering machiningCutPanelPointsMulti() uses in pixel space.
+    var cornerDefs = [
+        { name: "L1-W1", pt: tl, wFirst: true },
+        { name: "L1-W2", pt: tr, wFirst: false },
+        { name: "L2-W2", pt: br, wFirst: true },
+        { name: "L2-W1", pt: bl, wFirst: false }
+    ];
 
-    var parts = String(angledCut.corner).split("-");
-    var cornerL = parts[0];                       // L1 -> y=0, L2 -> y=width
-    var cornerW = parts[1];                       // W1 -> x=0, W2 -> x=length
-    var cx = cornerW === "W1" ? 0 : lengthMm;
-    var cy = cornerL === "L1" ? 0 : widthMm;
-    var onL = { x: cx + (cornerW === "W1" ? legX : -legX), y: cy };
-    var onW = { x: cx, y: cy + (cornerL === "L1" ? legY : -legY) };
+    var outline = [];
 
-    // Insert the two cut points where the corner was, keeping the
-    // perimeter running tl -> tr -> br -> bl.
-    if (cornerL === "L1" && cornerW === "W1") return [onW, onL, tr, br, bl];
-    if (cornerL === "L1" && cornerW === "W2") return [tl, onL, onW, br, bl];
-    if (cornerL === "L2" && cornerW === "W2") return [tl, tr, onW, onL, bl];
-    return [tl, tr, br, onL, onW];                // L2-W1
+    cornerDefs.forEach(function (def) {
+        var legs = machiningCutLegsMm(cutsByCorner[def.name], lengthMm, widthMm);
+        if (!legs) {
+            // No cut here (or not dimensioned yet) — corner stays square.
+            outline.push(def.pt);
+            return;
+        }
+
+        var parts = def.name.split("-");
+        var cornerL = parts[0];                   // L1 -> y=0, L2 -> y=width
+        var cornerW = parts[1];                   // W1 -> x=0, W2 -> x=length
+        var cx = cornerW === "W1" ? 0 : lengthMm;
+        var cy = cornerL === "L1" ? 0 : widthMm;
+        var onL = { x: cx + (cornerW === "W1" ? legs.legX : -legs.legX), y: cy };
+        var onW = { x: cx, y: cy + (cornerL === "L1" ? legs.legY : -legs.legY) };
+
+        if (def.wFirst) outline.push(onW, onL);
+        else outline.push(onL, onW);
+    });
+
+    return outline;
 }
 
 // Rule 1 — where a groove line crosses the outline. `axis` is the axis the
@@ -4358,7 +5728,9 @@ function machiningGrooveBoundary(params) {
     var axis = params.axis;
     var totalAlong = axis === "x" ? lengthMm : widthMm;
 
-    var outline = machiningPanelOutlineMm(params.angledCut, lengthMm, widthMm);
+    // angledCuts is every angled cut on the panel, so a groove is stopped by
+    // whichever corner is actually in its path (either end), not just one.
+    var outline = machiningPanelOutlineMm(params.angledCuts, lengthMm, widthMm);
     var span = machiningOutlineSpanAt(outline, axis, params.crossPos);
 
     if (!span || !(span.max > span.min)) {
@@ -4426,14 +5798,13 @@ function machiningGrooveCrossPosMm(item, geo) {
         : (item.distanceEdge === "W2" ? geo.length - distMm : distMm);
 }
 
-// The mm range the groove can actually occupy at its current cross position.
-// Drag handlers clamp to this so an end can't be pulled into the area an
 function machiningGrooveSpanMm(item, geo) {
-    var angledCut = machiningAppliedItems.filter(function (i) {
-        return i.option === "angled-cut";
-    })[0] || null;
+    var appliedList = (geo && geo.appliedItems) || machiningAppliedItems;
+    var angledCuts = appliedList.filter(function (i) {
+        return i.option === "angled-cut" || i.behaviour === "angled-cut";
+    });
 
-    var outline = machiningPanelOutlineMm(angledCut, geo.length, geo.width);
+    var outline = machiningPanelOutlineMm(angledCuts, geo.length, geo.width);
     var span = machiningOutlineSpanAt(outline,
         item.edge === "W1-W2" ? "y" : "x",
         machiningGrooveCrossPosMm(item, geo));
@@ -4442,10 +5813,106 @@ function machiningGrooveSpanMm(item, geo) {
     return span || { min: 0, max: runTotal };
 }
 
+function activeGrooveItem() {
+    var activeItem = machiningAppliedItems[machiningActiveIndex];
+    if (activeItem && (activeItem.option === "groove" || activeItem.behaviour === "groove")) {
+        return activeItem;
+    }
+    return machiningAppliedItems.filter(function (i) {
+        return i.option === "groove" || i.behaviour === "groove";
+    })[0] || null;
+}
+
 // A groove is a straight slot running parallel to one pair of edges (L1-L2 =
 // horizontal, W1-W2 = vertical), inset from the other pair's edges by
-function updateMachiningGroove(grooveItem, geo, active) {
-    var shapes = machiningShapes;
+function updateMachiningGroove(grooveItem, geo, active, targetShapes) {
+    var shapes = targetShapes || machiningShapes;
+
+    var allGrooves = ((geo && geo.appliedItems) || machiningAppliedItems).filter(function (i) {
+        return i.option === "groove" || i.behaviour === "groove";
+    });
+
+    if (shapes.grooveGroup) {
+        shapes.grooveGroup.destroyChildren();
+        allGrooves.forEach(function (item) {
+            if (!item) return;
+            var isVert = item.edge === "W1-W2";
+            var runTot = isVert ? geo.width : geo.length;
+            var crossTot = isVert ? geo.length : geo.width;
+            var runPxLen = isVert ? geo.rectH : geo.rectW;
+            var crossPxLen = isVert ? geo.rectW : geo.rectH;
+
+            var rEnd1 = parseFloat(item.end1);
+            var rEnd2 = parseFloat(item.end2);
+            var dMm = parseFloat(item.distance);
+            if (isNaN(dMm)) dMm = crossTot / 2;
+            var wMm = parseFloat(item.width);
+            if (isNaN(wMm) || wMm <= 0) wMm = 20;
+
+            if (runTot > 0) {
+                if (isFinite(rEnd1)) rEnd1 = Math.max(0, Math.min(runTot - 1, rEnd1));
+                if (isFinite(rEnd2)) rEnd2 = Math.max(0, Math.min(runTot - 1, rEnd2));
+            }
+            if (crossTot > 0) dMm = Math.max(0, Math.min(crossTot - 1, dMm));
+
+            var crossMm = !isVert
+                ? (item.distanceEdge === "L2" ? geo.width - dMm : dMm)
+                : (item.distanceEdge === "W2" ? geo.length - dMm : dMm);
+
+            var bnds = machiningGrooveBoundary({
+                lengthMm: geo.length,
+                widthMm: geo.width,
+                angledCuts: ((geo && geo.appliedItems) || machiningAppliedItems).filter(function (i) {
+                    return i.option === "angled-cut" || i.behaviour === "angled-cut";
+                }),
+                axis: isVert ? "y" : "x",
+                crossPos: crossMm,
+                offsetStart: rEnd1,
+                offsetEnd: rEnd2
+            });
+
+            if (bnds.start_point == null) return;
+
+            var sPx = runTot > 0 ? bnds.start_point * (runPxLen / runTot) : 0;
+            var ePx = runTot > 0 ? bnds.end_point * (runPxLen / runTot) : runPxLen;
+            var dPx = crossTot > 0 ? dMm * (crossPxLen / crossTot) : crossPxLen / 2;
+            var thPx = crossTot > 0 ? Math.max(4, wMm * (crossPxLen / crossTot)) : 8;
+
+            var bRect;
+            var flp = item.view === "B";
+            var mism = machiningFaceMismatch(item, geo);
+
+            if (!isVert) {
+                var barX1 = geo.x + sPx;
+                var barX2 = geo.x + ePx;
+                var distEdge = machiningMirrorEdge(item.distanceEdge, mism);
+                var barYCenter = distEdge === "L2"
+                    ? machiningYFromL2(geo, dPx, flp)
+                    : machiningYFromL1(geo, dPx, flp);
+                bRect = { x: barX1, y: barYCenter - thPx / 2, width: Math.max(0, barX2 - barX1), height: thPx };
+            } else {
+                var endsFlp = flp !== mism;
+                var yEnd1 = machiningYFromL1(geo, sPx, endsFlp);
+                var yEnd2 = machiningYFromL1(geo, ePx, endsFlp);
+                var barTop = Math.min(yEnd1, yEnd2);
+                var barBottom = Math.max(yEnd1, yEnd2);
+                var vDistEdge = machiningMirrorEdge(item.distanceEdge, mism);
+                var barXCenter = vDistEdge === "W2" ? (geo.right - dPx) : (geo.x + dPx);
+                bRect = { x: barXCenter - thPx / 2, y: barTop, width: thPx, height: Math.max(0, barBottom - barTop) };
+            }
+
+            var gBar = new Konva.Rect({
+                x: bRect.x,
+                y: bRect.y,
+                width: bRect.width,
+                height: bRect.height,
+                fill: "#c9c9c9",
+                stroke: "#888",
+                strokeWidth: 1
+            });
+            shapes.grooveGroup.add(gBar);
+        });
+    }
 
     if (!grooveItem) {
         shapes.grooveBar.visible(false);
@@ -4486,7 +5953,9 @@ function updateMachiningGroove(grooveItem, geo, active) {
     var bounds = machiningGrooveBoundary({
         lengthMm: geo.length,
         widthMm: geo.width,
-        angledCut: machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0] || null,
+        angledCuts: ((geo && geo.appliedItems) || machiningAppliedItems).filter(function (i) {
+            return i.option === "angled-cut" || i.behaviour === "angled-cut";
+        }),
         axis: isVertical ? "y" : "x",
         crossPos: crossPosMm,
         offsetStart: rawEnd1,
@@ -4517,12 +5986,20 @@ function updateMachiningGroove(grooveItem, geo, active) {
 
     var flipped = grooveItem.view === "B";
 
+    // On the face the diagram isn't currently showing (this groove is on A
+    // side but some other B-side item forced the back view, or vice versa),
+    // the cross-axis distance mirrors onto the opposite edge — see
+    // machiningFaceMismatch(). The run axis (which end is "near W1") isn't
+    // corrected here yet.
+    var mismatch = machiningFaceMismatch(grooveItem, geo);
+
     if (!isVertical) {
         // Runs along the length; ends are measured from W1/W2, which a
         // top-to-bottom flip doesn't move. Only the L1/L2 distance flips.
         var barX1 = geo.x + startPx;
         var barX2 = geo.x + endPx;
-        var barYCenter = grooveItem.distanceEdge === "L2"
+        var distanceEdge = machiningMirrorEdge(grooveItem.distanceEdge, mismatch);
+        var barYCenter = distanceEdge === "L2"
             ? machiningYFromL2(geo, distPx, flipped)
             : machiningYFromL1(geo, distPx, flipped);
         barRect = { x: barX1, y: barYCenter - thicknessPx / 2, width: Math.max(0, barX2 - barX1), height: thicknessPx };
@@ -4532,11 +6009,13 @@ function updateMachiningGroove(grooveItem, geo, active) {
     } else {
         // Runs across the width, so it's the two ends that flip; the W1/W2 distance is
         // unaffected. Both ends are measured from L1 here (the engine returns
-        var yEnd1 = machiningYFromL1(geo, startPx, flipped);
-        var yEnd2 = machiningYFromL1(geo, endPx, flipped);
+        var endsFlipped = flipped !== mismatch;
+        var yEnd1 = machiningYFromL1(geo, startPx, endsFlipped);
+        var yEnd2 = machiningYFromL1(geo, endPx, endsFlipped);
         var barTop = Math.min(yEnd1, yEnd2);
         var barBottom = Math.max(yEnd1, yEnd2);
-        var barXCenter = grooveItem.distanceEdge === "W2" ? (geo.right - distPx) : (geo.x + distPx);
+        var vDistanceEdge = machiningMirrorEdge(grooveItem.distanceEdge, mismatch);
+        var barXCenter = vDistanceEdge === "W2" ? (geo.right - distPx) : (geo.x + distPx);
         barRect = { x: barXCenter - thicknessPx / 2, y: barTop, width: thicknessPx, height: Math.max(0, barBottom - barTop) };
         end1Pt = { x: geo.x, y: yEnd1 };
         end2Pt = { x: geo.x, y: yEnd2 };
@@ -4728,9 +6207,10 @@ function machiningHingeBindInteractions(refs, ctx, positions, item, edgeLengthMm
     });
 }
 
-function updateMachiningHinge(hingeItem, geo, active) {
-    var group = machiningShapes.hingeGroup;
-    var material = machiningShapes.hingeMaterial;
+function updateMachiningHinge(hingeItem, geo, active, targetShapes) {
+    var shapes = targetShapes || machiningShapes;
+    var group = shapes.hingeGroup;
+    var material = shapes.hingeMaterial;
     group.destroyChildren();
     material.destroyChildren();
 
@@ -4742,16 +6222,27 @@ function updateMachiningHinge(hingeItem, geo, active) {
     material.visible(true);
 
     var dims = machiningCurrentDims();
-    var edge = hingeItem.edge || "L1";
-    var isVertical = (edge === "W1" || edge === "W2");
+    var rawEdge = hingeItem.edge || "L1";
+    var isVertical = (rawEdge === "W1" || rawEdge === "W2");
     var edgeLengthMm = isVertical ? dims.width : dims.length;
-    var cutClearance = machiningHingeCutClearance(edge, dims);
+    // Real physical clearance against an angled cut sharing this edge — panel
+    // space, so it uses the raw edge, not the screen-mirrored one below.
+    // geo.appliedItems is set on the panel-summary/spray canvases, which draw
+    // a row other than the one open in the machining overlay; it's absent on
+    // the overlay's own geo, where the global list is the right source.
+    var cutClearance = machiningHingeCutClearance(rawEdge, dims, geo && geo.appliedItems);
     var positions = machiningHingeResolvedPositions(hingeItem, edgeLengthMm, cutClearance);
 
     if (!positions.length || !(geo.rectW > 0) || !(geo.rectH > 0)) {
         group.visible(false);
         return;
     }
+
+    // Hinge holes are always drilled on the back (B side), so a hinge item
+    // always forces the diagram into back view — unlike angled cut/groove,
+    // it never had its own view-aware placement, so its edge always needs
+    // mirroring onto whichever side L1/L2 currently reads on screen.
+    var edge = machiningMirrorEdge(rawEdge, !!(geo && geo.overallFlip));
 
     // Where the drilled edge sits, and which direction is "outward" (away from the
     // panel face) from it — everything is placed relative to those two, so one
@@ -4927,9 +6418,10 @@ function machiningShelfHolePositions(item, runMm) {
 
 // Draw the holes, spacing, cluster positions and drag controls for each cluster.
 // Used for 5mm Ø diameter hole, Blum 35mm Screw-On, and Blum 35mm INSERTA.
-function updateMachiningShelf(shelfItem, geo, active) {
-    var group = machiningShapes.shelfGroup;
-    var material = machiningShapes.shelfMaterial;
+function updateMachiningShelf(shelfItem, geo, active, targetShapes) {
+    var shapes = targetShapes || machiningShapes;
+    var group = shapes.shelfGroup;
+    var material = shapes.shelfMaterial;
     group.destroyChildren();
     material.destroyChildren();
 
@@ -5170,9 +6662,10 @@ function machiningShelfBindInteractions(refs, ctx, starts, item) {
     });
 }
 
-function updateMachiningJHandle(item, geo, active) {
-    var group = machiningShapes.jHandleGroup;
-    var material = machiningShapes.jHandleMaterial;
+function updateMachiningJHandle(item, geo, active, targetShapes) {
+    var shapes = targetShapes || machiningShapes;
+    var group = shapes.jHandleGroup;
+    var material = shapes.jHandleMaterial;
     group.destroyChildren();
     material.destroyChildren();
 
@@ -5184,13 +6677,20 @@ function updateMachiningJHandle(item, geo, active) {
     material.visible(true);
 
     var dims = machiningCurrentDims();
-    var edge = item.edge || "L1";
+    var rawEdge = item.edge || "L1";
+    var cutClearance = machiningHingeCutClearance(rawEdge, dims, (geo && geo.appliedItems) || machiningAppliedItems);
+
+    // J handle is always routed on the front (A side) — if some other B-side
+    // item is forcing the diagram to show the back, this edge is on the face
+    // NOT being shown, so it mirrors onto the opposite edge (see
+    // machiningFaceMismatch()) rather than staying at its native L1/W1 spot.
+    var edge = machiningMirrorEdge(rawEdge, machiningFaceMismatch(item, geo));
     var axes = machiningJHandleAxes(edge, dims);
     var isVertical = axes.isVertical;
     var runMm = axes.run;
     var crossMm = axes.cross;
 
-    var handleLen = machiningJHandleLength(item, runMm);
+    var handleLen = machiningJHandleLength(item, runMm, cutClearance);
     if (!(handleLen > 0) || !(runMm > 0) || !(crossMm > 0) ||
         !(geo.rectW > 0) || !(geo.rectH > 0)) {
         group.visible(false);
@@ -5204,6 +6704,7 @@ function updateMachiningJHandle(item, geo, active) {
         isVertical: isVertical,
         runMm: runMm,
         widthMm: widthMm,
+        cutClearance: cutClearance,
         runOrigin: isVertical ? geo.y : geo.x,
         runPxPerMm: isVertical ? (geo.rectH / dims.width) : (geo.rectW / dims.length),
         // The routed edge, and which way is *into* the panel from it — the
@@ -5274,7 +6775,7 @@ function machiningJHandleLayout(refs, ctx, item) {
         return ctx.isVertical ? { x: p.x, y: p.y + d } : { x: p.x + d, y: p.y };
     }
 
-    var outline = machiningJHandleOutline(item, ctx.runMm, ctx.widthMm);
+    var outline = machiningJHandleOutline(item, ctx.runMm, ctx.widthMm, ctx.cutClearance);
     var corners = [
         toXY(outline.outerA, 0),
         toXY(outline.outerB, 0),
@@ -5295,7 +6796,7 @@ function machiningJHandleLayout(refs, ctx, item) {
     var dimB = ctx.isVertical ? { x: dimCoord, y: endPx } : { x: endPx, y: dimCoord };
     refs.dimLine.points([dimA.x, dimA.y, dimB.x, dimB.y]);
 
-    refs.lengthText.text(String(Math.round(machiningJHandleLength(item, ctx.runMm))));
+    refs.lengthText.text(String(Math.round(machiningJHandleLength(item, ctx.runMm, ctx.cutClearance))));
     refs.lengthText.offsetX(refs.lengthText.width() / 2);
     refs.lengthText.offsetY(refs.lengthText.height() / 2);
     var labelCoord = ctx.edgeCoord + ctx.inSign * (ctx.widthPx + 14);
@@ -5304,8 +6805,10 @@ function machiningJHandleLayout(refs, ctx, item) {
         : { x: (startPx + endPx) / 2, y: labelCoord });
 
     [startPx, endPx].forEach(function (alongPx, i) {
-        var valueMm = Math.max(0, machiningNumOr(item[MACHINING_JHANDLE_END_FIELDS[i]],
+        var minClearance = ctx.cutClearance ? (i === 0 ? ctx.cutClearance.lo : ctx.cutClearance.hi) : 0;
+        var rawEnd = Math.max(0, machiningNumOr(item[MACHINING_JHANDLE_END_FIELDS[i]],
             MACHINING_JHANDLE_DEFAULT_END_MM));
+        var valueMm = minClearance + rawEnd;
 
         // Origin on the tip so the pointer can be dragged — same as the
         // hinge and shelf markers.
@@ -5332,13 +6835,15 @@ function machiningJHandleLayout(refs, ctx, item) {
 // Drag the end pointers along the routed edge, or click a box to type the
 // inset — both commit through the same clamp, as on the other options.
 function machiningJHandleBindInteractions(refs, ctx, item) {
-    function commit(fieldName, mm) {
-        // Each inset is measured from its own end of the run, so the pair
-        // must still leave at least 1mm of recess between them.
+    function commit(fieldName, totalMm) {
+        var minClearance = ctx.cutClearance ? (fieldName === "end1" ? ctx.cutClearance.lo : ctx.cutClearance.hi) : 0;
         var other = fieldName === "end1" ? "end2" : "end1";
-        var otherMm = Math.max(0, machiningNumOr(item[other], MACHINING_JHANDLE_DEFAULT_END_MM));
-        var max = Math.max(0, ctx.runMm - otherMm - 1);
-        item[fieldName] = Math.max(0, Math.min(max, Math.round(mm)));
+        var otherClearance = ctx.cutClearance ? (other === "end1" ? ctx.cutClearance.lo : ctx.cutClearance.hi) : 0;
+        var otherRaw = Math.max(0, machiningNumOr(item[other], MACHINING_JHANDLE_DEFAULT_END_MM));
+        var otherTotal = otherClearance + otherRaw;
+        var maxTotal = Math.max(minClearance, ctx.runMm - otherTotal - 1);
+        var clampedTotal = Math.max(minClearance, Math.min(maxTotal, Math.round(totalMm)));
+        item[fieldName] = Math.max(0, clampedTotal - minClearance);
         machiningJHandleLayout(refs, ctx, item);
         machiningLayer.batchDraw();
     }
@@ -5351,8 +6856,11 @@ function machiningJHandleBindInteractions(refs, ctx, item) {
         pointer.dragBoundFunc(function (pos) {
             var lockedCross = ctx.edgeCoord - ctx.inSign * HINGE_TIP_GAP;
             var along = ctx.isVertical ? pos.y : pos.x;
-            along = Math.max(ctx.runOrigin,
-                Math.min(ctx.runOrigin + ctx.runMm * ctx.runPxPerMm, along));
+            var minMm = (index === 0) ? (ctx.cutClearance ? ctx.cutClearance.lo : 0) : 0;
+            var maxMm = (index === 1) ? (ctx.runMm - (ctx.cutClearance ? ctx.cutClearance.hi : 0)) : ctx.runMm;
+            var minPx = ctx.runOrigin + minMm * ctx.runPxPerMm;
+            var maxPx = ctx.runOrigin + maxMm * ctx.runPxPerMm;
+            along = Math.max(minPx, Math.min(maxPx, along));
             return ctx.isVertical
                 ? { x: lockedCross, y: along }
                 : { x: along, y: lockedCross };
@@ -5401,8 +6909,8 @@ function redrawMachiningCanvas() {
 
     var lengthRaw = document.getElementById("mLength") ? document.getElementById("mLength").textContent : "-";
     var widthRaw = document.getElementById("mWidth") ? document.getElementById("mWidth").textContent : "-";
-    var angledItem = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0] || null;
-    var grooveItem = machiningAppliedItems.filter(function (i) { return i.option === "groove"; })[0] || null;
+    var angledItem = activeAngledCutItem();
+    var grooveItem = activeGrooveItem();
     // Matched on behaviour, not slug — any option set to "Hinge holes" in wp-admin
     // gets drawn here, the same lookup buildMachiningAppliedItemHTML() already
     var hingeItem = machiningAppliedItems.filter(function (i) {
@@ -5441,7 +6949,7 @@ function redrawMachiningCanvas() {
 
     // "A side" (default) shows L1 at the top; "B side" swaps L1/L2 — kept in sync
     // with whichever item's A/B toggle and the "Panel shows" face box below
-    var flipLength = !!((angledItem && angledItem.view === "B") || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+    var flipLength = !!(machiningAnyAngledCutOnB(machiningAppliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
 
     // Badge centres sit cfg.badgeOffset outside the board edge, not on the
     // border line itself.
@@ -5454,7 +6962,7 @@ function redrawMachiningCanvas() {
         machiningFaceBox.classList.toggle("flipped", flipLength);
     }
 
-    machiningLastGeometry = { x: x, y: y, right: right, bottom: bottom, rectW: rectW, rectH: rectH, length: length, width: width };
+    machiningLastGeometry = { x: x, y: y, right: right, bottom: bottom, rectW: rectW, rectH: rectH, length: length, width: width, overallFlip: flipLength };
     var geo = machiningLastGeometry;
 
     // An option's dimensions and callouts only draw while it is the one open in
@@ -5514,7 +7022,7 @@ function redrawMachiningCanvas() {
         var cutIndex = -1;
         var hasTL = false, hasTR = false, hasBR = false, hasBL = false;
         for (var i = 0; i < 10; i += 2) {
-            var px = pts[i], py = pts[i+1];
+            var px = pts[i], py = pts[i + 1];
             if (Math.abs(px - x) < 1 && Math.abs(py - y) < 1) hasTL = true;
             if (Math.abs(px - right) < 1 && Math.abs(py - y) < 1) hasTR = true;
             if (Math.abs(px - right) < 1 && Math.abs(py - bottom) < 1) hasBR = true;
@@ -5580,9 +7088,10 @@ function saveMachiningAppliedItems() {
     if (!machiningCurrentRow) return;
 
     machiningCurrentRow.dataset.machiningApplied = JSON.stringify(machiningAppliedItems);
+    if (typeof markDirty === "function") markDirty();
 
-    // Feed into Panel Summary's "Surface shaping summary" — see
-    // buildPanelSummaryMachiningText() in the Panel Summary section, which already
+    // Feed into Panel Summary's "Panel shaping summary" / "Surface shaping
+    // summary" sections — see buildPanelSummaryMachiningText() below, which
     var summaryDims = machiningCurrentDims();
     var summaryItems = machiningAppliedItems.map(function (item) {
         var opt = machiningOptionBySlug(item.option);
@@ -5590,21 +7099,25 @@ function saveMachiningAppliedItems() {
 
         if (behaviour === "groove") {
             var glabels = machiningGrooveLabels(item.edge);
+            var grooveLen = !isNaN(summaryDims.length) && summaryDims.length > 0 ? Math.round(summaryDims.length) + "mm" : "2100mm";
             return {
-                type: "Groove cut",
-                side: item.edge,
-                detail: (item.width || "-") + "mm wide x " + (item.depth || "-") + "mm deep, " +
-                    glabels.end1 + " " + (item.end1 || "-") + "mm, " + glabels.end2 + " " + (item.end2 || "-") + "mm, " +
-                    "From " + (item.distanceEdge || "-") + " " + (item.distance || "-") + "mm"
+                type: "Groove cutting",
+                side: (item.view === "B" ? "B side" : "A side"),
+                behaviour: behaviour,
+                detail: (item.width || "8") + "mm wide, " + (item.depth || "10") + "mm deep and " + grooveLen + " long"
             };
         }
 
         if (behaviour === "angled-cut") {
             var labels = machiningCornerLabels(item.corner);
+            var cornerEdges = (item.corner || "L1-W1").split("-");
+            var e1 = cornerEdges[0] || "L1";
+            var e2 = cornerEdges[1] || "W1";
             return {
                 type: "Angled cut",
-                side: item.corner,
-                detail: labels.h + " " + (item.offsetH || "-") + "mm, " + labels.v + " " + (item.offsetV || "-") + "mm"
+                side: item.corner || "L1-W1",
+                behaviour: behaviour,
+                detail: (item.offsetH || "100") + "mm " + e1 + " and " + (item.offsetV || "100") + "mm " + e2
             };
         }
 
@@ -5614,8 +7127,9 @@ function saveMachiningAppliedItems() {
             var hingePositions = machiningHingeResolvedPositions(item, hingeEdgeLen, hingeCutClearance);
             var holeCount = hingePositions.length || Math.max(2, Number(item.holes) || 2);
             return {
-                type: opt.label || item.label || "Hinge holes",
-                side: (item.view === "B" ? "B side" : "A side") + " along " + item.edge + " edge",
+                type: "Hinge hole drilling",
+                side: (item.view === "B" ? "B side" : "A side"),
+                behaviour: behaviour,
                 detail: holeCount + " hole" + (holeCount === 1 ? "" : "s") +
                     (hingePositions.length
                         ? " at " + hingePositions.map(function (p) { return Math.round(p); }).join(", ") + "mm"
@@ -5628,13 +7142,13 @@ function saveMachiningAppliedItems() {
             var shelfGeom = machiningShelfGeom(item);
             var clusterStarts = machiningShelfResolvedClusterStarts(item, shelfAxes.run);
             var clusterCount = clusterStarts.length || shelfGeom.clusters;
-            var shelfFace = item.view === "A" ? "A side" : item.view === "AB" ? "Front & Back" : "B side";
+            var shelfFace = item.view === "A" ? "A side" : item.view === "AB" ? "A & B side" : "B side";
             return {
-                type: opt.label || item.label || "Shelf holes",
-                side: shelfFace + " along " + item.edge,
-                detail: clusterCount + " cluster" + (clusterCount === 1 ? "" : "s") +
-                    " x " + shelfGeom.positions + " hole" + (shelfGeom.positions === 1 ? "" : "s") +
-                    ", " + shelfGeom.step + "mm step"
+                type: "Adjustable shelf hole drilling",
+                side: shelfFace,
+                behaviour: behaviour,
+                detail: "7.5mm \u00d8 diameter hole x " + clusterCount + " cluster" + (clusterCount === 1 ? "" : "s") +
+                    " with " + shelfGeom.positions + " position" + (shelfGeom.positions === 1 ? "" : "s")
             };
         }
 
@@ -5645,13 +7159,14 @@ function saveMachiningAppliedItems() {
             return {
                 type: (opt.label || item.label || "J handle") + " cutting",
                 side: (item.view === "B" ? "B side" : "A side") + " along " + item.edge + " edge",
+                behaviour: behaviour,
                 detail: Math.round(jWidth) + "mm wide and " + Math.round(jLength) + "mm long"
             };
         }
 
         // A "simple" (label-only) option, or anything wp-admin adds with a behaviour
         // this switch doesn't know yet — still listed by name rather than silently
-        return { type: (opt && opt.label) || item.label || item.option, side: "" };
+        return { type: (opt && opt.label) || item.label || item.option, side: "", behaviour: behaviour };
     });
     machiningCurrentRow.dataset.machiningData = JSON.stringify(summaryItems);
 
@@ -5699,47 +7214,16 @@ function buildMachiningEdgingOptionsHTML(tapes, selectedCode) {
     }).join("");
 }
 
-function buildMachiningPreviewSVG(item) {
-    var isBack = item.view === "B";
-    var cornerDot = {
-        "L1-W1": [35, 20], "L1-W2": [115, 20],
-        "L2-W1": [35, 80], "L2-W2": [115, 80]
-    }[item.corner] || [35, 20];
-    var angledLines = {
-        "L1-W1": "M35 20 L48 85",
-        "L1-W2": "M115 20 L102 85",
-        "L2-W1": "M35 80 L48 20",
-        "L2-W2": "M115 80 L102 20"
-    }[item.corner] || "M35 20 L48 85";
+function buildMachiningPreviewImage(type) {
+    return '<img src="data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'150\' viewBox=\'0 0 300 150\'><rect width=\'100%\' height=\'100%\' fill=\'%23f8fafc\' rx=\'6\'/><rect x=\'8\' y=\'8\' width=\'284\' height=\'134\' rx=\'6\' fill=\'none\' stroke=\'%23cbd5e1\' stroke-width=\'1.5\' stroke-dasharray=\'4 4\'/><text x=\'50%\' y=\'45%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'13\' font-weight=\'700\' fill=\'%23475467\'>Machining Preview Placeholder</text><text x=\'50%\' y=\'63%\' dominant-baseline=\'middle\' text-anchor=\'middle\' font-family=\'sans-serif\' font-size=\'11\' fill=\'%2394a3b8\'>(' + (type || 'Preview') + ' - Replace src with image or GIF)</text></svg>" alt="Machining preview placeholder" class="machining-preview-img">';
+}
 
-    return '<svg viewBox="0 0 150 100" class="machining-preview-svg">' +
-        '<rect x="15" y="15" width="120" height="70" fill="none" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="3,3"></rect>' +
-        '<polygon class="preview-panel" points="35,20 115,20 125,85 48,85" fill="#efefef" stroke="#888" stroke-width="1"></polygon>' +
-        '<path d="' + angledLines + '" stroke="#198754" stroke-width="2.5" stroke-linecap="round"></path>' +
-        '<text class="preview-label" x="75" y="55" text-anchor="middle" font-weight="700" font-size="12" fill="#333">' + (isBack ? "B SIDE" : "A SIDE") + "</text>" +
-        '<text x="75" y="12" text-anchor="middle" font-size="10" fill="#555">L1</text>' +
-        '<text x="75" y="96" text-anchor="middle" font-size="10" fill="#555">L2</text>' +
-        '<text x="8" y="55" font-size="10" fill="#555">W1</text>' +
-        '<text x="140" y="55" font-size="10" fill="#555">W2</text>' +
-        '<circle cx="' + cornerDot[0] + '" cy="' + cornerDot[1] + '" r="4.5" fill="#5da344"></circle>' +
-        "</svg>";
+function buildMachiningPreviewSVG(item) {
+    return buildMachiningPreviewImage('Angled Cut');
 }
 
 function buildGroovePreviewSVG(item) {
-    var isBack = item.view === "B";
-    var isVertical = item.edge === "W1-W2";
-    var grooveLine = isVertical
-        ? '<line x1="95" y1="28" x2="99" y2="78" stroke="#2b78c8" stroke-width="3" stroke-linecap="round"></line>'
-        : '<line x1="42" y1="66" x2="108" y2="70" stroke="#2b78c8" stroke-width="3" stroke-linecap="round"></line>';
-    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
-        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
-        grooveLine +
-        '<text class="preview-label" x="70" y="45" text-anchor="middle">' + (isBack ? "B SIDE" : "A SIDE") + "</text>" +
-        '<text x="65" y="14" text-anchor="middle">L1</text>' +
-        '<text x="65" y="97" text-anchor="middle">L2</text>' +
-        '<text x="14" y="55">W1</text>' +
-        '<text x="122" y="55">W2</text>' +
-        "</svg>";
+    return buildMachiningPreviewImage('Groove Cut');
 }
 
 // HINGE HOLES (Blum 35mm Screw-On / INSERTA) A panel must be at least this
@@ -5772,21 +7256,16 @@ function machiningHingeEdgeLength(edge, dims) {
 // angled cut on the same corner has already removed that material — a hole
 // can't be drilled where the board no longer exists. Returns mm to add to
 // the normal end clearance at position 0 (.lo) and at the far end (.hi).
-function machiningHingeCutClearance(edge, dims) {
+function machiningHingeCutClearance(edge, dims, appliedItems) {
     var none = { lo: 0, hi: 0 };
-    var angledCut = machiningAppliedItems.filter(function (i) { return i.option === "angled-cut"; })[0];
-    if (!angledCut || !angledCut.corner) return none;
+    if (!(dims.length > 0) || !(dims.width > 0)) return none;
 
-    var offsetH = parseFloat(angledCut.offsetH);
-    var offsetV = parseFloat(angledCut.offsetV);
-    if (!isFinite(offsetH) || !isFinite(offsetV) || !(dims.length > 0) || !(dims.width > 0)) return none;
+    var cuts = (appliedItems || machiningAppliedItems).filter(function (i) {
+        return i.option === "angled-cut" || i.behaviour === "angled-cut";
+    });
+    if (!cuts.length) return none;
 
-    // Same leg-length maths as machiningPanelOutlineMm() — how far the cut
-    // eats into the corner along each of its two edges.
-    var legX = Math.max(0, dims.length - offsetH);
-    var legY = Math.max(0, dims.width - offsetV);
     var isVertical = (edge === "W1" || edge === "W2");
-    var leg = isVertical ? legY : legX;
 
     // Position 0 on each edge sits at its L1 or W1 end (see the pxPerMm/
     // originCoord mapping in updateMachiningHinge) — the two corners an
@@ -5794,9 +7273,21 @@ function machiningHingeCutClearance(edge, dims) {
     var pos0Corner = edge === "L1" ? "L1-W1" : edge === "L2" ? "L2-W1" : edge === "W1" ? "L1-W1" : "L1-W2";
     var posEndCorner = edge === "L1" ? "L1-W2" : edge === "L2" ? "L2-W2" : edge === "W1" ? "L2-W1" : "L2-W2";
 
-    if (angledCut.corner === pos0Corner) return { lo: leg, hi: 0 };
-    if (angledCut.corner === posEndCorner) return { lo: 0, hi: leg };
-    return none;
+    // Both corners of an edge can carry their own cut, so each end's
+    // clearance is accumulated independently rather than one cut winning.
+    var clearance = { lo: 0, hi: 0 };
+
+    cuts.forEach(function (cut) {
+        // Same leg-length maths as machiningPanelOutlineMm() — how far this
+        // cut eats into its corner along each of its two edges.
+        var legs = machiningCutLegsMm(cut, dims.length, dims.width);
+        if (!legs) return;
+        var leg = isVertical ? legs.legY : legs.legX;
+        if (cut.corner === pos0Corner) clearance.lo = Math.max(clearance.lo, leg);
+        if (cut.corner === posEndCorner) clearance.hi = Math.max(clearance.hi, leg);
+    });
+
+    return clearance;
 }
 
 // How far the first/last hinge sits in from each end of the edge.
@@ -5933,12 +7424,16 @@ function buildHingeHolesDetailHTML(item, index, label) {
         countHTML = '<select class="machining-select machining-hinge-count">' + opts + "</select>";
     }
 
+    var SVG_INFO_ICON = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
+
     return "" +
         '<div class="machining-applied-item machining-applied-item--hinge" data-index="' + index + '">' +
         '<div class="machining-applied-chip">' +
-        '<span class="machining-applied-chip-label">' + panelSummaryEscape(label) + " on " + item.edge + "</span>" +
-        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
-        "</div>" +
+        '<div class="machining-applied-chip-title-wrap">' +
+        '<span>' + panelSummaryEscape(label) + ' on ' + item.edge + '</span>' + SVG_INFO_ICON +
+        '</div>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove" title="Remove">&times;</button>' +
+        '</div>' +
         '<div class="machining-applied-detail">' +
         '<div class="machining-hinge-row">' +
         '<div class="machining-detail-label">Holes drilled along edge:</div>' +
@@ -5965,30 +7460,7 @@ function buildHingeHolesDetailHTML(item, index, label) {
 }
 
 function buildHingePreviewSVG(item) {
-    var edge = item.edge || "L1";
-    // Dots sit along whichever edge is selected, on the B (back) face.
-    var dots = { L1: [], L2: [], W1: [], W2: [] };
-    var n = Math.max(2, Number(item.holes) || 2);
-    for (var i = 0; i < n; i++) {
-        var t = (i + 1) / (n + 1);
-        dots.L1.push([25 + 90 * t, 21]);
-        dots.L2.push([35 + 90 * t, 84]);
-        dots.W1.push([26 + 10 * t, 20 + 65 * t]);
-        dots.W2.push([115 + 10 * t, 20 + 65 * t]);
-    }
-    var marks = (dots[edge] || []).map(function (p) {
-        return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="2.6" fill="#2b78c8"></circle>';
-    }).join("");
-
-    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
-        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
-        '<text class="preview-label" x="75" y="56" text-anchor="middle">B SIDE</text>' +
-        '<text x="65" y="14" text-anchor="middle">L1</text>' +
-        '<text x="70" y="97" text-anchor="middle">L2</text>' +
-        '<text x="14" y="55">W1</text>' +
-        '<text x="122" y="55">W2</text>' +
-        marks +
-        "</svg>";
+    return buildMachiningPreviewImage('Hinge Holes');
 }
 
 // SHELF HOLES (5mm / 7.5mm diameter shelf-pin rows) Two rows of pin holes run
@@ -6049,9 +7521,12 @@ function machiningJHandleShape(item) {
 
 // Plan view of the recess as four positions along the edge: where it meets the
 // border (outer) and where it sits at full depth (inner).
-function machiningJHandleOutline(item, runMm, widthMm) {
-    var end1 = Math.max(0, machiningNumOr(item.end1, MACHINING_JHANDLE_DEFAULT_END_MM));
-    var end2 = Math.max(0, machiningNumOr(item.end2, MACHINING_JHANDLE_DEFAULT_END_MM));
+function machiningJHandleOutline(item, runMm, widthMm, cutClearance) {
+    cutClearance = cutClearance || { lo: 0, hi: 0 };
+    var rawEnd1 = Math.max(0, machiningNumOr(item.end1, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var rawEnd2 = Math.max(0, machiningNumOr(item.end2, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var end1 = cutClearance.lo + rawEnd1;
+    var end2 = cutClearance.hi + rawEnd2;
     var outerA = Math.min(end1, runMm);
     var outerB = Math.max(outerA, runMm - end2);
 
@@ -6091,9 +7566,12 @@ function machiningJHandleAxes(edge, dims) {
 
 // The cut's extent along its edge, after the two end insets are taken off.
 // Returns 0 when the insets leave nothing to cut.
-function machiningJHandleLength(item, runMm) {
-    var end1 = Math.max(0, machiningNumOr(item.end1, MACHINING_JHANDLE_DEFAULT_END_MM));
-    var end2 = Math.max(0, machiningNumOr(item.end2, MACHINING_JHANDLE_DEFAULT_END_MM));
+function machiningJHandleLength(item, runMm, cutClearance) {
+    cutClearance = cutClearance || { lo: 0, hi: 0 };
+    var rawEnd1 = Math.max(0, machiningNumOr(item.end1, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var rawEnd2 = Math.max(0, machiningNumOr(item.end2, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var end1 = cutClearance.lo + rawEnd1;
+    var end2 = cutClearance.hi + rawEnd2;
     return Math.max(0, runMm - end1 - end2);
 }
 
@@ -6108,6 +7586,14 @@ function buildJHandleDetailHTML(item, index, label) {
     var labels = machiningJHandleLabels(item.edge);
     var runMax = !isNaN(axes.run) ? Math.max(0, axes.run - 1) : 9998;
     var widthMax = !isNaN(axes.cross) ? Math.max(MACHINING_JHANDLE_MIN_WIDTH_MM, axes.cross - 1) : 9998;
+
+    var clearance = machiningHingeCutClearance(item.edge || "L1", dims);
+    var minEnd1 = Math.round(clearance.lo);
+    var minEnd2 = Math.round(clearance.hi);
+    var raw1 = Math.max(0, machiningNumOr(item.end1, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var raw2 = Math.max(0, machiningNumOr(item.end2, MACHINING_JHANDLE_DEFAULT_END_MM));
+    var valEnd1 = Math.round(clearance.lo + raw1);
+    var valEnd2 = Math.round(clearance.hi + raw2);
 
     var edgesHTML = ["L1", "L2", "W1", "W2"].map(function (edge) {
         return '<label class="machining-hinge-edge">' +
@@ -6128,12 +7614,16 @@ function buildJHandleDetailHTML(item, index, label) {
             ' data-min="' + min + '" data-max="' + max + '" value="' + value + '"></div>';
     }
 
+    var SVG_INFO_ICON = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
+
     return "" +
         '<div class="machining-applied-item machining-applied-item--jhandle" data-index="' + index + '">' +
         '<div class="machining-applied-chip">' +
-        '<span class="machining-applied-chip-label">' + panelSummaryEscape(label) + " cut along " + item.edge + "</span>" +
-        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
-        "</div>" +
+        '<div class="machining-applied-chip-title-wrap">' +
+        '<span>' + panelSummaryEscape(label) + ' cut along ' + item.edge + '</span>' + SVG_INFO_ICON +
+        '</div>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove" title="Remove">&times;</button>' +
+        '</div>' +
         '<div class="machining-applied-detail">' +
 
         '<div class="machining-shelf-row">' +
@@ -6144,8 +7634,8 @@ function buildJHandleDetailHTML(item, index, label) {
         '<div class="machining-shelf-row">' +
         '<div class="machining-detail-label">End points:</div>' +
         '<div class="machining-offset-row">' +
-        field("end1", labels.end1, item.end1 == null ? "" : item.end1, 0, runMax) +
-        field("end2", labels.end2, item.end2 == null ? "" : item.end2, 0, runMax) +
+        field("end1", labels.end1, valEnd1, minEnd1, runMax) +
+        field("end2", labels.end2, valEnd2, minEnd2, runMax) +
         "</div>" +
         "</div>" +
 
@@ -6189,24 +7679,7 @@ function buildJHandleDetailHTML(item, index, label) {
 }
 
 function buildJHandlePreviewSVG(item) {
-    var edge = item.edge || "L1";
-    // The routed edge, drawn on the isometric face's matching side.
-    var edges = {
-        L1: "25,20 115,20",
-        L2: "35,85 125,85",
-        W1: "25,20 35,85",
-        W2: "115,20 125,85"
-    };
-
-    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
-        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
-        '<polyline points="' + (edges[edge] || edges.L1) + '" fill="none" stroke="#2b78c8" stroke-width="4"></polyline>' +
-        '<text class="preview-label" x="75" y="56" text-anchor="middle">A SIDE</text>' +
-        '<text x="65" y="14" text-anchor="middle">L1</text>' +
-        '<text x="70" y="97" text-anchor="middle">L2</text>' +
-        '<text x="14" y="55">W1</text>' +
-        '<text x="122" y="55">W2</text>' +
-        "</svg>";
+    return buildMachiningPreviewImage('J Handle');
 }
 
 function buildShelfHolesDetailHTML(item, index, label) {
@@ -6264,12 +7737,16 @@ function buildShelfHolesDetailHTML(item, index, label) {
         "Min distance between clusters: " + MACHINING_SHELF_MIN_CLUSTER_GAP_MM + "mm" +
         "</div>";
 
+    var SVG_INFO_ICON = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
+
     return "" +
         '<div class="machining-applied-item machining-applied-item--shelf" data-index="' + index + '">' +
         '<div class="machining-applied-chip">' +
-        '<span class="machining-applied-chip-label">' + panelSummaryEscape(label) + " along " + item.edge + "</span>" +
-        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
-        "</div>" +
+        '<div class="machining-applied-chip-title-wrap">' +
+        '<span>' + panelSummaryEscape(label) + ' along ' + item.edge + '</span>' + SVG_INFO_ICON +
+        '</div>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove" title="Remove">&times;</button>' +
+        '</div>' +
         '<div class="machining-applied-detail">' +
 
         '<div class="machining-shelf-row">' +
@@ -6316,38 +7793,14 @@ function buildShelfHolesDetailHTML(item, index, label) {
 }
 
 function buildShelfPreviewSVG(item) {
-    var faceText = item.view === "A" ? "A SIDE" : item.view === "AB" ? "A + B" : "B SIDE";
-    var alongLength = item.edge !== "W1-W2";
+    return buildMachiningPreviewImage('Shelf Holes');
+}
 
-    // Two rows of dots on the isometric face, one per configured row, laid
-    // out along whichever edge pair is selected.
-    var n = Math.max(1, Math.min(6, Math.round(machiningNumOr(item.positions, 2))));
-    var marks = "";
-    for (var r = 0; r < 2; r++) {
-        for (var i = 0; i < n; i++) {
-            var t = (i + 1) / (n + 1);
-            var cx, cy;
-            if (alongLength) {
-                cx = 30 + 80 * t + 8 * (r ? 1 : 0);
-                cy = 34 + 38 * r;
-            } else {
-                cx = 40 + 62 * r;
-                cy = 28 + 50 * t;
-            }
-            marks += '<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) +
-                '" r="2.2" fill="#2b78c8"></circle>';
-        }
-    }
-
-    return '<svg viewBox="0 0 140 100" class="machining-preview-svg">' +
-        '<polygon class="preview-panel" points="25,20 115,20 125,85 35,85"></polygon>' +
-        '<text class="preview-label" x="75" y="60" text-anchor="middle">' + faceText + "</text>" +
-        '<text x="65" y="14" text-anchor="middle">L1</text>' +
-        '<text x="70" y="97" text-anchor="middle">L2</text>' +
-        '<text x="14" y="55">W1</text>' +
-        '<text x="122" y="55">W2</text>' +
-        marks +
-        "</svg>";
+// item.end1/end2/distance can legitimately be 0 (a groove flush with an
+// edge, or centred exactly at the midpoint) — "|| ''" would blank those
+// back out, so unset is checked explicitly instead.
+function machiningFieldValue(v) {
+    return (v === "" || v === undefined || v === null) ? "" : v;
 }
 
 function buildGrooveDetailHTML(item, index) {
@@ -6369,38 +7822,50 @@ function buildGrooveDetailHTML(item, index) {
         return '<option value="' + edge + '"' + (item.distanceEdge === edge ? " selected" : "") + '>From ' + edge + "</option>";
     }).join("");
 
+    var otherGrooves = machiningAppliedItems.filter(function (i) {
+        return i !== item && (i.option === "groove" || i.behaviour === "groove");
+    });
+    var countL = otherGrooves.filter(function (i) { return i.edge !== "W1-W2"; }).length;
+    var countW = otherGrooves.filter(function (i) { return i.edge === "W1-W2"; }).length;
+    var disableL = item.edge === "W1-W2" && countL >= 3;
+    var disableW = item.edge !== "W1-W2" && countW >= 3;
+
+    var SVG_INFO_ICON = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
+
     return "" +
         '<div class="machining-applied-item" data-index="' + index + '">' +
         '<div class="machining-applied-chip">' +
-        '<span class="machining-applied-chip-label">Groove cut along ' + item.edge + '</span>' +
-        '<button type="button" class="machining-applied-remove" aria-label="Remove">&times;</button>' +
-        "</div>" +
+        '<div class="machining-applied-chip-title-wrap">' +
+        '<span>Groove cut along ' + item.edge + '</span>' + SVG_INFO_ICON +
+        '</div>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove" title="Remove">&times;</button>' +
+        '</div>' +
         '<div class="machining-applied-detail">' +
         '<div class="machining-detail-label">Groove cut along edge:</div>' +
         '<div class="machining-toggle-row" data-role="groove-edge">' +
-        '<button type="button" class="machining-toggle-btn' + (item.edge !== "W1-W2" ? " selected" : "") + '" data-edge="L1-L2">L1-L2</button>' +
-        '<button type="button" class="machining-toggle-btn' + (item.edge === "W1-W2" ? " selected" : "") + '" data-edge="W1-W2">W1-W2</button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.edge !== "W1-W2" ? " selected" : "") + '"' + (disableL ? ' disabled title="Maximum 3 groove cuts allowed along L1-L2"' : "") + ' data-edge="L1-L2">L1-L2</button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.edge === "W1-W2" ? " selected" : "") + '"' + (disableW ? ' disabled title="Maximum 3 groove cuts allowed along W1-W2"' : "") + ' data-edge="W1-W2">W1-W2</button>' +
         "</div>" +
         '<div class="machining-detail-label">Size:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>Width</label>' +
-        '<input type="text" class="machining-offset-input" data-field="width" data-min="1" data-max="' + MACHINING_GROOVE_MAX_WIDTH_MM + '" value="' + (item.width || "") + '"></div>' +
+        '<input type="text" class="machining-offset-input" data-field="width" data-min="1" data-max="' + MACHINING_GROOVE_MAX_WIDTH_MM + '" value="' + machiningFieldValue(item.width) + '"></div>' +
         '<div class="machining-offset-field"><label>Depth</label>' +
-        '<input type="text" class="machining-offset-input" data-field="depth" data-min="1" data-max="' + maxDepth + '" value="' + (item.depth || "") + '"></div>' +
+        '<input type="text" class="machining-offset-input" data-field="depth" data-min="1" data-max="' + maxDepth + '" value="' + machiningFieldValue(item.depth) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">End points:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>' + labels.end1 + '</label>' +
-        '<input type="text" class="machining-offset-input" data-field="end1" data-min="0" data-max="' + runMax + '" value="' + (item.end1 || "") + '"></div>' +
+        '<input type="text" class="machining-offset-input" data-field="end1" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end1) + '"></div>' +
         '<div class="machining-offset-field"><label>' + labels.end2 + '</label>' +
-        '<input type="text" class="machining-offset-input" data-field="end2" data-min="0" data-max="' + runMax + '" value="' + (item.end2 || "") + '"></div>' +
+        '<input type="text" class="machining-offset-input" data-field="end2" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end2) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">Distance:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>Specify edge</label>' +
         '<select class="machining-select machining-groove-distance-edge">' + distEdgeOptionsHTML + "</select></div>" +
         '<div class="machining-offset-field"><label>Edge to groove</label>' +
-        '<input type="text" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + (item.distance || "") + '"></div>' +
+        '<input type="text" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + machiningFieldValue(item.distance) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">Groove cut on:</div>' +
         '<div class="machining-toggle-row" data-role="view">' +
@@ -6463,6 +7928,7 @@ function buildMachiningAppliedItemHTML(item, index) {
     var dims = machiningCurrentDims();
     var maxH = !isNaN(dims.length) ? dims.length - 1 : 9998;
     var maxV = !isNaN(dims.width) ? dims.width - 1 : 9998;
+    var edgingPriceVal = (itemOpt && isFinite(parseFloat(itemOpt.edgingPrice)) && parseFloat(itemOpt.edgingPrice) >= 0) ? parseFloat(itemOpt.edgingPrice) : 28.87;
 
     var SVG_INFO_ICON = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
     var SVG_LIGHTBULB = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path></svg>';
@@ -6475,11 +7941,22 @@ function buildMachiningAppliedItemHTML(item, index) {
         "L2-W2": ""
     };
 
+    var usedCornersByOthers = machiningAppliedItems.filter(function (i, idx) {
+        return (i.option === "angled-cut" || i.behaviour === "angled-cut") && idx !== index;
+    }).map(function (i) {
+        return i.corner;
+    });
+
     var cornerOptionsHTML = MACHINING_CORNERS.map(function (corner) {
-        var sub = cornerSubtexts[corner] ? '<span class="machining-corner-subtext">' + cornerSubtexts[corner] + '</span>' : '';
-        return '<label class="machining-corner-option">' +
+        var sub = cornerSubtexts[corner] ? '<span class="machining-corner-subtext"></span>' : '';
+        var isUsedByOther = usedCornersByOthers.indexOf(corner) !== -1;
+        var disabledAttr = isUsedByOther ? ' disabled' : '';
+        var disabledClass = isUsedByOther ? ' disabled' : '';
+        var titleAttr = isUsedByOther ? ' title="This corner already has an angled cut"' : '';
+
+        return '<label class="machining-corner-option' + disabledClass + '"' + titleAttr + '>' +
             '<div class="machining-corner-radio-row">' +
-            '<input type="radio" name="machiningCorner' + index + '" value="' + corner + '"' + (item.corner === corner ? " checked" : "") + ">" +
+            '<input type="radio" name="machiningCorner' + index + '" value="' + corner + '"' + (item.corner === corner ? " checked" : "") + disabledAttr + ">" +
             "<span>" + corner + "</span></div>" +
             sub + '</label>';
     }).join("");
@@ -6490,7 +7967,7 @@ function buildMachiningAppliedItemHTML(item, index) {
         '<div class="machining-applied-chip-title-wrap">' +
         '<span>Angled cut on ' + item.corner + '</span>' + SVG_INFO_ICON +
         '</div>' +
-        '<span class="machining-applied-collapse-btn">—</span>' +
+        '<button type="button" class="machining-applied-remove" aria-label="Remove" title="Remove">&times;</button>' +
         '</div>' +
         '<div class="machining-applied-detail">' +
         '<div class="machining-detail-label">Angle cut on:' + SVG_INFO_ICON + '</div>' +
@@ -6567,8 +8044,20 @@ if (machiningAddBtn) {
         if (machiningOptionBlockedReason(optionDef, machiningCurrentRow)) return;
 
         if (behaviour === "angled-cut") {
-            // offsetH/offsetV are measured from the *far* edge, so the default leg is
-            // subtracted from the board's own dimension. Left blank when that dimension
+            var usedCorners = machiningAppliedItems.filter(function (i) {
+                return i.option === "angled-cut" || i.behaviour === "angled-cut";
+            }).map(function (i) {
+                return i.corner;
+            });
+
+            var nextCorner = "L1-W1";
+            for (var c = 0; c < MACHINING_CORNERS.length; c++) {
+                if (usedCorners.indexOf(MACHINING_CORNERS[c]) === -1) {
+                    nextCorner = MACHINING_CORNERS[c];
+                    break;
+                }
+            }
+
             var addDims = machiningCurrentDims();
             var defaultOffsetH = (!isNaN(addDims.length) && addDims.length > MACHINING_DEFAULT_CUT_LEG_MM)
                 ? Math.round(addDims.length - MACHINING_DEFAULT_CUT_LEG_MM) : "";
@@ -6576,7 +8065,7 @@ if (machiningAddBtn) {
                 ? Math.round(addDims.width - MACHINING_DEFAULT_CUT_LEG_MM) : "";
             machiningAppliedItems.push({
                 option: "angled-cut",
-                corner: "L1-W1",
+                corner: nextCorner,
                 offsetH: defaultOffsetH,
                 offsetV: defaultOffsetV,
                 edgeTapeCode: "",
@@ -6585,16 +8074,33 @@ if (machiningAddBtn) {
                 view: "A"
             });
         } else if (behaviour === "groove") {
+            var appliedGrooves = machiningAppliedItems.filter(function (i) {
+                return i.option === "groove" || i.behaviour === "groove";
+            });
+            var lCount = appliedGrooves.filter(function (i) { return i.edge !== "W1-W2"; }).length;
+            var wCount = appliedGrooves.filter(function (i) { return i.edge === "W1-W2"; }).length;
+
+            var newEdge = "L1-L2";
+            if (lCount >= 3 && wCount < 3) {
+                newEdge = "W1-W2";
+            }
+
+            var grooveDims = machiningCurrentDims();
+            var grooveCrossTotal = (newEdge === "W1-W2") ? grooveDims.length : grooveDims.width;
+            var grooveDefaultDistance = (!isNaN(grooveCrossTotal) && grooveCrossTotal > 0)
+                ? Math.round(grooveCrossTotal / 2) : "";
             machiningAppliedItems.push({
                 option: "groove",
-                edge: "L1-L2",
-                width: "",
+                edge: newEdge,
+                width: 20,
                 depth: "",
-                end1: "",
-                end2: "",
-                distanceEdge: "L1",
-                distance: "",
-                view: "A"
+                end1: 0,
+                end2: 0,
+                distanceEdge: (newEdge === "W1-W2") ? "W1" : "L1",
+                distance: grooveDefaultDistance,
+                // Grooves are cut into the back face by default — the user
+                // can switch to A side, but B is the starting point.
+                view: "B"
             });
         } else if (behaviour === "hinge-holes") {
             // Start at the recommended count for the edge, not the maximum
@@ -6731,7 +8237,11 @@ if (machiningAppliedList) {
 
         var edgeBtn = e.target.closest(".machining-toggle-btn[data-edge]");
         if (edgeBtn) {
+            if (edgeBtn.disabled) return;
             item.edge = edgeBtn.dataset.edge;
+            if (item.option === "groove" || item.behaviour === "groove") {
+                item.distanceEdge = (item.edge === "W1-W2") ? "W1" : "L1";
+            }
             // Switching axis changes which edges the end points/distance are
             // measured from, and their valid max — re-render picks that up.
             renderMachiningAppliedList();
@@ -6853,7 +8363,19 @@ if (machiningAppliedList) {
         if (field === "offsetH" || field === "offsetV" ||
             field === "width" || field === "depth" || field === "end1" || field === "end2" || field === "distance" ||
             field === "row1" || field === "row2" || field === "step" || field === "positions") {
-            item[field] = e.target.value;
+            if ((item.option === "j-handle" || item.behaviour === "j-handle") && (field === "end1" || field === "end2")) {
+                var dims = machiningCurrentDims();
+                var clearance = machiningHingeCutClearance(item.edge || "L1", dims);
+                var minClearance = (field === "end1") ? clearance.lo : clearance.hi;
+                var typedVal = parseFloat(e.target.value);
+                if (!isNaN(typedVal)) {
+                    item[field] = Math.max(0, typedVal - minClearance);
+                } else {
+                    item[field] = "";
+                }
+            } else {
+                item[field] = e.target.value;
+            }
         }
 
     });
@@ -6878,10 +8400,18 @@ if (machiningAppliedList) {
         if (isNaN(val)) return;
 
         var clamped = Math.min(max, Math.max(min, val));
-        if (clamped !== val) e.target.value = clamped;
 
         var field = e.target.dataset.field;
-        item[field] = clamped;
+        if ((item.option === "j-handle" || item.behaviour === "j-handle") && (field === "end1" || field === "end2")) {
+            var dims = machiningCurrentDims();
+            var clearance = machiningHingeCutClearance(item.edge || "L1", dims);
+            var minClearance = (field === "end1") ? clearance.lo : clearance.hi;
+            item[field] = Math.max(0, clamped - minClearance);
+            e.target.value = Math.round(clamped);
+        } else {
+            if (clamped !== val) e.target.value = clamped;
+            item[field] = clamped;
+        }
 
         redrawMachiningCanvas();
 
@@ -6897,9 +8427,19 @@ if (machiningAppliedList) {
 }
 
 
-machiningFaceBox.addEventListener("click", function () {
+// Clicking the front/back half is an alternate control for the same A
+// side/B side toggle the active item's own sidebar buttons expose — routed
+// through that real button (via a synthetic click) rather than duplicating
+// its view-change/redraw logic here, so per-type rules (e.g. hinge holes
+// being back-only) stay enforced in one place.
+machiningFaceBox.addEventListener("click", function (e) {
 
-    machiningFaceBox.classList.toggle("flipped");
+    var side = e.target.closest(".back") ? "B" : "A";
+    var itemEl = machiningAppliedList.querySelector('.machining-applied-item[data-index="' + machiningActiveIndex + '"]');
+    if (!itemEl) return;
+
+    var btn = itemEl.querySelector('.machining-toggle-btn[data-view="' + side + '"]');
+    if (btn && !btn.disabled) btn.click();
 
 });
 
@@ -6941,13 +8481,13 @@ function openSprayOverlay(row) {
     var qtyInput = row.querySelector(".qty input");
     var descInput = row.querySelector(".desc input");
 
-    document.getElementById("sRownum").textContent = row.querySelector(".rownum").textContent;
-    document.getElementById("sDecor").textContent = decorInput && decorInput.value ? decorInput.value : "-";
-    document.getElementById("sThick").textContent = thickSelect && thickSelect.value ? thickSelect.value : "-";
-    document.getElementById("sLength").textContent = dims.lengthInput && dims.lengthInput.value ? dims.lengthInput.value : "-";
-    document.getElementById("sWidth").textContent = dims.widthInput && dims.widthInput.value ? dims.widthInput.value : "-";
-    document.getElementById("sQty").textContent = qtyInput && qtyInput.value ? qtyInput.value : "-";
-    document.getElementById("sDesc").textContent = descInput && descInput.value ? descInput.value : "-";
+    var sR = document.getElementById("sRownum"); if (sR) sR.textContent = row.querySelector(".rownum").textContent;
+    var sD = document.getElementById("sDecor"); if (sD) sD.textContent = decorInput && decorInput.value ? decorInput.value : "-";
+    var sT = document.getElementById("sThick"); if (sT) sT.textContent = thickSelect && thickSelect.value ? thickSelect.value : "-";
+    var sL = document.getElementById("sLength"); if (sL) sL.textContent = dims.lengthInput && dims.lengthInput.value ? dims.lengthInput.value : "-";
+    var sW = document.getElementById("sWidth"); if (sW) sW.textContent = dims.widthInput && dims.widthInput.value ? dims.widthInput.value : "-";
+    var sQ = document.getElementById("sQty"); if (sQ) sQ.textContent = qtyInput && qtyInput.value ? qtyInput.value : "-";
+    var sDes = document.getElementById("sDesc"); if (sDes) sDes.textContent = descInput && descInput.value ? descInput.value : "-";
 
     row.querySelectorAll(".edging-input").forEach(function (td) {
         var input = td.querySelector("input");
@@ -6955,24 +8495,297 @@ function openSprayOverlay(row) {
         if (target) target.textContent = input && input.value ? input.value : "-";
     });
 
-    document.getElementById("sDimLength").textContent =
-        dims.lengthInput && dims.lengthInput.value ? dims.lengthInput.value + " mm" : "-";
-    document.getElementById("sDimWidth").textContent =
-        dims.widthInput && dims.widthInput.value ? dims.widthInput.value + " mm" : "-";
-
-    scaleMachiningDiagramPanel(sprayDiagram, dims.lengthInput && dims.lengthInput.value, dims.widthInput && dims.widthInput.value);
+    var sDimL = document.getElementById("sDimLength");
+    if (sDimL) sDimL.textContent = dims.lengthInput && dims.lengthInput.value ? dims.lengthInput.value + " mm" : "-";
+    var sDimW = document.getElementById("sDimWidth");
+    if (sDimW) sDimW.textContent = dims.widthInput && dims.widthInput.value ? dims.widthInput.value + " mm" : "-";
 
     sprayCurrentRow = row;
     if (!sprayStateByRow.has(row)) sprayStateByRow.set(row, defaultSprayState());
     sprayState = sprayStateByRow.get(row);
     renderSpraySidebar();
     updateSprayEdgeHighlights(row);
+    redrawSprayCanvas();
 
     sprayZoom = 1;
-    sprayDiagram.style.transform = "translate(-50%, -50%) scale(1)";
+    if (sprayDiagram) sprayDiagram.style.transform = "translate(-50%, -50%) scale(1)";
 
     sprayOverlay.classList.add("open");
 
+}
+
+var sprayStage = null;
+var sprayLayer = null;
+var sprayShapes = null;
+var sprayLastGeometry = null;
+
+function initSprayStage() {
+    if (sprayStage || typeof Konva === "undefined") return;
+
+    var container = document.getElementById("sprayKonvaStage");
+    if (!container) {
+        var diagram = document.getElementById("sprayDiagram");
+        if (diagram) {
+            diagram.innerHTML = '<div id="sprayKonvaStage" style="width:500px;height:460px;"></div>';
+        }
+        container = document.getElementById("sprayKonvaStage");
+    }
+    if (!container) return;
+
+    sprayStage = new Konva.Stage({ container: "sprayKonvaStage", width: 500, height: 460 });
+    sprayLayer = new Konva.Layer();
+    sprayStage.add(sprayLayer);
+
+    sprayShapes = {
+        panel: new Konva.Line({ closed: true, fill: "#fff", stroke: "#000", strokeWidth: 1 }),
+        edgeHighlightL1: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightL2: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightW1: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+        edgeHighlightW2: new Konva.Line({ stroke: "#5da344", strokeWidth: 3, lineCap: 'butt', visible: false }),
+
+        badgeL1: buildMachiningBadge("L1"),
+        badgeL2: buildMachiningBadge("L2"),
+        badgeW1: buildMachiningBadge("W1"),
+        badgeW2: buildMachiningBadge("W2"),
+        dimLength: buildMachiningDimLine(),
+        dimWidth: buildMachiningDimLine(),
+        cutBand: new Konva.Rect({
+            fill: "#fff", stroke: "#5da344", strokeWidth: 1, height: 16,
+            offsetY: 8, visible: false
+        }),
+        cutLengthLabel: new Konva.Text({
+            fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#5da344", visible: false
+        }),
+        hLabel: buildMachiningPositionLabel(),
+        vLabel: buildMachiningPositionLabel(),
+        grooveBar: new Konva.Rect({ fill: "#c9c9c9", stroke: "#888", strokeWidth: 1, visible: false }),
+        grooveLengthLabel: new Konva.Text({
+            fontSize: 10, fontFamily: "Arial, sans-serif", fill: "#5da344", visible: false
+        }),
+        grooveEnd1Label: buildMachiningPositionLabel(),
+        grooveEnd2Label: buildMachiningPositionLabel(),
+        grooveDistLabel: buildMachiningPositionLabel(),
+        hingeGroup: new Konva.Group(),
+        jHandleGroup: new Konva.Group(),
+        shelfGroup: new Konva.Group(),
+
+        boardClip: new Konva.Group(),
+        hingeMaterial: new Konva.Group(),
+        shelfMaterial: new Konva.Group(),
+        jHandleMaterial: new Konva.Group()
+    };
+
+    sprayLayer.add(sprayShapes.panel);
+    sprayLayer.add(sprayShapes.edgeHighlightL1);
+    sprayLayer.add(sprayShapes.edgeHighlightL2);
+    sprayLayer.add(sprayShapes.edgeHighlightW1);
+    sprayLayer.add(sprayShapes.edgeHighlightW2);
+
+    sprayShapes.boardClip.clipFunc(function (ctx) {
+        var pts = sprayShapes.panel.points();
+        if (!pts || pts.length < 6) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0], pts[1]);
+        for (var i = 2; i < pts.length; i += 2) ctx.lineTo(pts[i], pts[i + 1]);
+        ctx.closePath();
+    });
+    sprayShapes.boardClip.add(sprayShapes.cutBand);
+    sprayShapes.boardClip.add(sprayShapes.grooveBar);
+    sprayShapes.boardClip.add(sprayShapes.hingeMaterial);
+    sprayShapes.boardClip.add(sprayShapes.shelfMaterial);
+    sprayShapes.boardClip.add(sprayShapes.jHandleMaterial);
+    sprayLayer.add(sprayShapes.boardClip);
+
+    sprayLayer.add(sprayShapes.badgeL1, sprayShapes.badgeL2, sprayShapes.badgeW1, sprayShapes.badgeW2);
+    sprayLayer.add(sprayShapes.dimLength.group, sprayShapes.dimWidth.group);
+    sprayLayer.add(sprayShapes.cutLengthLabel);
+    sprayLayer.add(sprayShapes.hLabel.group, sprayShapes.vLabel.group);
+    sprayLayer.add(sprayShapes.grooveLengthLabel);
+    sprayLayer.add(sprayShapes.grooveEnd1Label.group, sprayShapes.grooveEnd2Label.group, sprayShapes.grooveDistLabel.group);
+    sprayLayer.add(sprayShapes.hingeGroup);
+    sprayLayer.add(sprayShapes.shelfGroup);
+    sprayLayer.add(sprayShapes.jHandleGroup);
+}
+
+function redrawSprayCanvas() {
+    initSprayStage();
+    if (!sprayStage || !sprayShapes) return;
+
+    var row = sprayCurrentRow;
+    var lengthRaw = document.getElementById("sLength") ? document.getElementById("sLength").textContent : "-";
+    var widthRaw = document.getElementById("sWidth") ? document.getElementById("sWidth").textContent : "-";
+
+    var rawApplied = row ? (row.dataset.machiningApplied || "") : "";
+    var appliedItems = [];
+    try {
+        appliedItems = rawApplied ? JSON.parse(rawApplied) : [];
+    } catch (e) {
+        appliedItems = [];
+    }
+
+    var angledItem = appliedItems.filter(function (i) { return i.option === "angled-cut"; })[0] || null;
+    var grooveItem = appliedItems.filter(function (i) { return i.option === "groove"; })[0] || null;
+    var hingeItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "hinge-holes";
+    })[0] || null;
+    var shelfItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "shelf-holes";
+    })[0] || null;
+    var jHandleItem = appliedItems.filter(function (i) {
+        var opt = machiningOptionBySlug(i.option);
+        return opt && opt.behaviour === "j-handle";
+    })[0] || null;
+
+    var length = parseFloat(lengthRaw);
+    var width = parseFloat(widthRaw);
+    if (isNaN(length) || length <= 0) {
+        var dims = row ? getDimInputs(row) : {};
+        length = parseFloat(dims.lengthInput ? dims.lengthInput.value : 0);
+    }
+    if (isNaN(width) || width <= 0) {
+        var dims = row ? getDimInputs(row) : {};
+        width = parseFloat(dims.widthInput ? dims.widthInput.value : 0);
+    }
+
+    var cfg = MACHINING_CANVAS_CFG;
+    var rectW = 190;
+    var rectH = 120;
+    if (!isNaN(length) && !isNaN(width) && length > 0 && width > 0) {
+        var scale = Math.min(cfg.maxW / length, cfg.maxH / width);
+        rectW = Math.max(70, Math.round(length * scale));
+        rectH = Math.max(45, Math.round(width * scale));
+    }
+
+    var x = cfg.x;
+    var y = cfg.y;
+    var right = x + rectW;
+    var bottom = y + rectH;
+    var midX = x + rectW / 2;
+    var midY = y + rectH / 2;
+
+    var flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+
+    var panelFill = "#ffffff";
+    if (sprayState && sprayState.option && SPRAY_OPTIONS[sprayState.option]) {
+        panelFill = SPRAY_OPTIONS[sprayState.option].panelFill || "#ffffff";
+    }
+    sprayShapes.panel.fill(panelFill);
+
+    sprayShapes.badgeL1.position({ x: midX, y: flipLength ? bottom + cfg.badgeOffset : y - cfg.badgeOffset });
+    sprayShapes.badgeL2.position({ x: midX, y: flipLength ? y - cfg.badgeOffset : bottom + cfg.badgeOffset });
+    sprayShapes.badgeW1.position({ x: x - cfg.badgeOffset, y: midY });
+    sprayShapes.badgeW2.position({ x: right + cfg.badgeOffset, y: midY });
+
+    var sprayFace = document.getElementById("sprayFaceBox");
+    if (sprayFace) {
+        sprayFace.classList.toggle("flipped", flipLength);
+    }
+
+    sprayLastGeometry = { x: x, y: y, right: right, bottom: bottom, rectW: rectW, rectH: rectH, length: length, width: width, appliedItems: appliedItems, overallFlip: flipLength };
+    var geo = sprayLastGeometry;
+
+    // Draw all machining options applied to this row on the spray canvas
+    updateMachiningNotch(angledItem, geo, false, sprayShapes);
+    updateMachiningGroove(grooveItem, geo, false, sprayShapes);
+    updateMachiningHinge(hingeItem, geo, false, sprayShapes);
+    updateMachiningShelf(shelfItem, geo, false, sprayShapes);
+    updateMachiningJHandle(jHandleItem, geo, false, sprayShapes);
+
+    var lengthRulerY = geo.lengthAtTop ? (y - cfg.rulerOffset) : (bottom + cfg.rulerOffset);
+    var widthRulerX = geo.cornerW === "W1" ? (x - cfg.rulerOffset) : (right + cfg.rulerOffset);
+
+    var lengthLabelA = "-";
+    var lengthLabelB = null;
+    if (geo.splitLenAt != null && !isNaN(length)) {
+        var segA = Math.round((geo.splitLenAt - x) * (length / rectW));
+        lengthLabelA = segA + " mm";
+        lengthLabelB = Math.max(0, length - segA) + " mm";
+    } else if (!isNaN(length)) {
+        lengthLabelA = length + " mm";
+    }
+
+    var widthLabelA = "-";
+    var widthLabelB = null;
+    if (geo.splitWidAt != null && !isNaN(width)) {
+        var segC = Math.round((geo.splitWidAt - y) * (width / rectH));
+        widthLabelA = segC + " mm";
+        widthLabelB = Math.max(0, width - segC) + " mm";
+    } else if (!isNaN(width)) {
+        widthLabelA = width + " mm";
+    }
+
+    var lengthSign = geo.lengthAtTop ? -1 : 1;
+    var widthSign = geo.cornerW === "W1" ? -1 : 1;
+    updateMachiningDimLine(sprayShapes.dimLength, x, lengthRulerY, right, lengthRulerY, false, geo.splitLenAt, lengthLabelA, lengthLabelB, lengthSign);
+    updateMachiningDimLine(sprayShapes.dimWidth, widthRulerX, y, widthRulerX, bottom, true, geo.splitWidAt, widthLabelA, widthLabelB, widthSign);
+
+    var pts = sprayShapes.panel.points();
+    var topEdgePts = [], rightEdgePts = [], bottomEdgePts = [], leftEdgePts = [];
+    if (pts && pts.length === 8) {
+        topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+        rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+        bottomEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+        leftEdgePts = [pts[6], pts[7], pts[0], pts[1]];
+    } else if (pts && pts.length === 10) {
+        var cutIndex = -1;
+        var hasTL = false, hasTR = false, hasBR = false, hasBL = false;
+        for (var i = 0; i < 10; i += 2) {
+            var px = pts[i], py = pts[i + 1];
+            if (Math.abs(px - x) < 1 && Math.abs(py - y) < 1) hasTL = true;
+            if (Math.abs(px - right) < 1 && Math.abs(py - y) < 1) hasTR = true;
+            if (Math.abs(px - right) < 1 && Math.abs(py - bottom) < 1) hasBR = true;
+            if (Math.abs(px - x) < 1 && Math.abs(py - bottom) < 1) hasBL = true;
+        }
+        if (!hasTL) cutIndex = 0;
+        else if (!hasTR) cutIndex = 1;
+        else if (!hasBR) cutIndex = 2;
+        else if (!hasBL) cutIndex = 3;
+
+        if (cutIndex === 0) {
+            topEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            rightEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 1) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 2) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            bottomEdgePts = [pts[6], pts[7], pts[8], pts[9]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        } else if (cutIndex === 3) {
+            topEdgePts = [pts[0], pts[1], pts[2], pts[3]];
+            rightEdgePts = [pts[2], pts[3], pts[4], pts[5]];
+            bottomEdgePts = [pts[4], pts[5], pts[6], pts[7]];
+            leftEdgePts = [pts[8], pts[9], pts[0], pts[1]];
+        }
+    }
+
+    if (topEdgePts.length > 0) {
+        function hasEdgebandingTape(rowObj, edge) {
+            if (!rowObj) return false;
+            var input = rowObj.querySelector('.edging-input[data-edge="' + edge + '"] input');
+            return input && input.value && input.value.trim() !== "" && input.value.trim() !== "-";
+        }
+        sprayShapes.edgeHighlightL1.points(flipLength ? bottomEdgePts : topEdgePts);
+        sprayShapes.edgeHighlightL1.visible(hasEdgebandingTape(row, "L1"));
+
+        sprayShapes.edgeHighlightL2.points(flipLength ? topEdgePts : bottomEdgePts);
+        sprayShapes.edgeHighlightL2.visible(hasEdgebandingTape(row, "L2"));
+
+        sprayShapes.edgeHighlightW1.points(leftEdgePts);
+        sprayShapes.edgeHighlightW1.visible(hasEdgebandingTape(row, "W1"));
+
+        sprayShapes.edgeHighlightW2.points(rightEdgePts);
+        sprayShapes.edgeHighlightW2.visible(hasEdgebandingTape(row, "W2"));
+    }
+
+    sprayLayer.batchDraw();
 }
 
 function closeSprayOverlay() {
@@ -7059,38 +8872,31 @@ function sprayMoney(n) {
 // custom div-based dropdown (same pattern as #machiningOptionDropdown)
 // rather than a native <select>. While locked, every item is shown but
 // greyed with a title explaining why, matching machiningOptionBlockedReason.
+function sprayOptionIconSVG(slug) {
+    return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M19 11v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-8"/>' +
+        '<path d="M4 11h16"/>' +
+        '<path d="M12 3v5" stroke="#198754" stroke-width="2.2"/>' +
+        '<path d="M9 6l3-3 3 3"/>' +
+        '</svg>';
+}
+
 function renderSprayOptionDropdown() {
     var dropdown = document.getElementById("sprayOptionDropdown");
     if (!dropdown) return;
 
     var locked = !!sprayState.option;
 
-    var hasAngledCut = false;
-    if (sprayCurrentRow) {
-        var raw = sprayCurrentRow.dataset.machiningApplied || "";
-        try {
-            var applied = raw ? JSON.parse(raw) : [];
-            hasAngledCut = applied.some(function (item) {
-                return item.option === "angled-cut";
-            });
-        } catch (e) {
-            hasAngledCut = false;
-        }
-    }
-
     dropdown.innerHTML = Object.keys(SPRAY_OPTIONS).map(function (slug) {
         var cfg = SPRAY_OPTIONS[slug];
-        var itemLocked = locked || hasAngledCut;
-        var title = "";
-        if (locked) {
-            title = "Only one spray finishing option is possible per panel";
-        } else if (hasAngledCut) {
-            title = "Once the panel is shaped (angled cut), spray finishing is no longer possible";
-        }
+        var itemLocked = locked;
+        var title = locked ? "Only one spray finishing option is possible per panel" : "";
+        var icon = sprayOptionIconSVG(slug);
         return '<div class="machining-option-item' + (itemLocked ? " disabled" : "") + '"' +
             ' data-option="' + panelSummaryEscape(slug) + '"' +
             (title ? ' title="' + panelSummaryEscape(title) + '"' : "") +
-            ">" + panelSummaryEscape(cfg.label) + "</div>";
+            '><span class="machining-option-item-icon">' + icon + '</span>' +
+            '<span>' + panelSummaryEscape(cfg.label) + '</span></div>';
     }).join("");
 }
 
@@ -7100,26 +8906,43 @@ function renderSpraySidebar() {
 
     renderSprayOptionDropdown();
 
-    if (!sprayState.option) {
+    var sprayTrigger = document.getElementById("spraySelectTrigger");
+    if (sprayTrigger) {
+        if (sprayState && sprayState.option && SPRAY_OPTIONS[sprayState.option]) {
+            var selectedCfg = SPRAY_OPTIONS[sprayState.option];
+            var iconSVG = sprayOptionIconSVG(sprayState.option);
+            sprayTrigger.innerHTML = '<div class="machining-selected-content">' +
+                '<div class="machining-selected-icon">' + iconSVG + '</div>' +
+                '<div class="machining-selected-text">' +
+                '<span class="machining-selected-group">Spray finishing</span>' +
+                '<span class="machining-selected-title">' + panelSummaryEscape(selectedCfg.label) + '</span>' +
+                '</div></div>' +
+                '<span class="machining-selected-chevron"><svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="#666" stroke-width="2"><path d="M4.5 7.5L10 13L15.5 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+        } else {
+            sprayTrigger.innerHTML = '<span id="spraySelectPlaceholder">Select spray finishing option</span>' +
+                '<span class="machining-select-arrow"><svg height="14" width="14" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z" fill="#888"/></svg></span>';
+        }
+    }
+
+    if (!sprayState || !sprayState.option) {
         body.innerHTML = "";
         updateSprayVisuals();
         return;
     }
 
     var cfg = SPRAY_OPTIONS[sprayState.option];
+    var SVG_INFO = '<svg class="machining-info-icon" width="15" height="15" viewBox="0 0 16 16" fill="none" style="vertical-align: middle; margin-left: 4px; display: inline-block;"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/><text x="8" y="11.5" text-anchor="middle" font-size="10" font-weight="600" fill="currentColor" font-family="sans-serif">i</text></svg>';
 
     var html = "" +
-        "<div class=\"spray-pill-row\">" +
-        "<div class=\"spray-pill\">" + cfg.label + "</div>" +
-        "<button type=\"button\" class=\"spray-pill-remove\" title=\"Remove\">&#10005;</button>" +
+        "<div class=\"machining-applied-item\">" +
+        "<div class=\"machining-applied-chip\">" +
+        "<div class=\"machining-applied-chip-title-wrap\"><span>" + panelSummaryEscape(cfg.label) + "</span>" + SVG_INFO + "</div>" +
+        "<button type=\"button\" class=\"machining-applied-remove\" title=\"Remove\">&#10005;</button>" +
         "</div>" +
-        "<div class=\"spray-label\">Select panel sides for spraying</div>" +
+        "<div class=\"machining-applied-detail\">" +
+        "<div class=\"machining-detail-label\">Select panel sides for spraying" + SVG_INFO + "</div>" +
         "<div class=\"spray-sides\">" +
         "<div class=\"spray-side\">" +
-        // Every sprayed panel gets its front face done — A side is always
-        // on and not a real choice, so it's locked rather than merely
-        // defaulted, the same way hinge holes lock A side and J handle
-        // locks B side elsewhere in this sidebar.
         "<button type=\"button\" class=\"spray-side-btn selected\" data-side=\"A\" disabled " +
         "title=\"Every sprayed panel includes the front face\">A side<small>Front face</small></button>" +
         "<div class=\"spray-side-note\">and edgebanded edges</div>" +
@@ -7128,7 +8951,7 @@ function renderSpraySidebar() {
         "<button type=\"button\" class=\"spray-side-btn" + (sprayState.sides.B ? " selected" : "") + "\" data-side=\"B\">B side<small>Back face</small></button>" +
         "</div>" +
         "</div>" +
-        "<div class=\"spray-label\">Select finish</div>" +
+        "<div class=\"machining-detail-label\">Select finish" + SVG_INFO + "</div>" +
         "<div class=\"spray-finish-cards\">" +
         cfg.finishes.map(function (f, i) {
             return "<button type=\"button\" class=\"spray-finish-card" + (sprayState.finish === i ? " selected" : "") + "\" data-finish=\"" + i + "\">" +
@@ -7144,7 +8967,7 @@ function renderSpraySidebar() {
         html += "" +
             "<div class=\"spray-fields\">" +
             "<div class=\"spray-field\">" +
-            "<label>Paint brand</label>" +
+            "<label>Paint brand" + SVG_INFO + "</label>" +
             "<select id=\"sprayBrand\"><option value=\"\">Select brand</option>" +
             (cfg.paintBrands || []).map(function (b) {
                 return "<option" + (sprayState.brand === b ? " selected" : "") + ">" + b + "</option>";
@@ -7152,7 +8975,7 @@ function renderSpraySidebar() {
             "</select>" +
             "</div>" +
             "<div class=\"spray-field\">" +
-            "<label>Colour</label>" +
+            "<label>Colour" + SVG_INFO + "</label>" +
             "<input type=\"text\" id=\"sprayColour\" placeholder=\"Type colour name\" value=\"" + sprayState.colour + "\"" + (sprayState.brand ? "" : " disabled") + ">" +
             "</div>" +
             "</div>";
@@ -7166,6 +8989,8 @@ function renderSpraySidebar() {
             "</div>";
     }
 
+    html += "</div></div>";
+
     body.innerHTML = html;
     updateSprayVisuals();
 
@@ -7175,22 +9000,19 @@ function updateSprayVisuals() {
 
     var areaEl = document.getElementById("sprayAreaValue");
     var totalEl = document.getElementById("sprayTotal");
-    var panel = document.getElementById("sprayPanel");
 
     if (!sprayState || !sprayState.option) {
-        areaEl.textContent = "-";
-        totalEl.textContent = sprayMoney(0);
-        panel.style.background = "";
+        if (areaEl) areaEl.textContent = "-";
+        if (totalEl) totalEl.textContent = sprayMoney(0);
+        redrawSprayCanvas();
         return;
     }
 
     var cfg = SPRAY_OPTIONS[sprayState.option];
     if (!cfg) {
-        // sprayState.option doesn't match any known finish — e.g. it was removed in
-        // wp-admin after this overlay was opened, or (during testing) a stale cached
-        areaEl.textContent = "-";
-        totalEl.textContent = sprayMoney(0);
-        panel.style.background = "";
+        if (areaEl) areaEl.textContent = "-";
+        if (totalEl) totalEl.textContent = sprayMoney(0);
+        redrawSprayCanvas();
         return;
     }
     var panelArea = sprayPanelArea();
@@ -7200,15 +9022,10 @@ function updateSprayVisuals() {
     var total = area * cfg.finishes[sprayState.finish].price;
     if (cfg.bOption && sprayState.bOnly) total += panelArea * cfg.bOption.price;
 
-    areaEl.textContent = area ? area.toFixed(2) : "-";
-    // A real "£0.00" (finish picked, area genuinely 0) reads as a broken price
-    // rather than "the row has no Length/Width yet" — show "-" for that case
-    totalEl.textContent = area ? sprayMoney(total) : "-";
-    panel.style.background = cfg.panelFill;
+    if (areaEl) areaEl.textContent = area ? area.toFixed(2) : "-";
+    if (totalEl) totalEl.textContent = area ? sprayMoney(total) : "-";
 
-    if (sprayCurrentRow) {
-        updateSprayEdgeHighlights(sprayCurrentRow);
-    }
+    redrawSprayCanvas();
 }
 
 function updateSprayEdgeHighlights(row) {
@@ -7302,7 +9119,7 @@ document.querySelector(".spray-sidebar").addEventListener("input", function (e) 
 
 document.querySelector(".spray-sidebar").addEventListener("click", function (e) {
 
-    if (e.target.closest(".spray-pill-remove")) {
+    if (e.target.closest(".machining-applied-remove")) {
         sprayState = defaultSprayState();
         sprayStateByRow.set(sprayCurrentRow, sprayState);
         renderSpraySidebar();
@@ -7335,17 +9152,21 @@ document.querySelector(".spray-sidebar").addEventListener("click", function (e) 
 
 });
 
-document.getElementById("sprayRotate").addEventListener("click", function () {
+var sprayRotateBtn = document.getElementById("sprayRotate");
+if (sprayRotateBtn) {
+    sprayRotateBtn.addEventListener("click", function () {
+        var dimW = document.getElementById("sDimWidth");
+        var dimL = document.getElementById("sDimLength");
+        if (dimW && dimL) {
+            var tmp = dimW.textContent;
+            dimW.textContent = dimL.textContent;
+            dimL.textContent = tmp;
+        }
+    });
+}
 
-    var dimW = document.getElementById("sDimWidth");
-    var dimL = document.getElementById("sDimLength");
-    var tmp = dimW.textContent;
-    dimW.textContent = dimL.textContent;
-    dimL.textContent = tmp;
-
-});
-
-document.getElementById("spraySave").addEventListener("click", closeSprayOverlay);
+var spraySaveBtn = document.getElementById("spraySave");
+if (spraySaveBtn) spraySaveBtn.addEventListener("click", closeSprayOverlay);
 
 
 

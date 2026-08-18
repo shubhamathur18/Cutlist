@@ -336,6 +336,20 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/cutlist-main.js')),
 		true
 	);
+	wp_localize_script(
+		'cutlist-main',
+		'cutlistWcVars',
+		[
+			'ajax_url'          => admin_url('admin-ajax.php'),
+			'cart_url'          => function_exists('wc_get_cart_url') ? wc_get_cart_url() : '',
+			'checkout_url'      => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '',
+			'nonce'             => wp_create_nonce('cutlist_cart_nonce'),
+			'grain_match_price' => (float) get_option('cutlist_grain_match_price', 12.70),
+			'grain_match_code'  => get_option('cutlist_grain_match_code', 'GRN-MTCH'),
+			'grain_match_name'  => get_option('cutlist_grain_match_name', 'Grain-matching of panels in clusters'),
+			'grain_match_desc'  => get_option('cutlist_grain_match_desc', 'Grain-matching of panels based on customer requirements – charged per panel'),
+		]
+	);
 	wp_add_inline_script(
 		'cutlist-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .

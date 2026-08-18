@@ -33,6 +33,8 @@ require_once CUTLIST_CATALOGUE_PATH . 'includes/cpt-registration.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/gallery-meta-box.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/rest-endpoints.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/cutting-list-shortcode.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/wc-cart-integration.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/admin-settings.php';
 
 register_activation_hook(__FILE__, function () {
 	cutlist_register_post_types();

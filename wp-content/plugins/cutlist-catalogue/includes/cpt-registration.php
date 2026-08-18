@@ -231,6 +231,16 @@ function cutlist_seed_default_machining_options() {
 			'behaviour' => 'shelf-holes',
 			'available' => 1,
 		],
+		[
+			'slug' => 'grain-matching',
+			'title' => 'Grain-matching of panels in clusters',
+			'group' => 'Grain matching',
+			'behaviour' => 'grain-matching',
+			'available' => 1,
+			'serviceCode' => 'GRN-MTCH',
+			'shortDescription' => 'Grain-matching of panels based on customer requirements – charged per panel',
+			'price' => 12.70,
+		],
 	];
 
 	foreach ($defaults as $i => $d) {
@@ -521,3 +531,85 @@ function cutlist_board_section_heading_css() {
 	</style>
 	<?php
 }
+
+add_action('acf/init', function() {
+	if (function_exists('acf_add_local_field_group')) {
+		acf_add_local_field_group(array(
+			'key' => 'group_machining_option_fields',
+			'title' => 'Machining Option Details',
+			'fields' => array(
+				array(
+					'key' => 'field_machining_option_behaviour',
+					'label' => 'Behaviour',
+					'name' => 'behaviour',
+					'type' => 'select',
+					'instructions' => 'Which set of settings and on-screen drawing this option uses.',
+					'choices' => array(
+						'angled-cut' => 'Angled cut (corner chamfer)',
+						'groove' => 'Groove (slot)',
+						'hinge-holes' => 'Hinge holes (Blum etc.)',
+						'shelf-holes' => 'Shelf holes (pin rows)',
+						'j-handle' => 'J handle (edge recess)',
+						'simple' => 'No settings (label only)',
+					),
+					'default_value' => 'simple',
+				),
+				array(
+					'key' => 'field_machining_option_available',
+					'label' => 'Available',
+					'name' => 'available',
+					'type' => 'true_false',
+					'default_value' => 1,
+					'ui' => 1,
+				),
+				array(
+					'key' => 'field_machining_option_service_code',
+					'label' => 'Service code',
+					'name' => 'service_code',
+					'type' => 'text',
+					'placeholder' => 'ANG-CUT',
+				),
+				array(
+					'key' => 'field_machining_option_short_description',
+					'label' => 'Short description',
+					'name' => 'short_description',
+					'type' => 'text',
+				),
+				array(
+					'key' => 'field_machining_option_price',
+					'label' => 'Price',
+					'name' => 'price',
+					'type' => 'number',
+					'step' => '0.01',
+					'prepend' => '£',
+				),
+				array(
+					'key' => 'field_machining_option_edging_price',
+					'label' => 'Edging Price (Optional)',
+					'name' => 'edging_price',
+					'type' => 'number',
+					'step' => '0.01',
+					'default_value' => 28.87,
+					'prepend' => '£',
+				),
+				array(
+					'key' => 'field_machining_option_edging_service_code',
+					'label' => 'Edging Service Code (Optional)',
+					'name' => 'edging_service_code',
+					'type' => 'text',
+					'default_value' => 'MC-ANG-EDGE',
+					'placeholder' => 'MC-ANG-EDGE',
+				),
+			),
+			'location' => array(
+				array(
+					array(
+						'param' => 'post_type',
+						'operator' => '==',
+						'value' => 'machining_option',
+					),
+				),
+			),
+		));
+	}
+});

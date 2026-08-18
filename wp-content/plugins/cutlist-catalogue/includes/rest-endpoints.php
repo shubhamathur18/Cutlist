@@ -168,7 +168,12 @@ function cutlist_format_machining_option($post) {
 		'group' => $group,
 		'behaviour' => get_field('behaviour', $post->ID) ?: 'simple',
 		'available' => ($available === null ? true : (bool) $available),
+		// Shown in the order summary's "Additional services" table.
+		'serviceCode' => (string) get_field('service_code', $post->ID),
+		'shortDescription' => (string) get_field('short_description', $post->ID),
 		'price' => (float) get_field('price', $post->ID),
+		'edgingPrice' => (float) (get_field('edging_price', $post->ID) ?: 28.87),
+		'edgingServiceCode' => (string) (get_field('edging_service_code', $post->ID) ?: 'MC-ANG-EDGE'),
 	];
 }
 
