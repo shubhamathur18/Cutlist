@@ -68,7 +68,7 @@
             "name": "unit_price",
             "aria-label": "",
             "type": "number",
-            "instructions": "Price per metre",
+            "instructions": "Price per metre (standalone roll order)",
             "required": 1,
             "conditional_logic": false,
             "wrapper": {
@@ -81,6 +81,28 @@
             "min": "",
             "max": "",
             "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_edge_tape_edgebanding_unit_price",
+            "label": "Edgebanding unit price",
+            "name": "edgebanding_unit_price",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Price per metre when applied as Edgebanding on panels (e.g. £2.20)",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "step": "0.01",
+            "default_value": "2.20",
+            "min": "",
+            "max": "",
+            "placeholder": "2.20",
             "prepend": "",
             "append": ""
         },

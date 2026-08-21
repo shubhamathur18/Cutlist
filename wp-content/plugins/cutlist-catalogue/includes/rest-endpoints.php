@@ -46,7 +46,99 @@ add_action('rest_api_init', function () {
 		'callback' => 'cutlist_rest_get_machining_options',
 		'permission_callback' => '__return_true',
 	]);
+
+	register_rest_route('cutlist/v1', '/orders/(?P<order_id>\d+)/cutlist', [
+		'methods' => 'GET',
+		'callback' => 'cutlist_rest_get_order_cutlist',
+		'permission_callback' => 'cutlist_rest_order_permission_check',
+		'args' => [
+			'order_id' => [
+				'validate_callback' => function ($value) {
+					return is_numeric($value) && (int) $value > 0;
+				},
+			],
+		],
+	]);
+
+	register_rest_route('cutlist/v1', '/orders/(?P<order_id>\d+)/cutlist', [
+		'methods' => 'POST',
+		'callback' => 'cutlist_rest_update_order_cutlist',
+		'permission_callback' => 'cutlist_rest_order_permission_check',
+		'args' => [
+			'order_id' => [
+				'validate_callback' => function ($value) {
+					return is_numeric($value) && (int) $value > 0;
+				},
+			],
+		],
+	]);
 });
+
+function cutlist_rest_order_permission_check($request) {
+	$order_id = (int) $request['order_id'];
+	if (function_exists('cutlist_user_can_access_order')) {
+		return cutlist_user_can_access_order($order_id);
+	}
+	return true;
+}
+
+function cutlist_rest_get_order_cutlist($request) {
+	$order_id = (int) $request['order_id'];
+	if (!$order_id) {
+		return new WP_Error('invalid_order', __('Invalid order ID.', 'cutlist-catalogue'), ['status' => 400]);
+	}
+
+	$saved_data = function_exists('cutlist_get_saved_order_data') ? cutlist_get_saved_order_data($order_id) : null;
+	if (!$saved_data) {
+		return new WP_REST_Response([
+			'success' => true,
+			'order_id' => $order_id,
+			'data' => null,
+		], 200);
+	}
+
+	return new WP_REST_Response([
+		'success' => true,
+		'order_id' => $order_id,
+		'data' => $saved_data,
+		'updatedAt' => $saved_data['updatedAt'] ?? null,
+	], 200);
+}
+
+function cutlist_rest_update_order_cutlist($request) {
+	$order_id = (int) $request['order_id'];
+	if (!$order_id) {
+		return new WP_Error('invalid_order', __('Invalid order ID.', 'cutlist-catalogue'), ['status' => 400]);
+	}
+
+	$body = $request->get_json_params();
+	if (empty($body)) {
+		$body = $request->get_body_params();
+	}
+	if (isset($body['data']) && is_array($body['data'])) {
+		$data = $body['data'];
+	} else {
+		$data = $body;
+	}
+
+	if (!is_array($data)) {
+		return new WP_Error('invalid_data', __('Invalid cutlist payload.', 'cutlist-catalogue'), ['status' => 400]);
+	}
+
+	$data['orderId'] = $order_id;
+	$data['updatedAt'] = current_time('mysql');
+
+	if (function_exists('cutlist_save_order_data')) {
+		cutlist_save_order_data($order_id, $data);
+	}
+
+	return new WP_REST_Response([
+		'success' => true,
+		'order_id' => $order_id,
+		'message' => __('Cutlist saved successfully.', 'cutlist-catalogue'),
+		'updatedAt' => $data['updatedAt'],
+	], 200);
+}
 
 function cutlist_rest_get_boards(WP_REST_Request $request) {
 	$args = [
@@ -127,6 +219,7 @@ function cutlist_format_edge_tape($post) {
 		'product_name' => get_field('product_name', $post->ID),
 		'size' => get_field('size', $post->ID),
 		'unit_price' => (float) get_field('unit_price', $post->ID),
+		'edgebanding_unit_price' => (float) (get_field('edgebanding_unit_price', $post->ID) ?: get_field('unit_price', $post->ID)),
 		'radius_edge_finish' => ($radius === null ? true : (bool) $radius),
 		'square_edge_finish' => ($square === null ? true : (bool) $square),
 		'image' => get_the_post_thumbnail_url($post->ID, 'thumbnail') ?: null,
@@ -280,6 +373,7 @@ function cutlist_format_board($post) {
 		'width_mm' => (float) get_field('width_mm', $post->ID),
 		'thickness_mm' => (float) get_field('thickness_mm', $post->ID),
 		'full_sheet_price' => (float) get_field('full_sheet_price', $post->ID),
+		'cutting_list_price' => (float) (get_field('cutting_list_price', $post->ID) ?: get_field('full_sheet_price', $post->ID)),
 		'machining' => [
 			'cut_to_size' => (bool) get_field('machining_cut_to_size', $post->ID),
 			'edgebanding' => (bool) get_field('machining_edgebanding', $post->ID),

@@ -32,8 +32,17 @@
             "name": "unit_price",
             "type": "number",
             "step": "0.01",
-            "instructions": "Price per metre",
+            "instructions": "Price per metre (standalone roll order)",
             "required": 1
+        },
+        {
+            "key": "field_edge_tape_edgebanding_unit_price",
+            "label": "Edgebanding unit price",
+            "name": "edgebanding_unit_price",
+            "type": "number",
+            "step": "0.01",
+            "instructions": "Price per metre when applied as Edgebanding on panels (e.g. £2.20)",
+            "required": 0
         },
         {
             "key": "field_edge_tape_radius_edge_finish",

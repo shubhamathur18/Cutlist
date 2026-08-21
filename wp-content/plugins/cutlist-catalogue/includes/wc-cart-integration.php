@@ -151,11 +151,30 @@ function cutlist_ajax_add_to_cart()
 				$s_sides = array();
 				if (!empty($item['spray']['aSide']))
 					$s_sides[] = 'A-Side';
-				if (!empty($item['spray']['bSide']))
-					$s_sides[] = 'B-Side';
+				if (!empty($item['spray']['bSide'])) {
+					if (!empty($item['spray']['bSideSprayType']) && $item['spray']['bSideSprayType'] === 'return') {
+						$checked_edges = array();
+						if (!empty($item['spray']['bSideReturnEdges']) && is_array($item['spray']['bSideReturnEdges'])) {
+							foreach ($item['spray']['bSideReturnEdges'] as $e_key => $is_on) {
+								if (!empty($is_on))
+									$checked_edges[] = sanitize_text_field($e_key);
+							}
+						}
+						$b_type = 'B-Side (100mm return' . ($checked_edges ? ' on ' . implode(', ', $checked_edges) : '') . ')';
+					} else {
+						$b_type = 'B-Side';
+					}
+					$s_sides[] = $b_type;
+				}
 				$spray_summary = $s_opt . ($s_sides ? ' (' . implode(' & ', $s_sides) . ')' : '');
 			} elseif (!empty($item['spray_summary'])) {
 				$spray_summary = sanitize_text_field($item['spray_summary']);
+			}
+
+			// Build grain matching summary
+			$grain_summary = '';
+			if (!empty($item['grainMatch'])) {
+				$grain_summary = __('Yes (GRN-MTCH)', 'cutlist-catalogue');
 			}
 
 			$cart_item_data = array(
@@ -169,8 +188,9 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_edges' => $edge_summary,
 				'cutlist_machining' => $machining_summary,
 				'cutlist_spray' => $spray_summary,
+				'cutlist_grain' => $grain_summary,
 				'cutlist_unit_price' => $price,
-				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $edge_summary . $machining_summary . $spray_summary . $price . $idx . microtime(true)),
+				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $edge_summary . $machining_summary . $spray_summary . $grain_summary . $price . $idx . microtime(true)),
 			);
 
 			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
@@ -221,27 +241,6 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_dimensions' => $size,
 				'cutlist_unit_price' => $price,
 				'cutlist_unique_key' => 'et_' . md5($code . $name . $size . $price . $idx . microtime(true)),
-			);
-
-			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
-			$added_count++;
-		}
-	}
-
-	// 4. Standalone Machining Operations
-	if (!empty($data['machiningItems']) && is_array($data['machiningItems'])) {
-		foreach ($data['machiningItems'] as $idx => $item) {
-			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
-			$label = !empty($item['label']) ? sanitize_text_field($item['label']) : __('Machining Operation', 'cutlist-catalogue');
-			$unit = !empty($item['unit']) ? sanitize_text_field($item['unit']) : '';
-			$price = isset($item['unitPrice']) ? max(0, (float) $item['unitPrice']) : 0;
-
-			$cart_item_data = array(
-				'cutlist_type' => __('Machining Operation', 'cutlist-catalogue'),
-				'cutlist_title' => sprintf(__('Machining: %s', 'cutlist-catalogue'), $label),
-				'cutlist_description' => $unit ? sprintf(__('Unit: %s', 'cutlist-catalogue'), $unit) : '',
-				'cutlist_unit_price' => $price,
-				'cutlist_unique_key' => 'mc_' . md5($label . $unit . $price . $idx . microtime(true)),
 			);
 
 			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
@@ -371,6 +370,12 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 			'value' => esc_html($cart_item['cutlist_spray']),
 		);
 	}
+	if (!empty($cart_item['cutlist_grain'])) {
+		$item_data[] = array(
+			'name' => __('Grain Matching', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_grain']),
+		);
+	}
 
 	return $item_data;
 }
@@ -411,6 +416,9 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 	if (!empty($values['cutlist_spray'])) {
 		$item->add_meta_data(__('Spray Finishing', 'cutlist-catalogue'), $values['cutlist_spray']);
 	}
+	if (!empty($values['cutlist_grain'])) {
+		$item->add_meta_data(__('Grain Matching', 'cutlist-catalogue'), $values['cutlist_grain']);
+	}
 }
 add_action('woocommerce_checkout_create_order_line_item', 'cutlist_add_order_line_item_meta', 10, 4);
 
@@ -437,3 +445,36 @@ function cutlist_render_edit_cutting_list_button()
 }
 add_action('woocommerce_before_cart_table', 'cutlist_render_edit_cutting_list_button');
 add_action('woocommerce_before_checkout_form', 'cutlist_render_edit_cutting_list_button');
+
+/**
+ * Same "Edit Cutting List" banner, but on an actual order (the WooCommerce
+ * thank-you page and My Account -> Orders -> view order) — so it links to
+ * that order's own /{order_id}/ Cutlist rather than the generic /cutlist/
+ * page the cart/checkout version above uses before an order exists.
+ */
+function cutlist_render_order_cutting_list_button($order) {
+	if (!$order instanceof WC_Order) {
+		return;
+	}
+	if (!function_exists('cutlist_order_url') || !function_exists('cutlist_user_can_access_order')) {
+		return;
+	}
+	if (!cutlist_user_can_access_order($order->get_id())) {
+		return;
+	}
+
+	$cutlist_url = cutlist_order_url($order->get_id());
+	?>
+	<div class="cutlist-cart-notice"
+		style="background:#eef6ff; border:1px solid #2f78bd; border-radius:6px; padding:14px 18px; margin:20px 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+		<div style="font-size:14px; color:#1d5a94; font-weight:500;">
+			<strong><?php esc_html_e('Need to change panel sizes, edging, machining, or spray finishing on this order?', 'cutlist-catalogue'); ?></strong>
+		</div>
+		<a href="<?php echo esc_url($cutlist_url); ?>" class="button"
+			style="background:#2f78bd; color:#fff; padding:8px 16px; border-radius:4px; font-weight:600; text-decoration:none; display:inline-block;">
+			✏️ <?php esc_html_e('Edit Cutting List', 'cutlist-catalogue'); ?>
+		</a>
+	</div>
+	<?php
+}
+add_action('woocommerce_order_details_after_order_table', 'cutlist_render_order_cutting_list_button');

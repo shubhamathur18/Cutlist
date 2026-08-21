@@ -29,6 +29,7 @@ add_filter('acf/settings/load_json', function ($paths) {
 	return $paths;
 });
 
+require_once CUTLIST_CATALOGUE_PATH . 'includes/order-routing.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/cpt-registration.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/gallery-meta-box.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/rest-endpoints.php';
@@ -39,6 +40,9 @@ require_once CUTLIST_CATALOGUE_PATH . 'includes/admin-settings.php';
 register_activation_hook(__FILE__, function () {
 	cutlist_register_post_types();
 	cutlist_register_taxonomies();
+	// Drop the stored version so the /{order_id}/ rule is rebuilt on the
+	// next init, then flush what we have now.
+	delete_option('cutlist_routing_version');
 	flush_rewrite_rules();
 });
 

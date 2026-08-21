@@ -611,5 +611,31 @@ add_action('acf/init', function() {
 				),
 			),
 		));
+
+		acf_add_local_field_group(array(
+			'key' => 'group_board_cutting_list_price_patch',
+			'title' => 'Cutting List Price Patch',
+			'fields' => array(
+				array(
+					'key' => 'field_board_cutting_list_price',
+					'label' => 'Cutting list price',
+					'name' => 'cutting_list_price',
+					'type' => 'number',
+					'step' => '0.01',
+					'instructions' => 'Price per sheet used for cut-to-size cutting list calculations.',
+					'prepend' => '£',
+				),
+			),
+			'location' => array(
+				array(
+					array(
+						'param' => 'post_type',
+						'operator' => '==',
+						'value' => 'board',
+					),
+				),
+			),
+			'menu_order' => 10,
+		));
 	}
 });

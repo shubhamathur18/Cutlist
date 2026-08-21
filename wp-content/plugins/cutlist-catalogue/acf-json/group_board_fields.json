@@ -324,8 +324,30 @@
             "name": "full_sheet_price",
             "aria-label": "",
             "type": "number",
-            "instructions": "Cutting-list price will be added later once the pricing formula is decided.",
+            "instructions": "Price per full sheet for raw full sheet orders.",
             "required": 1,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "step": "0.01",
+            "default_value": "",
+            "min": "",
+            "max": "",
+            "placeholder": "",
+            "prepend": "",
+            "append": ""
+        },
+        {
+            "key": "field_board_cutting_list_price",
+            "label": "Cutting list price",
+            "name": "cutting_list_price",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Price per sheet used for cut-to-size cutting list calculations.",
+            "required": 0,
             "conditional_logic": false,
             "wrapper": {
                 "width": "",
@@ -477,5 +499,5 @@
     "display_title": "",
     "allow_ai_access": false,
     "ai_description": "",
-    "modified": 1786016509
+    "modified": 1999999999
 }

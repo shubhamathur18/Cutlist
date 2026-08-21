@@ -18,11 +18,13 @@ if (!defined('ABSPATH')) {
 	exit;
 }
 
-function cutlist_proto_asset_url($relative) {
+function cutlist_proto_asset_url($relative)
+{
 	return plugins_url('assets/' . $relative, CUTLIST_CATALOGUE_PATH . 'cutlist-catalogue.php');
 }
 
-function cutlist_proto_asset_path($relative) {
+function cutlist_proto_asset_path($relative)
+{
 	return CUTLIST_CATALOGUE_PATH . 'assets/' . $relative;
 }
 
@@ -32,7 +34,8 @@ function cutlist_proto_asset_path($relative) {
  * characteristics, gallery, etc.) — reused here so the popup and the
  * REST API never drift apart.
  */
-function cutlist_proto_get_boards() {
+function cutlist_proto_get_boards()
+{
 	$posts = get_posts([
 		'post_type' => 'board',
 		'numberposts' => -1,
@@ -49,7 +52,8 @@ function cutlist_proto_get_boards() {
  * the prototype's hardcoded convention. A tape with no matched boards
  * yet isn't shown at all — nothing to match it to on the cutting list.
  */
-function cutlist_proto_get_edge_tape_options() {
+function cutlist_proto_get_edge_tape_options()
+{
 	$posts = get_posts([
 		'post_type' => 'edge_tape',
 		'numberposts' => -1,
@@ -92,7 +96,8 @@ function cutlist_proto_get_edge_tape_options() {
  * rest-endpoints.php) — the front end keys this array by `slug` to rebuild
  * that same object at runtime.
  */
-function cutlist_proto_get_spray_finishes() {
+function cutlist_proto_get_spray_finishes()
+{
 	$posts = get_posts([
 		'post_type' => 'spray_finish',
 		'numberposts' => -1,
@@ -109,7 +114,8 @@ function cutlist_proto_get_spray_finishes() {
  * classes/data-attributes) so the existing inline JS (supplier-tab
  * switching, product-row selection) needs no changes.
  */
-function cutlist_proto_render_decor_popup_inner($boards) {
+function cutlist_proto_render_decor_popup_inner($boards)
+{
 	$by_brand = [];
 	foreach ($boards as $board) {
 		$brand = $board['brand'] ?: 'Other';
@@ -125,16 +131,19 @@ function cutlist_proto_render_decor_popup_inner($boards) {
 	ob_start();
 	?>
 	<div class="supplier-tabs">
-		<?php foreach ($brands as $i => $brand) : ?>
-			<div class="supplier-tab<?php echo $i === 0 ? ' active' : ''; ?>" data-tab="<?php echo esc_attr(sanitize_title($brand)); ?>">
+		<?php foreach ($brands as $i => $brand): ?>
+			<div class="supplier-tab<?php echo $i === 0 ? ' active' : ''; ?>"
+				data-tab="<?php echo esc_attr(sanitize_title($brand)); ?>">
 				<?php echo esc_html($brand); ?>
 			</div>
 		<?php endforeach; ?>
 	</div>
-	<?php foreach ($brands as $i => $brand) : ?>
+	<?php foreach ($brands as $i => $brand): ?>
 		<div class="product-list<?php echo $i === 0 ? ' active' : ''; ?>" id="<?php echo esc_attr(sanitize_title($brand)); ?>">
-			<?php foreach ($by_brand[$brand] as $board) : ?>
-				<div class="product-row" data-size="<?php echo esc_attr(($board['length_mm'] ?: '') . 'x' . ($board['width_mm'] ?: '')); ?>" data-brand="<?php echo esc_attr($brand); ?>">
+			<?php foreach ($by_brand[$brand] as $board): ?>
+				<div class="product-row"
+					data-size="<?php echo esc_attr(($board['length_mm'] ?: '') . 'x' . ($board['width_mm'] ?: '')); ?>"
+					data-brand="<?php echo esc_attr($brand); ?>">
 					<span><?php echo esc_html($board['decor_code']); ?></span>
 					<span><?php echo esc_html($board['decor_name']); ?></span>
 					<!-- <span class="prod-size"><?php echo esc_html(($board['length_mm'] ?: '?') . ' x ' . ($board['width_mm'] ?: '?')); ?></span> -->
@@ -155,23 +164,27 @@ function cutlist_proto_render_decor_popup_inner($boards) {
  * cutlist-main.js once a board is picked — the decor card. CSS picks which
  * of the last two shows, keyed off .has-decor on the cell.
  */
-function cutlist_proto_render_decor_cell() {
+function cutlist_proto_render_decor_cell()
+{
 	ob_start();
 	?>
 	<input placeholder="<?php esc_attr_e('Enter decor code or name', 'cutlist-catalogue'); ?>">
 	<div class="decor-placeholder">
 		<span class="decor-placeholder-icon" aria-hidden="true">
-			<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+			<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+				stroke-linecap="round">
 				<circle cx="10.5" cy="10.5" r="6.5"></circle>
 				<line x1="21" y1="21" x2="15.5" y2="15.5"></line>
 			</svg>
 		</span>
 		<span class="decor-card-body">
-			<span class="decor-placeholder-hint"><?php esc_html_e('Search decor code or name', 'cutlist-catalogue'); ?></span>
+			<span
+				class="decor-placeholder-hint"><?php esc_html_e('Search decor code or name', 'cutlist-catalogue'); ?></span>
 			<span class="decor-placeholder-action"><?php esc_html_e('Select a board', 'cutlist-catalogue'); ?></span>
 		</span>
 		<span class="decor-chevron" aria-hidden="true">
-			<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+			<svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"
+				stroke-linecap="round">
 				<path d="M4.5 7.5 10 13l5.5-5.5"></path>
 			</svg>
 		</span>
@@ -194,13 +207,16 @@ function cutlist_proto_render_decor_cell() {
  * a JS-rendered state to clear (clearPanelInfoPopup() in cutlist-main.js
  * only has to blank the textarea and close it).
  */
-function cutlist_proto_render_panel_info_popup() {
+function cutlist_proto_render_panel_info_popup()
+{
 	ob_start();
 	?>
 	<div class="panel-info-popup">
 		<div class="panel-info-title"><?php esc_html_e('Additional panel information', 'cutlist-catalogue'); ?></div>
-		<textarea class="panel-info-textarea" maxlength="50" placeholder="<?php esc_attr_e('Type here', 'cutlist-catalogue'); ?>"></textarea>
-		<div class="panel-info-counter"><span class="panel-info-counter-value">50</span> <?php esc_html_e('Characters left', 'cutlist-catalogue'); ?></div>
+		<textarea class="panel-info-textarea" maxlength="50"
+			placeholder="<?php esc_attr_e('Type here', 'cutlist-catalogue'); ?>"></textarea>
+		<div class="panel-info-counter"><span class="panel-info-counter-value">50</span>
+			<?php esc_html_e('Characters left', 'cutlist-catalogue'); ?></div>
 	</div>
 	<?php
 	return ob_get_clean();
@@ -212,7 +228,8 @@ function cutlist_proto_render_panel_info_popup() {
  * length/width/material/desc/bside/chars/thicknesses/price_sheet/
  * price_cut/slides), built from real board data instead.
  */
-function cutlist_proto_build_pm_products($boards) {
+function cutlist_proto_build_pm_products($boards)
+{
 	$out = [];
 	foreach ($boards as $board) {
 		$chars = $board['characteristics'];
@@ -251,12 +268,12 @@ function cutlist_proto_build_pm_products($boards) {
 			'desc' => $board['description'] ?: '',
 			'bside' => $board['b_side_description'] ?: '',
 			'chars' => implode("\n", $lines),
-			'thicknesses' => $board['thickness_mm'] ? [$board['thickness_mm']] : [],
-			// No cutting-price field exists yet (see full_sheet_price's
-			// ACF instructions) — only the full-sheet price is real.
-			'price_sheet' => $board['full_sheet_price'] ? '£' . number_format($board['full_sheet_price'], 2) : '–',
-			'price_cut' => '–',
+			'full_sheet_price' => (float) ($board['full_sheet_price'] ?? 0),
+			'cutting_list_price' => (float) (!empty($board['cutting_list_price']) ? $board['cutting_list_price'] : ($board['full_sheet_price'] ?? 0)),
+			'price_sheet' => (!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–',
+			'price_cut' => (!empty($board['cutting_list_price']) && (float) $board['cutting_list_price'] > 0) ? '£' . number_format((float) $board['cutting_list_price'], 2) : ((!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–'),
 			'slides' => $slides,
+			'thicknesses' => $board['thickness_mm'] ? [$board['thickness_mm']] : [],
 			'machining' => $board['machining'],
 			'machiningExcluded' => $board['machining_excluded'],
 			'sprayFinishing' => $board['spray_finishing'],
@@ -340,22 +357,33 @@ add_shortcode('cutlist_table', function () {
 		'cutlist-main',
 		'cutlistWcVars',
 		[
-			'ajax_url'          => admin_url('admin-ajax.php'),
-			'cart_url'          => function_exists('wc_get_cart_url') ? wc_get_cart_url() : '',
-			'checkout_url'      => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '',
-			'nonce'             => wp_create_nonce('cutlist_cart_nonce'),
+			'ajax_url' => admin_url('admin-ajax.php'),
+			'cart_url' => function_exists('wc_get_cart_url') ? wc_get_cart_url() : '',
+			'checkout_url' => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '',
+			'nonce' => wp_create_nonce('cutlist_cart_nonce'),
+			'rest_url' => esc_url_raw(rest_url('cutlist/v1/')),
+			'rest_nonce' => wp_create_nonce('wp_rest'),
 			'grain_match_price' => (float) get_option('cutlist_grain_match_price', 12.70),
-			'grain_match_code'  => get_option('cutlist_grain_match_code', 'GRN-MTCH'),
-			'grain_match_name'  => get_option('cutlist_grain_match_name', 'Grain-matching of panels in clusters'),
-			'grain_match_desc'  => get_option('cutlist_grain_match_desc', 'Grain-matching of panels based on customer requirements – charged per panel'),
+			'grain_match_code' => get_option('cutlist_grain_match_code', 'GRN-MTCH'),
+			'grain_match_name' => get_option('cutlist_grain_match_name', 'Grain-matching of panels in clusters'),
+			'grain_match_desc' => get_option('cutlist_grain_match_desc', 'Grain-matching of panels based on customer requirements – charged per panel'),
 		]
 	);
+
+	$current_order_id = function_exists('cutlist_get_current_order_id') ? cutlist_get_current_order_id() : 0;
+	$saved_data = ($current_order_id && function_exists('cutlist_get_saved_order_data')) ? cutlist_get_saved_order_data($current_order_id) : null;
+	$preloaded_order_data_json = $saved_data ? wp_json_encode($saved_data) : 'null';
+
+	$body .= '<!-- PHP Debug Cutlist: order_id=' . $current_order_id . ' | has_saved_data=' . ($saved_data ? 'YES' : 'NO') . ' | raw_len=' . strlen($preloaded_order_data_json) . ' -->';
+
 	wp_add_inline_script(
 		'cutlist-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .
-			'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
-			'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';' .
-			'window.cutlistMachiningOptions = ' . $machining_options_json . ';',
+		'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
+		'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';' .
+		'window.cutlistMachiningOptions = ' . $machining_options_json . ';' .
+		'window.cutlistOrderId = ' . (int) $current_order_id . ';' .
+		'window.cutlistPreloadedOrderData = ' . $preloaded_order_data_json . ';',
 		'before'
 	);
 	wp_add_inline_script(
