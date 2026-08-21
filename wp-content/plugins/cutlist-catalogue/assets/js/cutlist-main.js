@@ -1832,7 +1832,7 @@ function collectEdgebandingItems() {
         var rawM = row.dataset.machiningApplied || "";
         if (rawM) {
             var appliedM = [];
-            try { appliedM = JSON.parse(rawM); } catch (e) {}
+            try { appliedM = JSON.parse(rawM); } catch (e) { }
             if (Array.isArray(appliedM) && appliedM.length) {
                 appliedM.forEach(function (mItem) {
                     if ((mItem.option === "angled-cut" || mItem.behaviour === "angled-cut") && (mItem.edgeTapeCode || mItem.edgeTape || mItem.applyEdging)) {
@@ -4350,6 +4350,7 @@ function getPanelSummaryData(row) {
     var dims = row ? getDimInputs(row) : {};
     var grainInput = row ? row.querySelector('.grain input') : null;
     var spraySt = row && typeof sprayStateByRow !== "undefined" ? sprayStateByRow.get(row) : null;
+    var state = row && typeof getEdgeState === "function" ? getEdgeState(row) : {};
     return {
         decor: panelSummaryValue(row ? row.querySelector('.decor input') : null),
         thickness: panelSummaryValue(row ? row.querySelector('.thick select') : null),
@@ -4368,9 +4369,11 @@ function getPanelSummaryData(row) {
         L2: panelSummaryEdgeValue(row, 'L2'),
         W1: panelSummaryEdgeValue(row, 'W1'),
         W2: panelSummaryEdgeValue(row, 'W2'),
+        edgeFinish: state.finish || (row ? (row.dataset.edgeFinish || row.dataset.finish) : null) || 'radius',
 
         machining: getPanelSummaryMachining(row),
-        spray: spraySt
+        spray: spraySt,
+        rowRef: row
     };
 }
 
@@ -4462,26 +4465,37 @@ function panelSummaryEdgeColour(type) {
 
 function getPanelSummaryMachining(row) {
     if (!row) return [];
-    var raw = row.dataset.machiningData || row.dataset.machining || '';
-    if (!raw) return [];
-    try {
-        var parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-        return parsed.items && Array.isArray(parsed.items) ? parsed.items : [];
-    } catch (err) {
-        return raw.split(',').map(function (item) {
-            var parts = item.split(':');
-            return {
-                type: (parts[0] || '').trim(),
-                x: parseFloat(parts[1]),
-                y: parseFloat(parts[2]),
-                w: parseFloat(parts[3]),
-                h: parseFloat(parts[4])
-            };
-        }).filter(function (item) {
-            return item.type;
-        });
+    var applied = [];
+    var rawApplied = row.dataset.machiningApplied || '';
+    if (rawApplied) {
+        try {
+            var parsed = JSON.parse(rawApplied);
+            if (Array.isArray(parsed) && parsed.length) applied = parsed;
+            else if (parsed && Array.isArray(parsed.appliedItems) && parsed.appliedItems.length) applied = parsed.appliedItems;
+        } catch (err) {}
     }
+
+    var dataItems = [];
+    var rawData = row.dataset.machiningData || row.dataset.machining || '';
+    if (rawData) {
+        try {
+            var parsedData = JSON.parse(rawData);
+            if (Array.isArray(parsedData)) dataItems = parsedData;
+            else if (parsedData && Array.isArray(parsedData.items)) dataItems = parsedData.items;
+        } catch (err) {}
+    }
+
+    if (applied.length || dataItems.length) {
+        var len = Math.max(applied.length, dataItems.length);
+        var merged = [];
+        for (var i = 0; i < len; i++) {
+            var a = applied[i] || {};
+            var d = dataItems[i] || {};
+            merged.push(Object.assign({}, d, a));
+        }
+        return merged;
+    }
+    return [];
 }
 
 // "No edging applied" when every edge is untaped, otherwise a short
@@ -4605,7 +4619,42 @@ function buildPanelSummaryInfo(data) {
 
     var brandLine = (brand ? panelSummaryEscape(brand) + ' ' : '') + panelSummaryEscape(code || '-');
 
-    var edgingText = buildPanelSummaryEdgingText(data);
+    var row = data.rowRef || null;
+    var tape = row ? (typeof edgeTapeForRow === 'function' ? edgeTapeForRow(row) : null) : null;
+    var defaultTapeCode = tape ? (tape.code || tape.name) : '';
+
+    var edgingItems = [];
+
+    ['L1', 'L2', 'W1', 'W2'].forEach(function (edgeKey) {
+        var val = data[edgeKey];
+        if (val && val !== '-' && val !== 'none') {
+            var codeToShow = (val !== 'M1' && val !== 'M2' && val.indexOf('/') !== -1) ? val : (defaultTapeCode || val);
+            edgingItems.push({ key: edgeKey, code: codeToShow });
+        }
+    });
+
+    if (data.machining && Array.isArray(data.machining)) {
+        data.machining.forEach(function (mItem) {
+            var isAngled = (mItem.behaviour === 'angled-cut' || mItem.option === 'angled-cut' || (mItem.type && String(mItem.type).indexOf('Angled') !== -1));
+            var tapeVal = mItem.edgeTapeCode || mItem.edgeTapeName || mItem.edgeTape || mItem.applyEdging || mItem.edging || mItem.tapeCode || mItem.tape;
+            var aCode = tapeVal || defaultTapeCode;
+            if (isAngled && aCode && String(aCode).trim() !== '' && String(aCode).trim() !== '-' && String(aCode).trim() !== 'false') {
+                var cKey = mItem.corner || mItem.side || 'L1-W1';
+                if (cKey.indexOf('on ') === 0) cKey = cKey.replace('on ', '');
+                edgingItems.push({ key: cKey, code: aCode, finish: mItem.finish });
+            }
+        });
+    }
+
+    var finish = data.edgeFinish || 'radius';
+    if (data.machining && Array.isArray(data.machining)) {
+        data.machining.forEach(function (mItem) {
+            if ((mItem.behaviour === 'angled-cut' || mItem.option === 'angled-cut') && mItem.finish) {
+                finish = mItem.finish;
+            }
+        });
+    }
+
     var panelShapingText = buildPanelSummaryMachiningText(data, 'panel');
     var surfaceShapingText = buildPanelSummaryMachiningText(data, 'surface');
     var drillingText = buildPanelSummaryMachiningText(data, 'drilling');
@@ -4614,10 +4663,51 @@ function buildPanelSummaryInfo(data) {
 
     var sectionsHTML = '';
 
-    sectionsHTML += `<div class="panel-summary-section">
+    if (!edgingItems.length) {
+        sectionsHTML += `<div class="panel-summary-section">
     <h4>Edging details</h4>
-    <p>${edgingText}</p>
+    <p>No edging applied</p>
 </div>`;
+    } else {
+        var listHTML = edgingItems.map(function (item) {
+            return `<div style="display:flex; align-items:baseline; gap:10px; margin-bottom:5px; font-size:13px;">
+        <span style="font-weight:600; color:#1a1a1a; min-width:44px;">${panelSummaryEscape(item.key)}:</span>
+        <span style="color:#2f78bd; font-weight:500;">${panelSummaryEscape(item.code)}</span>
+    </div>`;
+        }).join('');
+
+        var isSquare = (finish === 'square');
+        var finishLabel = isSquare ? 'Square edge' : 'Radius edge';
+        var finishSVG = isSquare ? `
+<svg viewBox="0 0 42.1 42.1" xmlns="http://www.w3.org/2000/svg" width="46" height="46" style="display:block;">
+    <g stroke="#333" stroke-width="0.8" stroke-miterlimit="10">
+        <path fill="none" d="M.3.3h41.6v41.6H.3z"></path>
+        <path d="M30.6 9.4H.3v32.5h30.3V19.1z" fill="#e2e2e2"></path>
+    </g>
+</svg>` : `
+<svg viewBox="0 0 42.1 42.1" xmlns="http://www.w3.org/2000/svg" width="46" height="46" style="display:block;">
+    <g stroke="#333" stroke-width="0.8" stroke-miterlimit="10">
+        <path fill="none" d="M.3.3h41.6v41.6H.3z"></path>
+        <path d="M21 9.4H.3v32.4h30.3V19.1s.3-3.5-3.1-6.7c-3.3-3.1-6.5-3-6.5-3z" fill="#e2e2e2"></path>
+    </g>
+</svg>`;
+
+        sectionsHTML += `<div class="panel-summary-section" style="display:flex; justify-content:space-between; align-items:flex-start; gap:20px;">
+    <div style="flex:1;">
+        <h4>Edging details</h4>
+        <div style="margin-top:8px;">
+            ${listHTML}
+        </div>
+    </div>
+    <div style="flex:none; text-align:left;">
+        <h4>Edging finish</h4>
+        <div style="font-size:12px; color:#333; margin-top:6px; margin-bottom:4px; font-weight:500;">${finishLabel}</div>
+        <div>
+            ${finishSVG}
+        </div>
+    </div>
+</div>`;
+    }
 
     if (panelShapingText && panelShapingText !== 'No panel shaping applied') {
         sectionsHTML += `<div class="panel-summary-section">
@@ -8868,14 +8958,17 @@ if (machiningAddBtn) {
                 ? Math.round(addDims.length - MACHINING_DEFAULT_CUT_LEG_MM) : "";
             var defaultOffsetV = (!isNaN(addDims.width) && addDims.width > MACHINING_DEFAULT_CUT_LEG_MM)
                 ? Math.round(addDims.width - MACHINING_DEFAULT_CUT_LEG_MM) : "";
+            var defaultTapeObj = typeof edgeTapeForRow === "function" ? edgeTapeForRow(machiningCurrentRow) : null;
+            var defaultTapeCodeVal = defaultTapeObj ? (defaultTapeObj.code || defaultTapeObj.name) : "";
+            var defaultTapeNameVal = defaultTapeObj ? (defaultTapeObj.name || defaultTapeObj.code) : "";
             machiningAppliedItems.push({
                 option: "angled-cut",
                 corner: nextCorner,
                 offsetH: defaultOffsetH,
                 offsetV: defaultOffsetV,
-                edgeTapeCode: "",
-                edgeTapeName: "",
-                finish: "",
+                edgeTapeCode: defaultTapeCodeVal,
+                edgeTapeName: defaultTapeNameVal,
+                finish: defaultTapeCodeVal ? "radius" : "",
                 view: "A"
             });
         } else if (behaviour === "groove") {
