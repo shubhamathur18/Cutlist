@@ -15,6 +15,7 @@ add_action('init', 'cutlist_register_post_types');
 add_action('init', 'cutlist_register_taxonomies');
 add_action('init', 'cutlist_seed_default_spray_finishes', 20);
 add_action('init', 'cutlist_seed_default_machining_options', 20);
+add_action('init', 'cutlist_seed_dummy_egger_boards', 25);
 
 function cutlist_register_post_types() {
 
@@ -625,6 +626,16 @@ add_action('acf/init', function() {
 					'instructions' => 'Price per sheet used for cut-to-size cutting list calculations.',
 					'prepend' => '£',
 				),
+				array(
+					'key' => 'field_board_additional_cut_price',
+					'label' => 'Additional cut price (after 20 cuts per sheet)',
+					'name' => 'additional_cut_price',
+					'type' => 'number',
+					'step' => '0.01',
+					'default_value' => '3.46',
+					'instructions' => 'Additional charge per single cut when the number of panels included in a single sheet cutting charge (20 cuts per sheet) is exceeded.',
+					'prepend' => '£',
+				),
 			),
 			'location' => array(
 				array(
@@ -639,3 +650,167 @@ add_action('acf/init', function() {
 		));
 	}
 });
+
+// =========================================================================
+// POST DUPLICATION FOR CATALOGUE POST TYPES
+// =========================================================================
+
+add_filter('post_row_actions', 'cutlist_duplicate_post_row_action', 10, 2);
+add_filter('page_row_actions', 'cutlist_duplicate_post_row_action', 10, 2);
+
+function cutlist_duplicate_post_row_action($actions, $post) {
+	$allowed = ['board', 'edge_tape', 'spray_finish', 'machining_option'];
+	if (!$post || !in_array($post->post_type, $allowed, true)) {
+		return $actions;
+	}
+	if (!current_user_can('edit_post', $post->ID)) {
+		return $actions;
+	}
+
+	$url = wp_nonce_url(
+		admin_url('admin.php?action=cutlist_duplicate_post&post=' . $post->ID),
+		'cutlist_duplicate_post_' . $post->ID
+	);
+
+	$actions['duplicate'] = '<a href="' . esc_url($url) . '" title="' . esc_attr__('Duplicate this item', 'cutlist-catalogue') . '" rel="permalink">' . esc_html__('Duplicate', 'cutlist-catalogue') . '</a>';
+
+	return $actions;
+}
+
+add_action('admin_action_cutlist_duplicate_post', 'cutlist_handle_duplicate_post');
+
+function cutlist_handle_duplicate_post() {
+	$post_id = isset($_GET['post']) ? (int) $_GET['post'] : 0;
+	if (!$post_id) {
+		wp_die(__('No post to duplicate has been supplied.', 'cutlist-catalogue'));
+	}
+
+	check_admin_referer('cutlist_duplicate_post_' . $post_id);
+
+	$post = get_post($post_id);
+	if (!$post || !current_user_can('edit_post', $post_id)) {
+		wp_die(__('You do not have permission to duplicate this item.', 'cutlist-catalogue'));
+	}
+
+	$current_user = wp_get_current_user();
+	$new_post_author = $current_user->ID;
+
+	$args = [
+		'post_author'    => $new_post_author,
+		'post_content'   => $post->post_content,
+		'post_title'     => $post->post_title . ' (Copy)',
+		'post_excerpt'   => $post->post_excerpt,
+		'post_status'    => 'draft',
+		'post_type'      => $post->post_type,
+		'post_parent'    => $post->post_parent,
+		'post_password'  => $post->post_password,
+		'comment_status' => $post->comment_status,
+		'ping_status'    => $post->ping_status,
+		'menu_order'     => $post->menu_order,
+	];
+
+	$new_post_id = wp_insert_post($args);
+
+	if (is_wp_error($new_post_id) || !$new_post_id) {
+		wp_die(__('Failed to duplicate post.', 'cutlist-catalogue'));
+	}
+
+	// Duplicate all custom post meta (ACF fields, gallery meta, etc.)
+	$meta_keys = get_post_custom_keys($post_id);
+	if (!empty($meta_keys)) {
+		foreach ($meta_keys as $meta_key) {
+			$meta_values = get_post_custom_values($meta_key, $post_id);
+			foreach ($meta_values as $meta_value) {
+				$meta_value = maybe_unserialize($meta_value);
+				add_post_meta($new_post_id, $meta_key, $meta_value);
+			}
+		}
+	}
+
+	// Duplicate taxonomies (board_brand, board_collection, etc.)
+	$taxonomies = get_object_taxonomies($post->post_type);
+	if (!empty($taxonomies)) {
+		foreach ($taxonomies as $taxonomy) {
+			$post_terms = wp_get_object_terms($post_id, $taxonomy, ['fields' => 'slugs']);
+			wp_set_object_terms($new_post_id, $post_terms, $taxonomy, false);
+		}
+	}
+
+	// Duplicate featured image
+	$thumbnail_id = get_post_thumbnail_id($post_id);
+	if ($thumbnail_id) {
+		set_post_thumbnail($new_post_id, $thumbnail_id);
+	}
+
+	// Redirect to the duplicated post edit screen
+	wp_safe_redirect(admin_url('post.php?action=edit&post=' . $new_post_id));
+	exit;
+}
+
+add_action('post_submitbox_start', function () {
+	global $post;
+	if (!$post || !in_array($post->post_type, ['board', 'edge_tape', 'spray_finish', 'machining_option'], true)) {
+		return;
+	}
+	if ($post->post_status === 'auto-draft') {
+		return;
+	}
+	$url = wp_nonce_url(
+		admin_url('admin.php?action=cutlist_duplicate_post&post=' . $post->ID),
+		'cutlist_duplicate_post_' . $post->ID
+	);
+	echo '<div id="cutlist-duplicate-action" style="padding: 10px 0 6px; border-bottom: 1px solid #f0f0f1; margin-bottom: 6px;">' .
+		'<a class="button button-secondary" href="' . esc_url($url) . '" style="width:100%; text-align:center;">' .
+		esc_html__('Duplicate to new draft', 'cutlist-catalogue') .
+		'</a></div>';
+});
+
+function cutlist_seed_dummy_egger_boards() {
+	if (get_option('cutlist_dummy_egger_seeded_v1')) {
+		return;
+	}
+
+	$dummy_boards = [
+		['code' => 'H1180-ST37', 'name' => 'Natural Halifax Oak', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 168.50, 'cut_price' => 215.00],
+		['code' => 'H3303-ST10', 'name' => 'Natural Hamilton Oak', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 164.00, 'cut_price' => 212.00],
+		['code' => 'H3730-ST10', 'name' => 'Natural Hickory', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 170.00, 'cut_price' => 218.00],
+		['code' => 'W980-SM',    'name' => 'Platinum White', 'core' => 'MDF Board', 'thickness' => 18, 'sheet_price' => 135.00, 'cut_price' => 180.00],
+		['code' => 'U708-ST9',   'name' => 'Light Grey', 'core' => 'Chipboard', 'thickness' => 18, 'sheet_price' => 142.00, 'cut_price' => 188.00],
+		['code' => 'U999-ST89',  'name' => 'Black Mineral', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 155.00, 'cut_price' => 198.00],
+		['code' => 'F186-ST9',   'name' => 'Light Grey Chicago Concrete', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 175.00, 'cut_price' => 222.00],
+		['code' => 'H3131-ST12', 'name' => 'Natural Davos Oak', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 166.00, 'cut_price' => 214.00],
+		['code' => 'U732-ST9',   'name' => 'Dust Grey', 'core' => 'MDF Board', 'thickness' => 18, 'sheet_price' => 145.00, 'cut_price' => 190.00],
+		['code' => 'H1145-ST10', 'name' => 'Natural Bardolino Oak', 'core' => 'Chipboard', 'thickness' => 19, 'sheet_price' => 162.00, 'cut_price' => 210.00],
+	];
+
+	foreach ($dummy_boards as $d) {
+		$post_id = wp_insert_post([
+			'post_type'   => 'board',
+			'post_title'  => $d['code'] . ' ' . $d['name'],
+			'post_status' => 'publish',
+		]);
+
+		if ($post_id && !is_wp_error($post_id)) {
+			// Brand taxonomy
+			wp_set_object_terms($post_id, 'Egger', 'board_brand', false);
+
+			// ACF fields
+			update_field('decor_code', $d['code'], $post_id);
+			update_field('decor_name', $d['name'], $post_id);
+			update_field('core', $d['core'], $post_id);
+			update_field('length_mm', 2800, $post_id);
+			update_field('width_mm', 2070, $post_id);
+			update_field('thickness_mm', $d['thickness'], $post_id);
+			update_field('full_sheet_price', $d['sheet_price'], $post_id);
+			update_field('cutting_list_price', $d['cut_price'], $post_id);
+			update_field('additional_cut_price', 3.46, $post_id);
+			update_field('machining_cut_to_size', true, $post_id);
+			update_field('machining_edgebanding', true, $post_id);
+			update_field('machining_cnc', true, $post_id);
+			update_field('spray_finishing', false, $post_id);
+			update_field('grain_match', true, $post_id);
+		}
+	}
+
+	update_option('cutlist_dummy_egger_seeded_v1', 1);
+}

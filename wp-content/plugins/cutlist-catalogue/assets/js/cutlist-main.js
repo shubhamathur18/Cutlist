@@ -13,13 +13,25 @@ const table = document.querySelector(".table-area table");
 // One .panel-info-popup per row (cloned along with the rest of the row by
 const PANEL_INFO_MAX_LENGTH = 50;
 
-function updateTabBasketPrice() {
-    if (window.CutlistBasket) {
-        var total = CutlistBasket.getGrandTotal();
-        var formatted = "£" + total.toFixed(2);
+function updateTabBasketPrice(customTotal) {
+    if (customTotal !== undefined && customTotal !== null) {
         document.querySelectorAll(".tab-basket-price").forEach(function (el) {
-            el.textContent = formatted;
+            el.innerHTML = customTotal;
         });
+        return;
+    }
+
+    if (typeof cutlistWcVars !== "undefined" && cutlistWcVars.ajax_url) {
+        fetch(cutlistWcVars.ajax_url + "?action=cutlist_get_cart_total")
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res && res.success && res.data && res.data.cart_total) {
+                    document.querySelectorAll(".tab-basket-price").forEach(function (el) {
+                        el.innerHTML = res.data.cart_total;
+                    });
+                }
+            })
+            .catch(function () { });
     }
 }
 
@@ -1035,45 +1047,26 @@ function etCuttingListDecorCodes() {
 }
 
 function etVisibleTapes() {
-    var codes = etCuttingListDecorCodes();
-    if (!codes.size) return [];
-    return etTapes.filter(function (t) { return codes.has(t.decorCode); });
+    // Show all edging tapes irrespective of current cutting list boards
+    return etTapes || [];
 }
 
 function etAllOptionsHTML(selectedCode) {
     var visible = etVisibleTapes();
     if (!visible.length) {
-        return '<div class="Select2__option Select2__option--empty">Add a board to the cutting list above first</div>';
+        return '<div class="Select2__option Select2__option--empty">No edging tapes available</div>';
     }
     return visible.map(function (t) {
         return etOptionHTML(t, t.code === selectedCode);
     }).join('');
 }
 
-// A row whose chosen tape no longer matches any selected board is reset
-// rather than left pointing at a hidden option.
 function etRefreshDropdowns() {
     document.querySelectorAll('#etTbody tr.et-row').forEach(function (row) {
         var sel = row.querySelector('.Select2');
         if (!sel) return;
         var dd = sel.querySelector('.Select2__dropdown');
         var selectedCode = sel.dataset.code || '';
-        var stillVisible = selectedCode && etVisibleTapes().some(function (t) { return t.code === selectedCode; });
-
-        if (selectedCode && !stillVisible) {
-            delete sel.dataset.code;
-            delete sel.dataset.price;
-            sel.classList.add('isEmpty');
-            var inputSpan = sel.querySelector('.Select2__input');
-            if (inputSpan) inputSpan.innerHTML = '';
-            var qtyInput = row.querySelector('.et-qty-input');
-            if (qtyInput) { qtyInput.value = ''; qtyInput.disabled = true; }
-            row.classList.remove('active');
-            var priceCell = row.querySelector('.et-unit-price');
-            if (priceCell) priceCell.textContent = '–';
-            selectedCode = '';
-        }
-
         dd.innerHTML = etAllOptionsHTML(selectedCode);
     });
 }
@@ -1269,9 +1262,15 @@ function collectCuttingListItems() {
         var grainInput = row.querySelector("td.grain input[type='checkbox']");
         var grainMatch = grainInput ? grainInput.checked : false;
 
+        var decorCode = decor ? decor.split(" - ")[0].trim() : "";
+        var pm = (window.cutlistPmProducts && decorCode && window.cutlistPmProducts[decorCode]) ? window.cutlistPmProducts[decorCode] : null;
+        var imageUrl = (pm && pm.swatch) ? pm.swatch : (row.dataset.image || "");
+
         items.push({
             id: CutlistBasket.makeId("ces"),
             decor: decor,
+            decorCode: decorCode,
+            image: imageUrl,
             thick: thick,
             length: length,
             width: width,
@@ -1348,6 +1347,10 @@ function computeCutItemPrices(cutItems) {
                 ? parseFloat(cutlistWcVars.grain_match_price)
                 : 12.70;
             extraUnitPrice += grainPrice;
+        }
+
+        if (g && g.extraCuts > 0) {
+            item.extraCutSummary = g.extraCuts + " extra cuts (> 20 cuts/sheet @ " + summaryMoney(g.extraCutUnitPrice) + " per cut)";
         }
 
         item.unitPrice = baseUnitPrice + extraUnitPrice;
@@ -1470,13 +1473,7 @@ function sendCutlistToWcCart(options) {
     // Compute complete price per customized cut panel (board + machining + spray + grain)
     computeCutItemPrices(cutItems);
 
-    if (window.CutlistBasket) {
-        CutlistBasket.setCategory("cut-edge-spray", cutItems);
-        CutlistBasket.setCategory("full-sheets", fsItems);
-        CutlistBasket.setCategory("edging-tape", etItems);
-        CutlistBasket.setCategory("machining", mcItems);
-        updateTabBasketPrice();
-    }
+    // Items are passed directly to WooCommerce cart AJAX below
 
     if (typeof cutlistWcVars === "undefined" || !cutlistWcVars.ajax_url) {
         if (options.redirect === "cart" && typeof cutlistWcVars !== "undefined" && cutlistWcVars.cart_url) {
@@ -1490,14 +1487,46 @@ function sendCutlistToWcCart(options) {
     var formData = new FormData();
     formData.append("action", "cutlist_add_to_cart");
     formData.append("nonce", cutlistWcVars.nonce);
+
+    var grainInfoEl = document.getElementById("grainInfoText");
+    var grainInfoVal = grainInfoEl ? grainInfoEl.value.trim() : "";
+
     formData.append("data", JSON.stringify({
         clear_cart: true,
         cutItems: cutItems,
         fullSheetItems: fsItems,
         edgingTapeItems: etItems,
         machiningItems: mcItems,
-        selectedOffcuts: selectedOffcuts
+        selectedOffcuts: selectedOffcuts,
+        grainInfo: grainInfoVal
     }));
+
+    // Attach grain matching uploaded file objects to FormData
+    var grainFiles = (typeof grainUploadedFiles !== "undefined" && grainUploadedFiles && grainUploadedFiles.length > 0)
+        ? grainUploadedFiles
+        : [];
+    if (!grainFiles.length) {
+        var grainFileInputEl = document.getElementById("grainFileInput");
+        if (grainFileInputEl && grainFileInputEl.files && grainFileInputEl.files.length > 0) {
+            grainFiles = Array.from(grainFileInputEl.files);
+        }
+    }
+    for (var gi = 0; gi < grainFiles.length; gi++) {
+        if (grainFiles[gi] instanceof File) {
+            formData.append("grain_files[]", grainFiles[gi], grainFiles[gi].name);
+        }
+    }
+
+    console.group("🛒 [Cutlist Cart Sync -> WooCommerce]");
+    console.log("Redirect target:", options.redirect || "none (basket update)");
+    console.log("Cut Items:", cutItems);
+    console.log("Full Sheet Items:", fsItems);
+    console.log("Edging Tape Items:", etItems);
+    console.log("Machining Items:", mcItems);
+    console.log("Selected Offcuts:", selectedOffcuts);
+    console.log("Grain Matching Files attached (" + grainFiles.length + "):", grainFiles);
+    console.log("Grain Matching Instructions:", grainInfoVal || "(none)");
+    console.groupEnd();
 
     fetch(cutlistWcVars.ajax_url, {
         method: "POST",
@@ -1505,6 +1534,19 @@ function sendCutlistToWcCart(options) {
     })
         .then(function (res) { return res.json(); })
         .then(function (res) {
+            console.group("✅ [Cutlist Cart Sync Response]");
+            console.log("Server Response:", res);
+            if (res && res.data) {
+                console.log("Added Count:", res.data.added_count);
+                console.log("Cart Count:", res.data.cart_count);
+                console.log("Cart Total:", res.data.cart_total);
+                console.log("Cart URL:", res.data.cart_url);
+                console.log("Checkout URL:", res.data.checkout_url);
+                console.log("Processed Grain Files:", res.data.grain_files);
+                console.log("Processed Grain Info:", res.data.grain_info);
+            }
+            console.groupEnd();
+
             if (res && res.success && res.data) {
                 if (options.redirect === "cart") {
                     window.location.href = res.data.cart_url || (typeof cutlistWcVars !== "undefined" ? cutlistWcVars.cart_url : "/cart/");
@@ -1514,7 +1556,7 @@ function sendCutlistToWcCart(options) {
             }
         })
         .catch(function (err) {
-            console.error("WooCommerce Cart Error:", err);
+            console.error("❌ [Cutlist Cart Sync Error]:", err);
         });
 }
 
@@ -1531,8 +1573,14 @@ function collectFullSheetItems() {
 
         if (!decor || !qty) return;
 
+        var decorCode = decor ? decor.split(" - ")[0].trim() : "";
+        var pm = (window.cutlistPmProducts && decorCode && window.cutlistPmProducts[decorCode]) ? window.cutlistPmProducts[decorCode] : null;
+        var imageUrl = (pm && pm.swatch) ? pm.swatch : "";
+
         items.push({
             decor: decor,
+            decorCode: decorCode,
+            image: imageUrl,
             thick: row.querySelector(".thick select").value,
             length: lengthInput ? lengthInput.value.trim() : "",
             width: widthInput ? widthInput.value.trim() : "",
@@ -1563,10 +1611,15 @@ function collectEdgingTapeItems() {
         if (qty < ET_MIN_QTY) qty = ET_MIN_QTY;
         var price = parseFloat(sel.dataset.price) || 0;
 
+        var codeVal = codeEl ? codeEl.textContent.trim() : "";
+        var tapeObj = (window.cutlistEdgeTapes || []).find(function (t) { return t.code === codeVal; });
+        var imageUrl = (tapeObj && tapeObj.image) ? tapeObj.image : "";
+
         items.push({
-            code: codeEl ? codeEl.textContent.trim() : "",
+            code: codeVal,
             name: nameEl ? nameEl.textContent.trim() : "",
             size: sizeEl ? sizeEl.textContent.trim() : "",
+            image: imageUrl,
             qty: qty,
             unitPrice: price
         });
@@ -1694,6 +1747,29 @@ function collectMachiningItems() {
         }
 
     });
+
+    // 3. Additional panel cutting fee (when cuts on a sheet exceed 20 pieces per sheet)
+    var cutItemsForAddFee = collectCuttingListItems();
+    if (cutItemsForAddFee && cutItemsForAddFee.length) {
+        var sheetGroupsForAddFee = computeCutSheetGroups(cutItemsForAddFee);
+        Object.keys(sheetGroupsForAddFee.groups).forEach(function (key) {
+            var g = sheetGroupsForAddFee.groups[key];
+            if (g && g.extraCuts > 0) {
+                var addPnlKey = "add_panel_cutting_fee";
+                if (!byOption[addPnlKey]) {
+                    byOption[addPnlKey] = {
+                        label: "Additional panel cutting fee",
+                        code: "ADD-PNL",
+                        description: "Additional panel cutting fee when number of panels included in a single sheet cutting charge is exceeded",
+                        qty: 0,
+                        unitPrice: g.extraCutUnitPrice,
+                        unit: "cut"
+                    };
+                }
+                byOption[addPnlKey].qty += g.extraCuts;
+            }
+        });
+    }
 
     var totalSprayVal = calculateTotalSprayJobValue();
     if (totalSprayVal <= 0) {
@@ -1962,8 +2038,8 @@ var SUMMARY_TAPE_PRICE = 5.57;      // per metre of edging tape
 
 var SHEET_LENGTH = 2800;
 var SHEET_WIDTH = 2070;
-var SUMMARY_KERF = 0; // zero gap between boards or offcuts, only border margin of 50mm
-var SUMMARY_EDGE_TRIM = 50; // clearance kept clear of all 4 raw-sheet edges for the cut, in mm
+var SUMMARY_KERF = 0; // zero gap between boards or offcuts, only border margin of 15mm
+var SUMMARY_EDGE_TRIM = 15; // clearance kept clear of all 4 raw-sheet edges for the cut, in mm
 
 function summaryMoney(n) {
     return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -2269,10 +2345,31 @@ function computeCutSheetGroups(cutItems) {
         }
 
         g.sheetPrice = sheetPrice;
-        g.price = g.sheets * sheetPrice;
+        g.basePrice = g.sheets * sheetPrice;
+
+        var extraCuts = 0;
+        var remainingQty = g.qty;
+        for (var sIdx = 0; sIdx < g.sheets; sIdx++) {
+            var panelsOnThisSheet = Math.min(remainingQty, g.maxPerSheet);
+            if (panelsOnThisSheet > 20) {
+                extraCuts += (panelsOnThisSheet - 20);
+            }
+            remainingQty = Math.max(0, remainingQty - panelsOnThisSheet);
+        }
+
+        var extraCutUnitPrice = (boardOpt && isFinite(parseFloat(boardOpt.additional_cut_price)) && parseFloat(boardOpt.additional_cut_price) > 0)
+            ? parseFloat(boardOpt.additional_cut_price) : 3.46;
+        var extraCutPriceTotal = extraCuts * extraCutUnitPrice;
+
+        g.includedCuts = g.sheets * 20;
+        g.extraCuts = extraCuts;
+        g.extraCutUnitPrice = extraCutUnitPrice;
+        g.extraCutPriceTotal = extraCutPriceTotal;
+
+        g.price = g.basePrice + g.extraCutPriceTotal;
         g.unitPrice = g.qty ? g.price / g.qty : 0;
         totalSheets += g.sheets;
-        totalSheetsPriceSum += g.price;
+        totalSheetsPriceSum += g.basePrice;
     });
 
     return { groups: groups, totalSheets: totalSheets, sheetsTotal: totalSheetsPriceSum };
@@ -3169,10 +3266,6 @@ function markDirty() {
     if (updateBasketBtn) {
         updateBasketBtn.disabled = hasInvalid || !hasValid;
     }
-
-    if (typeof scheduleCutlistSave === "function") {
-        scheduleCutlistSave();
-    }
 }
 
 document.addEventListener('input', markDirty);
@@ -3252,20 +3345,20 @@ table.addEventListener("click", function (e) {
     let decorCell = e.target.closest(".decor");
 
     if (decorCell) {
-
-        activeDecorInput = decorCell.querySelector("input");
-
-        // Anchored to the cell, not the input — the input is hidden once
-        // the card is showing and would report a zero-height box.
-        let position = decorCell.getBoundingClientRect();
-
-        popup.style.left = position.left + "px";
-        popup.style.top = (position.bottom + window.scrollY) + "px";
-
-        popup.style.display = "block";
-
+        let row = decorCell.closest("tr");
+        if (typeof openDecorPopupForRow === "function") {
+            openDecorPopupForRow(row);
+        } else {
+            activeDecorInput = decorCell.querySelector(".decor-real-input") || decorCell.querySelector("input");
+            let position = decorCell.getBoundingClientRect();
+            popup.style.left = position.left + "px";
+            popup.style.top = (position.bottom + window.scrollY) + "px";
+            popup.style.display = "block";
+            if (typeof ensureActiveBrandLoaded === "function") {
+                ensureActiveBrandLoaded();
+            }
+        }
         return;
-
     }
 
 
@@ -3383,189 +3476,522 @@ table.addEventListener("input", function (e) {
 
 
 
-// SUPPLIER SWITCH
+// =========================================================================
+// AJAX DECOR POPUP LOADER & LIVE SEARCH & SELECTION (Event Delegation)
+// =========================================================================
 
-document.querySelectorAll(".supplier-tab")
-    .forEach(tab => {
+var decorPopupState = {
+    brands: {}, // { [brandSlug]: { page: 1, hasMore: true, loading: false, items: [] } }
+    activeBrand: null,
+    searchTimer: null,
+    searchQuery: "",
+    activeRow: null
+};
 
+function ensureActiveBrandLoaded() {
+    if (!popup) return;
+    var activeTab = popup.querySelector(".supplier-tab.active") || popup.querySelector(".supplier-tab");
+    if (!activeTab) return;
+    var brandSlug = activeTab.dataset.tab || activeTab.dataset.brand;
+    if (!brandSlug) return;
 
-        tab.addEventListener("click", function () {
+    if (!activeTab.classList.contains("active")) {
+        popup.querySelectorAll(".supplier-tab").forEach(function (t) { t.classList.remove("active"); });
+        activeTab.classList.add("active");
+    }
 
+    var listEl = document.getElementById(brandSlug);
+    if (listEl && !listEl.classList.contains("active")) {
+        popup.querySelectorAll(".product-list").forEach(function (p) { p.classList.remove("active"); });
+        listEl.classList.add("active");
+    }
 
-            document.querySelectorAll(".supplier-tab")
-                .forEach(t => t.classList.remove("active"));
+    if (!decorPopupState.brands[brandSlug] || !decorPopupState.brands[brandSlug].items.length) {
+        loadBrandBoards(brandSlug, 1, false);
+    }
+}
 
+function loadBrandBoards(brandSlug, page, append) {
+    if (!brandSlug) return Promise.resolve([]);
+    if (!decorPopupState.brands[brandSlug]) {
+        decorPopupState.brands[brandSlug] = { page: 1, hasMore: true, loading: false, items: [] };
+    }
+    var bState = decorPopupState.brands[brandSlug];
+    if (bState.loading) return Promise.resolve([]);
+    if (!append) {
+        bState.page = 1;
+        bState.hasMore = true;
+    } else if (!bState.hasMore) {
+        return Promise.resolve([]);
+    }
 
-            this.classList.add("active");
+    bState.loading = true;
+    var listEl = document.getElementById(brandSlug);
+    if (listEl) {
+        if (!append) {
+            listEl.innerHTML = '<div class="decor-popup-loading"><span class="decor-popup-spinner"></span><span>Loading boards...</span></div>';
+        } else {
+            var loader = listEl.querySelector(".decor-popup-scroll-loader");
+            if (!loader) {
+                var lDiv = document.createElement("div");
+                lDiv.className = "decor-popup-scroll-loader";
+                lDiv.innerHTML = '<span class="decor-popup-spinner"></span><span>Loading more...</span>';
+                listEl.appendChild(lDiv);
+            }
+        }
+    }
 
+    var url = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.rest_url) ? (cutlistWcVars.rest_url + "boards") : "/wp-json/cutlist/v1/boards";
+    var queryParams = "?brand=" + encodeURIComponent(brandSlug) + "&page=" + (append ? (bState.page + 1) : 1) + "&per_page=3";
 
-            document.querySelectorAll(".product-list")
-                .forEach(p => p.classList.remove("active"));
+    return fetch(url + queryParams)
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            bState.loading = false;
+            var items = (res && res.items) ? res.items : (Array.isArray(res) ? res : []);
+            var pagination = (res && res.pagination) ? res.pagination : { has_more: false, page: 1 };
 
-
-            document
-                .getElementById(this.dataset.tab)
-                .classList.add("active");
-
-
-        });
-
-
-    });
-
-
-
-
-// SELECT PRODUCT
-
-document.querySelectorAll(".product-row")
-    .forEach(row => {
-
-
-        row.addEventListener("click", function (e) {
-
-            // "More info" is handled separately — don't select product
-            if (e.target.closest('.more')) return;
-
-            let code = this.children[0].innerText;
-
-            let name = this.children[1].innerText;
-
-
-            activeDecorInput.value =
-                code + " - " + name;
-
-
-
-            let currentRow =
-                activeDecorInput.closest("tr");
-
-            // Save selected decor image for Panel Summary
-            var img = this.querySelector("img");
-
-            if (img) {
-                currentRow.dataset.image = img.src;
+            bState.hasMore = !!pagination.has_more;
+            if (append) {
+                bState.page += 1;
+                bState.items = bState.items.concat(items);
             } else {
-                currentRow.dataset.image = "";
+                bState.page = 1;
+                bState.items = items;
             }
 
-            currentRow.classList.add("unlocked");
-            renderDecorCard(currentRow, code);
+            // Sync into window.cutlistPmProducts
+            if (!window.cutlistPmProducts) window.cutlistPmProducts = {};
+            items.forEach(function (b) {
+                if (b && (b.decor_code || b.fullCode)) {
+                    var c = b.decor_code || b.fullCode;
+                    if (b.sprayFinishing === undefined && b.spray_finishing !== undefined) b.sprayFinishing = b.spray_finishing;
+                    if (b.grainMatch === undefined && b.grain_match !== undefined) b.grainMatch = b.grain_match;
+                    if (b.machiningExcluded === undefined && b.machining_excluded !== undefined) b.machiningExcluded = b.machining_excluded;
+                    window.cutlistPmProducts[c] = b;
+                }
+            });
 
-            // Thick options come from the real board's thickness(es)
-            // (wp-admin Board Details), not a fixed static list.
-            var selectedBoard = window.cutlistPmProducts && window.cutlistPmProducts[code];
-            var thickSelectEl = currentRow.querySelector(".thick select");
-            if (thickSelectEl && selectedBoard && selectedBoard.thicknesses && selectedBoard.thicknesses.length) {
-                thickSelectEl.innerHTML = selectedBoard.thicknesses.map(function (t) {
-                    return '<option value="' + t + '">' + t + '</option>';
+            // Render into DOM
+            if (listEl) {
+                var scrollLoader = listEl.querySelector(".decor-popup-scroll-loader");
+                if (scrollLoader) scrollLoader.remove();
+
+                var rowsHTML = items.map(function (board) {
+                    var sizeAttr = (board.length_mm || board.length || '') + 'x' + (board.width_mm || board.width || '');
+                    var decorCode = panelSummaryEscape(board.decor_code || board.fullCode || '');
+                    var decorName = panelSummaryEscape(board.decor_name || board.name || '');
+                    var core = panelSummaryEscape(board.core || board.material || '—');
+                    var brand = panelSummaryEscape(board.brand || '');
+                    var swatchUrl = board.swatch || (board.gallery && board.gallery[0] && board.gallery[0].thumbnail) || '';
+                    var swatchImg = swatchUrl ? ('<img src="' + panelSummaryEscape(swatchUrl) + '" style="display:none;" />') : '';
+
+                    return '<div class="product-row" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
+                        '<span>' + decorCode + '</span>' +
+                        '<span>' + decorName + '</span>' +
+                        '<span>' + core + '</span>' +
+                        '<span class="more">More info</span>' +
+                        swatchImg +
+                        '</div>';
                 }).join('');
-                thickSelectEl.value = selectedBoard.thicknesses[0];
+
+                if (!append) {
+                    listEl.innerHTML = rowsHTML || '<div class="decor-popup-empty">No boards found for this brand.</div>';
+                } else {
+                    listEl.insertAdjacentHTML('beforeend', rowsHTML);
+                }
             }
 
-            // Largest part cuttable from this sheet (length/width minus
-            // 2 * SUMMARY_EDGE_TRIM), stored so the input handler can validate as-you-type.
-            if (selectedBoard && selectedBoard.length && selectedBoard.width) {
-                currentRow.dataset.maxLength = selectedBoard.length - 2 * SUMMARY_EDGE_TRIM;
-                currentRow.dataset.maxWidth = selectedBoard.width - 2 * SUMMARY_EDGE_TRIM;
-            } else {
-                delete currentRow.dataset.maxLength;
-                delete currentRow.dataset.maxWidth;
+            return items;
+        })
+        .catch(function (err) {
+            bState.loading = false;
+            if (listEl) {
+                var scrollLoader = listEl.querySelector(".decor-popup-scroll-loader");
+                if (scrollLoader) scrollLoader.remove();
+                if (!append) {
+                    listEl.innerHTML = '<div class="decor-popup-error">Failed to load boards. Please try again.</div>';
+                }
             }
+            return [];
+        });
+}
 
+function executeDecorSearch(query, originInput) {
+    if (decorPopupState.searchTimer) {
+        clearTimeout(decorPopupState.searchTimer);
+        decorPopupState.searchTimer = null;
+    }
 
+    var cleanQuery = (query || "").trim();
+    decorPopupState.searchQuery = cleanQuery;
 
-            // Every field unlocks except edging — that stays locked until
-            // an edge finish is actually picked via the Edge popup.
-            currentRow.querySelectorAll("input,select")
-                .forEach(field => {
+    var popupSearchInp = popup ? popup.querySelector(".decor-popup-search-input") : null;
+    var popupSearchClear = popup ? popup.querySelector(".decor-popup-search-clear") : null;
+    var resultsEl = popup ? document.getElementById("decorSearchResults") : null;
+    var tabsEl = popup ? popup.querySelector(".supplier-tabs") : null;
+    var allBrandLists = popup ? popup.querySelectorAll(".product-list:not(#decorSearchResults)") : [];
 
-                    if (
-                        field.closest(".edging-input")
-                    ) {
+    // Sync input values
+    if (popupSearchInp && originInput !== popupSearchInp && popupSearchInp.value !== query) {
+        popupSearchInp.value = query || "";
+    }
+    if (decorPopupState.activeRow) {
+        var rowInp = decorPopupState.activeRow.querySelector(".decor-placeholder-input");
+        if (rowInp && originInput !== rowInp && rowInp.value !== query) {
+            rowInp.value = query || "";
+        }
+    }
 
-                        field.disabled = true;
+    if (popupSearchClear) {
+        popupSearchClear.style.display = cleanQuery ? "flex" : "none";
+    }
 
+    if (!cleanQuery) {
+        // Restore tabbed brand view
+        if (resultsEl) {
+            resultsEl.style.display = "none";
+            resultsEl.innerHTML = "";
+        }
+        if (tabsEl) tabsEl.style.display = "";
+        allBrandLists.forEach(function (list) {
+            list.classList.remove("active");
+        });
+        var activeTab = popup ? (popup.querySelector(".supplier-tab.active") || popup.querySelector(".supplier-tab")) : null;
+        if (activeTab) {
+            var bSlug = activeTab.dataset.tab || activeTab.dataset.brand;
+            var activeList = document.getElementById(bSlug);
+            if (activeList) activeList.classList.add("active");
+        }
+        ensureActiveBrandLoaded();
+        return;
+    }
+
+    // Show search results container
+    if (tabsEl) tabsEl.style.display = "none";
+    allBrandLists.forEach(function (list) { list.classList.remove("active"); });
+
+    if (resultsEl) {
+        resultsEl.style.display = "block";
+        resultsEl.classList.add("active");
+        resultsEl.innerHTML = '<div class="decor-popup-loading"><span class="decor-popup-spinner"></span><span>Searching boards...</span></div>';
+    }
+
+    decorPopupState.searchTimer = setTimeout(function () {
+        var currentQuery = decorPopupState.searchQuery;
+        if (!currentQuery) return;
+
+        var url = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.rest_url) ? (cutlistWcVars.rest_url + "boards") : "/wp-json/cutlist/v1/boards";
+        var queryParams = "?search=" + encodeURIComponent(currentQuery) + "&per_page=30";
+
+        fetch(url + queryParams)
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (decorPopupState.searchQuery !== currentQuery) return; // Discard stale response
+                var items = (res && res.items) ? res.items : (Array.isArray(res) ? res : []);
+
+                // Sync into window.cutlistPmProducts
+                if (!window.cutlistPmProducts) window.cutlistPmProducts = {};
+                items.forEach(function (b) {
+                    if (b && (b.decor_code || b.fullCode)) {
+                        var c = b.decor_code || b.fullCode;
+                        if (b.sprayFinishing === undefined && b.spray_finishing !== undefined) b.sprayFinishing = b.spray_finishing;
+                        if (b.grainMatch === undefined && b.grain_match !== undefined) b.grainMatch = b.grain_match;
+                        if (b.machiningExcluded === undefined && b.machining_excluded !== undefined) b.machiningExcluded = b.machining_excluded;
+                        window.cutlistPmProducts[c] = b;
                     }
-                    else {
-
-                        field.disabled = false;
-
-                    }
-
-
                 });
 
-
-            if (currentRow.classList.contains("fs-row")) {
-                const brand = this.dataset.brand || "";
-                const size = this.dataset.size || "";
-
-                const brandCell = currentRow.querySelector(".fs-brand");
-                if (brandCell) brandCell.textContent = brand || "–";
-
-                const lenIn = currentRow.querySelector(".fs-length input");
-                const widIn = currentRow.querySelector(".fs-width input");
-
-                if (selectedBoard && selectedBoard.length && selectedBoard.width) {
-                    if (lenIn) { lenIn.value = selectedBoard.length; lenIn.disabled = true; lenIn.classList.remove("invalid"); }
-                    if (widIn) { widIn.value = selectedBoard.width; widIn.disabled = true; widIn.classList.remove("invalid"); }
-                } else if (size) {
-                    const parts = size.split("x");
-                    if (lenIn) { lenIn.value = parts[0] || ""; lenIn.disabled = true; lenIn.classList.remove("invalid"); }
-                    if (widIn) { widIn.value = parts[1] || ""; widIn.disabled = true; widIn.classList.remove("invalid"); }
-                }
-
-                if (selectedBoard && selectedBoard.price_sheet) {
-                    var priceSheet = parseFloat((selectedBoard.price_sheet || '').replace(/[^0-9.]/g, ''));
-                    if (!isNaN(priceSheet)) {
-                        currentRow.dataset.priceSheet = priceSheet;
+                if (resultsEl) {
+                    if (!items.length) {
+                        resultsEl.innerHTML = '<div class="decor-popup-empty">No boards found matching &ldquo;' + panelSummaryEscape(currentQuery) + '&rdquo;</div>';
                     } else {
-                        delete currentRow.dataset.priceSheet;
+                        var rowsHTML = items.map(function (board) {
+                            var sizeAttr = (board.length_mm || board.length || '') + 'x' + (board.width_mm || board.width || '');
+                            var decorCode = panelSummaryEscape(board.decor_code || board.fullCode || '');
+                            var decorName = panelSummaryEscape(board.decor_name || board.name || '');
+                            var core = panelSummaryEscape(board.core || board.material || '—');
+                            var brand = panelSummaryEscape(board.brand || '');
+                            var swatchUrl = board.swatch || (board.gallery && board.gallery[0] && board.gallery[0].thumbnail) || '';
+                            var swatchImg = swatchUrl ? ('<img src="' + panelSummaryEscape(swatchUrl) + '" style="display:none;" />') : '';
+
+                            return '<div class="product-row" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
+                                '<span>' + decorCode + '</span>' +
+                                '<span>' + decorName + '</span>' +
+                                '<span>' + core + '</span>' +
+                                '<span class="more">More info</span>' +
+                                swatchImg +
+                                '</div>';
+                        }).join('');
+                        resultsEl.innerHTML = rowsHTML;
                     }
-                } else {
-                    delete currentRow.dataset.priceSheet;
                 }
-            }
-
-            var rowQtyInput = currentRow.querySelector(".qty input");
-            if (rowQtyInput) {
-                rowQtyInput.disabled = false;
-                rowQtyInput.classList.remove("invalid");
-            }
-
-
-            // Which boards offer grain matching / spray finishing is set per board in wp-
-            // admin (Board Details → Finishing), not hardcoded to specific decor codes.
-            var grainCheckbox = currentRow.querySelector(".grain input");
-            if (grainCheckbox) {
-                var isGrainDecor = !!(selectedBoard && selectedBoard.grainMatch);
-                currentRow.classList.toggle("grain-allowed", isGrainDecor);
-                grainCheckbox.disabled = !isGrainDecor;
-                if (!isGrainDecor && grainCheckbox.checked) {
-                    grainCheckbox.checked = false;
+            })
+            .catch(function () {
+                if (resultsEl) {
+                    resultsEl.innerHTML = '<div class="decor-popup-error">Search failed. Please try again.</div>';
                 }
-                updateGrainSection();
-            }
+            });
+    }, 200);
+}
 
-            currentRow.classList.toggle("spray-allowed", !!(selectedBoard && selectedBoard.sprayFinishing));
-            updateSprayBtn(currentRow);
+function openDecorPopupForRow(row) {
+    if (!popup || !row) return;
+    decorPopupState.activeRow = row;
+    activeDecorInput = row.querySelector(".decor-real-input") || row.querySelector(".decor input");
 
-            let { lengthInput, widthInput } = getDimInputs(currentRow);
-            let qtyInput = currentRow.querySelector(".qty input");
+    var decorCell = row.querySelector(".decor");
+    if (!decorCell) return;
 
-            [lengthInput, widthInput, qtyInput].forEach(toggleInvalid);
+    var position = decorCell.getBoundingClientRect();
+    popup.style.left = position.left + "px";
+    popup.style.top = (position.bottom + window.scrollY) + "px";
+    popup.style.display = "block";
 
-            // Cutting list row got a board — edging tape options may change.
-            if (!currentRow.classList.contains("fs-row")) etRefreshDropdowns();
+    var placeholderInp = decorCell.querySelector(".decor-placeholder-input");
+    var initialQuery = placeholderInp ? placeholderInp.value : "";
 
-            popup.style.display = "none";
+    if (initialQuery && initialQuery.trim()) {
+        executeDecorSearch(initialQuery, placeholderInp);
+    } else {
+        executeDecorSearch("", null);
+        ensureActiveBrandLoaded();
+    }
+}
 
+function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
+    if (!currentRow || !code) return;
 
-        });
+    var selectedBoard = window.cutlistPmProducts && window.cutlistPmProducts[code];
+    var name = decorName || (selectedBoard ? (selectedBoard.name || selectedBoard.decor_name || "") : "");
 
+    var decorInput = currentRow.querySelector(".decor-real-input") || currentRow.querySelector(".decor input");
+    if (decorInput) {
+        decorInput.value = code + (name ? (" - " + name) : "");
+    }
 
+    var placeholderInput = currentRow.querySelector(".decor-placeholder-input");
+    if (placeholderInput) {
+        placeholderInput.value = "";
+    }
+
+    if (decorImage) {
+        currentRow.dataset.image = decorImage;
+    } else if (selectedBoard && selectedBoard.swatch) {
+        currentRow.dataset.image = selectedBoard.swatch;
+    } else {
+        currentRow.dataset.image = "";
+    }
+
+    currentRow.classList.add("unlocked");
+    renderDecorCard(currentRow, code);
+
+    var thickSelectEl = currentRow.querySelector(".thick select");
+    if (thickSelectEl && selectedBoard && selectedBoard.thicknesses && selectedBoard.thicknesses.length) {
+        thickSelectEl.innerHTML = selectedBoard.thicknesses.map(function (t) {
+            return '<option value="' + t + '">' + t + '</option>';
+        }).join('');
+        thickSelectEl.value = selectedBoard.thicknesses[0];
+    }
+
+    if (selectedBoard && selectedBoard.length && selectedBoard.width) {
+        currentRow.dataset.maxLength = selectedBoard.length - 2 * SUMMARY_EDGE_TRIM;
+        currentRow.dataset.maxWidth = selectedBoard.width - 2 * SUMMARY_EDGE_TRIM;
+    } else {
+        delete currentRow.dataset.maxLength;
+        delete currentRow.dataset.maxWidth;
+    }
+
+    currentRow.querySelectorAll("input,select").forEach(function (field) {
+        if (field.closest(".edging-input")) {
+            field.disabled = true;
+        } else {
+            field.disabled = false;
+        }
     });
+
+    if (currentRow.classList.contains("fs-row")) {
+        var brand = (selectedBoard && selectedBoard.brand) ? selectedBoard.brand : "";
+        var brandCell = currentRow.querySelector(".fs-brand");
+        if (brandCell) brandCell.textContent = brand || "–";
+
+        var lenIn = currentRow.querySelector(".fs-length input");
+        var widIn = currentRow.querySelector(".fs-width input");
+
+        if (selectedBoard && selectedBoard.length && selectedBoard.width) {
+            if (lenIn) { lenIn.value = selectedBoard.length; lenIn.disabled = true; lenIn.classList.remove("invalid"); }
+            if (widIn) { widIn.value = selectedBoard.width; widIn.disabled = true; widIn.classList.remove("invalid"); }
+        }
+
+        if (selectedBoard && selectedBoard.price_sheet) {
+            var priceSheet = parseFloat((selectedBoard.price_sheet || '').replace(/[^0-9.]/g, ''));
+            if (!isNaN(priceSheet)) {
+                currentRow.dataset.priceSheet = priceSheet;
+            } else {
+                delete currentRow.dataset.priceSheet;
+            }
+        } else {
+            delete currentRow.dataset.priceSheet;
+        }
+    }
+
+    var rowQtyInput = currentRow.querySelector(".qty input");
+    if (rowQtyInput) {
+        rowQtyInput.disabled = false;
+        rowQtyInput.classList.remove("invalid");
+    }
+
+    var grainCheckbox = currentRow.querySelector(".grain input");
+    if (grainCheckbox) {
+        var isGrainDecor = !!(selectedBoard && (selectedBoard.grainMatch || selectedBoard.grain_match));
+        currentRow.classList.toggle("grain-allowed", isGrainDecor);
+        grainCheckbox.disabled = !isGrainDecor;
+        if (!isGrainDecor && grainCheckbox.checked) {
+            grainCheckbox.checked = false;
+        }
+        updateGrainSection();
+    }
+
+    currentRow.classList.toggle("spray-allowed", !!(selectedBoard && (selectedBoard.sprayFinishing || selectedBoard.spray_finishing)));
+    updateSprayBtn(currentRow);
+
+    var dims = getDimInputs(currentRow);
+    var qtyInput = currentRow.querySelector(".qty input");
+    if (dims.lengthInput) toggleInvalid(dims.lengthInput);
+    if (dims.widthInput) toggleInvalid(dims.widthInput);
+    if (qtyInput) toggleInvalid(qtyInput);
+
+    if (!currentRow.classList.contains("fs-row")) etRefreshDropdowns();
+}
+
+// Global live listeners for decor placeholder search inputs
+document.addEventListener("input", function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains("decor-placeholder-input")) {
+        var row = e.target.closest("tr");
+        if (row) {
+            decorPopupState.activeRow = row;
+            activeDecorInput = row.querySelector(".decor-real-input") || row.querySelector(".decor input");
+            var decorCell = row.querySelector(".decor");
+            if (decorCell && popup) {
+                var position = decorCell.getBoundingClientRect();
+                popup.style.left = position.left + "px";
+                popup.style.top = (position.bottom + window.scrollY) + "px";
+                popup.style.display = "block";
+            }
+        }
+        executeDecorSearch(e.target.value, e.target);
+    }
+});
+
+document.addEventListener("focusin", function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains("decor-placeholder-input")) {
+        var row = e.target.closest("tr");
+        if (row) {
+            openDecorPopupForRow(row);
+        }
+    }
+});
+
+// Supplier tabs click & product row selection delegation on popup
+if (popup) {
+    var searchInput = popup.querySelector(".decor-popup-search-input");
+    if (searchInput) {
+        searchInput.addEventListener("input", function (e) {
+            executeDecorSearch(e.target.value, searchInput);
+        });
+    }
+
+    var clearBtn = popup.querySelector(".decor-popup-search-clear");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (searchInput) searchInput.value = "";
+            executeDecorSearch("", null);
+        });
+    }
+
+    popup.addEventListener("click", function (e) {
+        // 1. Tab switch
+        var tab = e.target.closest(".supplier-tab");
+        if (tab) {
+            decorPopupState.searchQuery = "";
+            var resultsEl = document.getElementById("decorSearchResults");
+            if (resultsEl) {
+                resultsEl.style.display = "none";
+                resultsEl.classList.remove("active");
+                resultsEl.innerHTML = "";
+            }
+
+            popup.querySelectorAll(".supplier-tab").forEach(function (t) { t.classList.remove("active"); });
+            tab.classList.add("active");
+
+            var brandSlug = tab.dataset.tab || tab.dataset.brand;
+            decorPopupState.activeBrand = brandSlug;
+
+            popup.querySelectorAll(".product-list").forEach(function (p) { p.classList.remove("active"); });
+
+            var activeList = document.getElementById(brandSlug);
+            if (activeList) {
+                activeList.classList.add("active");
+                if (!decorPopupState.brands[brandSlug] || !decorPopupState.brands[brandSlug].items.length) {
+                    loadBrandBoards(brandSlug, 1, false);
+                }
+            }
+            return;
+        }
+
+        // 2. "More info" is handled separately in panelModal listener — don't select product
+        if (e.target.closest('.more')) return;
+
+        // 4. Product row click
+        var row = e.target.closest(".product-row");
+        if (row) {
+            var targetRow = decorPopupState.activeRow || (activeDecorInput ? activeDecorInput.closest("tr") : null);
+            if (targetRow) {
+                var code = row.dataset.code || (row.children[0] ? row.children[0].innerText.trim() : "");
+                var name = row.children[1] ? row.children[1].innerText.trim() : "";
+                var img = row.querySelector("img");
+                var decorImage = img ? img.src : "";
+
+                applyBoardSelectionToRow(targetRow, code, name, decorImage);
+
+                popup.style.display = "none";
+                executeDecorSearch("", null);
+            }
+        }
+    });
+
+    // Infinite Scroll on .product-list containers
+    popup.addEventListener("scroll", function (e) {
+        var list = (e.target && e.target.classList && e.target.classList.contains("product-list"))
+            ? e.target
+            : (e.target && e.target.closest ? e.target.closest(".product-list") : null);
+        if (!list || list.id === "decorSearchResults") return;
+        var brandSlug = list.dataset.brand || list.id;
+        if (!brandSlug) return;
+
+        if (list.scrollTop + list.clientHeight >= list.scrollHeight - 30) {
+            var bState = decorPopupState.brands[brandSlug];
+            if (bState && bState.hasMore && !bState.loading) {
+                loadBrandBoards(brandSlug, bState.page + 1, true);
+            }
+        }
+    }, true);
+
+    // Mouse wheel support over product-list
+    popup.addEventListener("wheel", function (e) {
+        if (e.deltaY <= 0) return;
+        var list = (e.target && e.target.closest) ? e.target.closest(".product-list") : null;
+        if (!list || list.id === "decorSearchResults") return;
+        var brandSlug = list.dataset.brand || list.id;
+        if (!brandSlug) return;
+
+        var bState = decorPopupState.brands[brandSlug];
+        if (bState && bState.hasMore && !bState.loading) {
+            loadBrandBoards(brandSlug, bState.page + 1, true);
+        }
+    }, { passive: true });
+}
 
 
 
@@ -3688,7 +4114,10 @@ function validateGrainFilesBeforeCart() {
         }
     }
 
+    console.log("🔍 [Grain Matching Validation] Any grain ticked:", anyGrainChecked, "| Uploaded files count:", (grainUploadedFiles ? grainUploadedFiles.length : 0), "| Has files:", hasGrainFiles);
+
     if (!hasGrainFiles) {
+        console.warn("⚠️ [Grain Matching] Grain matching is ticked on one or more panels but no drawing file has been uploaded!");
         showGrainFileUploadError();
         return false;
     }
@@ -3710,6 +4139,7 @@ function listGrainFiles(files) {
             grainUploadedFiles.push(files[i]);
         }
     }
+    console.log("📁 [Grain Matching] Files selected/dropped (" + (files ? files.length : 0) + "):", files, "Total files queue:", grainUploadedFiles);
     renderGrainFileList();
 }
 
@@ -3738,7 +4168,8 @@ if (grainFileListEl) {
         if (btn) {
             var idx = parseInt(btn.dataset.index, 10);
             if (!isNaN(idx) && idx >= 0 && idx < grainUploadedFiles.length) {
-                grainUploadedFiles.splice(idx, 1);
+                var removed = grainUploadedFiles.splice(idx, 1);
+                console.log("🗑️ [Grain Matching] Removed file:", removed, "Remaining queue:", grainUploadedFiles);
                 renderGrainFileList();
             }
         }
@@ -4472,7 +4903,7 @@ function getPanelSummaryMachining(row) {
             var parsed = JSON.parse(rawApplied);
             if (Array.isArray(parsed) && parsed.length) applied = parsed;
             else if (parsed && Array.isArray(parsed.appliedItems) && parsed.appliedItems.length) applied = parsed.appliedItems;
-        } catch (err) {}
+        } catch (err) { }
     }
 
     var dataItems = [];
@@ -4482,7 +4913,7 @@ function getPanelSummaryMachining(row) {
             var parsedData = JSON.parse(rawData);
             if (Array.isArray(parsedData)) dataItems = parsedData;
             else if (parsedData && Array.isArray(parsedData.items)) dataItems = parsedData.items;
-        } catch (err) {}
+        } catch (err) { }
     }
 
     if (applied.length || dataItems.length) {
@@ -5024,7 +5455,7 @@ function machiningOptionBlockedReason(opt, row, currentItem) {
 
     var board = machiningBoardForRow(row);
 
-    if (board && (board.machiningExcluded || []).indexOf(opt.slug) !== -1) {
+    if (board && (board.machiningExcluded || board.machining_excluded || []).indexOf(opt.slug) !== -1) {
         return "Not available for this decor";
     }
 
@@ -8958,17 +9389,14 @@ if (machiningAddBtn) {
                 ? Math.round(addDims.length - MACHINING_DEFAULT_CUT_LEG_MM) : "";
             var defaultOffsetV = (!isNaN(addDims.width) && addDims.width > MACHINING_DEFAULT_CUT_LEG_MM)
                 ? Math.round(addDims.width - MACHINING_DEFAULT_CUT_LEG_MM) : "";
-            var defaultTapeObj = typeof edgeTapeForRow === "function" ? edgeTapeForRow(machiningCurrentRow) : null;
-            var defaultTapeCodeVal = defaultTapeObj ? (defaultTapeObj.code || defaultTapeObj.name) : "";
-            var defaultTapeNameVal = defaultTapeObj ? (defaultTapeObj.name || defaultTapeObj.code) : "";
             machiningAppliedItems.push({
                 option: "angled-cut",
                 corner: nextCorner,
                 offsetH: defaultOffsetH,
                 offsetV: defaultOffsetV,
-                edgeTapeCode: defaultTapeCodeVal,
-                edgeTapeName: defaultTapeNameVal,
-                finish: defaultTapeCodeVal ? "radius" : "",
+                edgeTapeCode: "",
+                edgeTapeName: "",
+                finish: "",
                 view: "A"
             });
         } else if (behaviour === "groove") {
@@ -10098,7 +10526,7 @@ function renderSpraySidebar() {
             "</select>" +
             "</div>" +
             "<div class=\"spray-field\">" +
-            "<label>Colour" + SVG_INFO + "</label>" +
+            "<label>Colour/code" + SVG_INFO + "</label>" +
             "<input type=\"text\" id=\"sprayColour\" placeholder=\"Type colour name\" value=\"" + sprayState.colour + "\"" + (sprayState.brand ? "" : " disabled") + ">" +
             "</div>" +
             "</div>";
@@ -10496,6 +10924,70 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
     }
 })();
 
+// DOWNLOAD SAMPLE CUTTING LIST CSV / EXCEL TEMPLATE
+(function () {
+    const sampleBtn = document.getElementById("downloadSampleBtn");
+    if (!sampleBtn) return;
+
+    sampleBtn.addEventListener("click", function () {
+        // Collect real product decor codes and thicknesses if present in the catalog
+        const productRows = Array.from(document.querySelectorAll(".product-row")).filter(function (pr) {
+            const code = pr.children[0] && pr.children[0].innerText;
+            return code && code.trim() && !code.includes("No boards yet");
+        });
+
+        const sampleRows = [
+            ['Decor code', 'Thickness', 'Length', 'Width', 'Quantity', 'Description', 'L1', 'L2', 'W1', 'W2', 'Edge finish', 'Customer note']
+        ];
+
+        if (productRows.length >= 1) {
+            const p1Code = productRows[0].children[0].innerText.trim();
+            const p1Thick = (productRows[0].dataset.thicknesses || "").split(",")[0].trim() || "18";
+            sampleRows.push([p1Code, p1Thick, 1000, 600, 2, 'Top panel', 1, 1, 0, 0, 'Radius', 'Example cutlist item']);
+
+            if (productRows.length >= 2) {
+                const p2Code = productRows[1].children[0].innerText.trim();
+                const p2Thick = (productRows[1].dataset.thicknesses || "").split(",")[0].trim() || "18";
+                sampleRows.push([p2Code, p2Thick, 720, 450, 4, 'Side panel', 1, 0, 1, 0, 'Square', '']);
+            }
+            if (productRows.length >= 3) {
+                const p3Code = productRows[2].children[0].innerText.trim();
+                const p3Thick = (productRows[2].dataset.thicknesses || "").split(",")[0].trim() || "18";
+                sampleRows.push([p3Code, p3Thick, 500, 400, 1, 'Door panel', 1, 1, 1, 1, 'Radius', 'Grain matching']);
+            }
+        } else {
+            sampleRows.push(
+                ['H1227-TM12', 19, 1000, 600, 2, 'Top panel', 1, 1, 0, 0, 'Radius', 'Example cutlist item'],
+                ['W980-SM', 18, 720, 450, 4, 'Side panel', 1, 0, 1, 0, 'Square', ''],
+                ['U708-ST9', 18, 500, 400, 1, 'Door panel', 1, 1, 1, 1, 'Radius', 'Grain matching']
+            );
+        }
+
+        const escapeCSV = function (val) {
+            if (val === null || val === undefined) return '';
+            let str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+                str = '"' + str.replace(/"/g, '""') + '"';
+            }
+            return str;
+        };
+
+        const csvContent = sampleRows.map(function (row) {
+            return row.map(escapeCSV).join(',');
+        }).join('\n');
+
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "sample_cutting_list.csv");
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+})();
+
 // UPLOAD CUTTING LIST (.xlsx / .csv) — the inverse of the download above.
 // Column order in the uploaded file doesn't matter; headers are matched by
 // name (case-insensitive) against the same set the download writes (Decor
@@ -10559,25 +11051,25 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
 
         resetRow(row);
 
-        const productRow = Array.from(document.querySelectorAll(".product-row")).find(function (pr) {
-            const code = pr.children[0] && pr.children[0].innerText;
-            return code && code.trim().toUpperCase() === decorCode.toUpperCase();
-        });
+        var pmObj = window.cutlistPmProducts && window.cutlistPmProducts[decorCode];
+        if (pmObj) {
+            applyBoardSelectionToRow(row, decorCode, pmObj.name, pmObj.swatch);
+        } else {
+            const productRow = Array.from(document.querySelectorAll(".product-row")).find(function (pr) {
+                const code = pr.children[0] && pr.children[0].innerText;
+                return code && code.trim().toUpperCase() === decorCode.toUpperCase();
+            });
 
-        console.log("[importRow] productRow found:", !!productRow);
-        if (!productRow) {
-            console.log("[importRow] productRow not found in DOM, returning unmatched.");
-            return { row: row, unmatchedDecor: decorCode };
-        }
-
-        activeDecorInput = row.querySelector(".decor input");
-        console.log("[importRow] activeDecorInput before click:", activeDecorInput);
-
-        try {
-            productRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-            console.log("[importRow] Click dispatched. activeDecorInput value after click:", activeDecorInput ? activeDecorInput.value : "null");
-        } catch (e) {
-            console.error("[importRow] Click dispatch error:", e);
+            if (productRow) {
+                activeDecorInput = row.querySelector(".decor input");
+                try {
+                    productRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+                } catch (e) {
+                    console.error("[importRow] Click dispatch error:", e);
+                }
+            } else {
+                return { row: row, unmatchedDecor: decorCode };
+            }
         }
 
         const thickSelect = row.querySelector(".thick select");
@@ -10723,420 +11215,44 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
 
     updateTabBasketPrice();
 
-    /* ==========================================================================
-       PERSISTENT CUTLIST STATE & SERVER/LOCALSTORAGE ENGINE
-       ========================================================================== */
-
-    window.isRestoringCutlist = false;
-    window.cutlistSaveTimer = null;
-    window.cutlistSaveVersion = 0;
-
-    window.getCutlistOrderId = function () {
-        if (window.cutlistOrderId && parseInt(window.cutlistOrderId, 10) > 0) {
-            return parseInt(window.cutlistOrderId, 10);
+    // Clean up any existing order_id from URL query params
+    try {
+        if (window.history && window.history.replaceState && window.location.search) {
+            var cleanSearch = window.location.search
+                .replace(/([?&])order_id=\d+(&|$)/i, '$1')
+                .replace(/([?&])order=\d+(&|$)/i, '$1')
+                .replace(/[?&]$/, '');
+            var cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + cleanSearch;
+            if (cleanUrl !== window.location.href) {
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
         }
-        var pathname = window.location.pathname || "";
-        var m1 = pathname.match(/\/(\d+)\/cutlist/i);
-        if (m1 && m1[1]) return parseInt(m1[1], 10);
-        var m2 = pathname.match(/\/cutlist\/(\d+)/i);
-        if (m2 && m2[1]) return parseInt(m2[1], 10);
+    } catch (e) { }
 
-        var search = window.location.search || "";
-        var q1 = search.match(/[?&]order_id=(\d+)/i);
-        if (q1 && q1[1]) return parseInt(q1[1], 10);
-        var q2 = search.match(/[?&]order=(\d+)/i);
-        if (q2 && q2[1]) return parseInt(q2[1], 10);
-
-        return 0;
-    };
-
-    window.collectCutlistState = function () {
-        var orderId = getCutlistOrderId();
-        var cutItems = collectCuttingListItems();
-        var fsItems = collectFullSheetItems();
-        var etItems = collectEdgingTapeItems();
-        var mcItems = collectMachiningItems();
-        var selectedOffcuts = collectSelectedOffcuts();
-
-        if (typeof computeCutItemPrices === "function") {
-            computeCutItemPrices(cutItems);
-        }
-
-        var rows = [];
-        var tableEl = document.getElementById("cutlistTable");
-        if (tableEl) {
-            var trs = Array.from(tableEl.querySelectorAll(":scope > * > tr:not(.header-row):not(.section-row)"));
-            trs.forEach(function (tr, idx) {
-                var decorIn = tr.querySelector(".decor input");
-                var decorVal = decorIn ? decorIn.value.trim() : "";
-                if (!decorVal || decorVal === "-") return;
-
-                var decorCode = decorVal.split(" - ")[0].trim();
-                var boardOpt = findBoardObject(decorCode) || findBoardObject(decorVal);
-
-                var cells = tr.querySelectorAll("td.small input");
-                var lenVal = cells[0] ? cells[0].value.trim() : "";
-                var widVal = cells[1] ? cells[1].value.trim() : "";
-                var qtyVal = tr.querySelector(".qty input") ? tr.querySelector(".qty input").value.trim() : "";
-                var descVal = tr.querySelector(".desc input") ? tr.querySelector(".desc input").value.trim() : "";
-                var thickSelect = tr.querySelector(".thick select");
-                var thickVal = thickSelect ? thickSelect.value : "";
-                var grainCb = tr.querySelector('input[data-col="grainMatch"]');
-
-                var l1In = tr.querySelector('.edging-input[data-edge="L1"] input');
-                var l2In = tr.querySelector('.edging-input[data-edge="L2"] input');
-                var w1In = tr.querySelector('.edging-input[data-edge="W1"] input');
-                var w2In = tr.querySelector('.edging-input[data-edge="W2"] input');
-
-                var machApplied = tr.dataset.machiningApplied ? JSON.parse(tr.dataset.machiningApplied) : [];
-                var sprayApplied = tr.dataset.sprayApplied ? JSON.parse(tr.dataset.sprayApplied) : null;
-
-                rows.push({
-                    rowId: tr.dataset.rowId || ("row_" + (idx + 1)),
-                    decorCode: decorCode,
-                    decor: decorVal,
-                    thickness: thickVal,
-                    length: lenVal,
-                    width: widVal,
-                    quantity: qtyVal || 1,
-                    qty: qtyVal || 1,
-                    description: descVal,
-                    l1: l1In ? l1In.value : "",
-                    l2: l2In ? l2In.value : "",
-                    w1: w1In ? w1In.value : "",
-                    w2: w2In ? w2In.value : "",
-                    note: tr.dataset.panelInfo || "",
-                    grainMatch: grainCb ? !!grainCb.checked : false,
-                    machining: machApplied,
-                    spray: sprayApplied
-                });
+    // Clear any previously saved local storage cutlist data
+    try {
+        if (typeof localStorage !== "undefined") {
+            localStorage.removeItem("cutlist_draft");
+            localStorage.removeItem("cutlistBasket");
+            Object.keys(localStorage).forEach(function (k) {
+                if (k.indexOf("cutlist_") === 0) {
+                    localStorage.removeItem(k);
+                }
             });
         }
+    } catch (e) { }
 
-        return {
-            orderId: orderId,
-            rows: rows,
-            cutItems: cutItems,
-            fullSheetItems: fsItems,
-            edgeTapeItems: etItems,
-            machiningItems: mcItems,
-            selectedOffcuts: selectedOffcuts,
-            grainFiles: typeof grainFiles !== "undefined" ? grainFiles : [],
-            updatedAt: new Date().toISOString()
-        };
-    };
-
-    window.scheduleCutlistSave = function () {
-        if (window.isRestoringCutlist) return;
-
-        clearTimeout(window.cutlistSaveTimer);
-        window.cutlistSaveTimer = setTimeout(function () {
-            saveCutlistState();
-        }, 500);
-    };
-
-    window.saveCutlistState = function () {
-        if (window.isRestoringCutlist) return;
-
-        var orderId = getCutlistOrderId();
-        var state = collectCutlistState();
-        window.cutlistSaveVersion++;
-        var currentVer = window.cutlistSaveVersion;
-
-        if (!orderId) {
-            // General /cutlist/ page (no order_id in URL) -> save working draft to localStorage "cutlist_draft"
-            try {
-                localStorage.setItem("cutlist_draft", JSON.stringify(state));
-            } catch (e) { }
-            return;
-        }
-
-        // 1. LocalStorage Backup
-        try {
-            localStorage.setItem("cutlist_" + orderId, JSON.stringify(state));
-        } catch (e) {
-            console.warn("LocalStorage save warning:", e);
-        }
-
-        // 2. Server-side REST API Save
-        if (typeof cutlistWcVars !== "undefined" && cutlistWcVars.rest_url) {
-            var restEndpoint = cutlistWcVars.rest_url + "orders/" + orderId + "/cutlist";
-            fetch(restEndpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-WP-Nonce": cutlistWcVars.rest_nonce || ""
-                },
-                body: JSON.stringify(state)
-            })
-                .then(function (res) { return res.json(); })
-                .then(function (res) {
-                    if (currentVer !== window.cutlistSaveVersion) return;
-                    if (res && res.success) {
-                        console.log("Cutlist state saved to server for order #" + orderId);
-                    }
-                })
-                .catch(function (err) {
-                    console.error("Server save error:", err);
-                });
-        }
-    };
-
-    window.restoreCutlistState = function (state) {
-        console.log("[restoreCutlistState] Restoring state:", state);
-        if (!state) return false;
-
-        window.isRestoringCutlist = true;
-        var tableEl = document.getElementById("cutlistTable");
-        if (!tableEl) {
-            window.isRestoringCutlist = false;
-            return false;
-        }
-
-        var tbody = tableEl.querySelector(":scope > tbody") || tableEl;
-        var existingRows = Array.from(tableEl.querySelectorAll(":scope > * > tr:not(.header-row):not(.section-row)"));
-        existingRows.forEach(function (r) { r.remove(); });
-
-        var rowsToRestore = (state.rows && Array.isArray(state.rows) && state.rows.length > 0)
-            ? state.rows
-            : (state.cutItems && Array.isArray(state.cutItems) ? state.cutItems : []);
-
-        console.log("[restoreCutlistState] rowsToRestore length:", rowsToRestore.length);
-
-        if (rowsToRestore.length > 0) {
-            rowsToRestore.forEach(function (itemData, idx) {
-                var newRow = createRow();
-                if (itemData.rowId) newRow.dataset.rowId = itemData.rowId;
-                tbody.appendChild(newRow);
-
-                console.log("[restoreCutlistState] Restoring row " + idx, itemData);
-
-                // Use existing robust importRow logic to populate decor, thickness, dimensions, quantity, description, edging, note
-                if (typeof window.importRow === "function") {
-                    window.importRow(itemData, newRow);
-                }
-
-                // Restore machining and spray applied datasets
-                if (itemData.machining && Array.isArray(itemData.machining)) {
-                    newRow.dataset.machiningApplied = JSON.stringify(itemData.machining);
-                }
-                if (itemData.spray) {
-                    newRow.dataset.sprayApplied = JSON.stringify(itemData.spray);
-                }
-                if (itemData.grainMatch) {
-                    var grainCb = newRow.querySelector('input[data-col="grainMatch"]');
-                    if (grainCb) grainCb.checked = true;
-                }
-            });
-        } else {
-            var defaultRow = createRow();
-            tbody.appendChild(defaultRow);
-        }
-
-        renumberRows();
-
-        // Restore full sheet items
-        var fsTableEl = document.getElementById("fsTable");
-        if (fsTableEl) {
-            var existingFsRows = Array.from(fsTableEl.querySelectorAll("tr.fs-row"));
-            existingFsRows.forEach(function (r) { r.remove(); });
-
-            var fsItemsToRestore = (state.fullSheetItems && Array.isArray(state.fullSheetItems)) ? state.fullSheetItems : [];
-            console.log("[restoreCutlistState] fsItemsToRestore length:", fsItemsToRestore.length);
-
-            if (fsItemsToRestore.length > 0) {
-                fsItemsToRestore.forEach(function (item, idx) {
-                    var newRow = createFsRow();
-                    fsTableEl.appendChild(newRow);
-
-                    console.log("[restoreCutlistState] Restoring fsRow " + idx, item);
-
-                    var decorVal = item.decorCode || item.decor || "";
-                    var decorCode = decorVal.split(" - ")[0].trim();
-                    var productRow = Array.from(document.querySelectorAll(".product-row")).find(function (pr) {
-                        var code = pr.children[0] && pr.children[0].innerText;
-                        return code && code.trim().toUpperCase() === decorCode.toUpperCase();
-                    });
-
-                    if (productRow) {
-                        activeDecorInput = newRow.querySelector(".decor input");
-                        try {
-                            productRow.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-                        } catch (e) {
-                            console.error("[restoreFsRow] Click dispatch error:", e);
-                        }
-                    }
-
-                    var thickSelect = newRow.querySelector(".thick select");
-                    if (thickSelect && item.thick !== "" && item.thick !== undefined) {
-                        thickSelect.value = item.thick;
-                    }
-
-                    var lenIn = newRow.querySelector(".fs-length input");
-                    if (lenIn && item.length !== undefined) lenIn.value = item.length;
-
-                    var widIn = newRow.querySelector(".fs-width input");
-                    if (widIn && item.width !== undefined) widIn.value = item.width;
-
-                    var qtyIn = newRow.querySelector(".qty input");
-                    if (qtyIn && item.qty !== undefined) qtyIn.value = item.qty;
+    // Real-time listener for WooCommerce cart drawer/page additions, removals & fragment updates
+    if (typeof jQuery !== "undefined") {
+        jQuery(document.body).on("added_to_cart removed_from_cart updated_cart_totals updated_wc_div wc_fragments_refreshed wc_fragments_loaded wc_cart_emptied", function (e, fragments) {
+            if (fragments && fragments[".tab-basket-price"]) {
+                document.querySelectorAll(".tab-basket-price").forEach(function (el) {
+                    el.outerHTML = fragments[".tab-basket-price"];
                 });
             } else {
-                fsTableEl.appendChild(createFsRow());
+                updateTabBasketPrice();
             }
-            renumberFsRows();
-        }
-
-        // Restore edging tape items
-        var etTbody = document.getElementById("etTbody");
-        if (etTbody) {
-            var existingEtRows = Array.from(etTbody.querySelectorAll("tr.et-row"));
-            existingEtRows.forEach(function (r) { r.remove(); });
-
-            var etItemsToRestore = (state.edgeTapeItems && Array.isArray(state.edgeTapeItems)) ? state.edgeTapeItems : [];
-            console.log("[restoreCutlistState] etItemsToRestore length:", etItemsToRestore.length);
-
-            if (etItemsToRestore.length > 0) {
-                etItemsToRestore.forEach(function (item, idx) {
-                    var newRow = etBuildRow();
-                    etTbody.appendChild(newRow);
-
-                    console.log("[restoreCutlistState] Restoring etRow " + idx, item);
-
-                    var sel = newRow.querySelector(".Select2");
-                    if (sel) {
-                        sel.dataset.price = item.price || 0;
-                        sel.dataset.code = item.code || "";
-                        var inputSpan = sel.querySelector(".Select2__input");
-                        if (inputSpan) {
-                            inputSpan.innerHTML =
-                                '<div class="edgebanding-option">' +
-                                '<div class="code">' + (item.code || "") + '</div>' +
-                                '<div class="name">' + (item.name || "") + '</div>' +
-                                '<div class="size">' + (item.size || "") + '</div>' +
-                                '</div>';
-                        }
-                        sel.classList.remove("isEmpty");
-                    }
-
-                    var qtyInput = newRow.querySelector(".et-qty-input");
-                    if (qtyInput && item.qty !== undefined) {
-                        qtyInput.value = item.qty;
-                        qtyInput.disabled = false;
-                    }
-                    newRow.classList.add("active");
-
-                    var priceCell = newRow.querySelector(".et-unit-price");
-                    if (priceCell && item.price !== undefined) {
-                        priceCell.textContent = '£' + parseFloat(item.price).toFixed(2);
-                    }
-                });
-            } else {
-                etTbody.appendChild(etBuildRow());
-            }
-            etRenumber();
-        }
-
-        markDirty();
-
-        if (typeof redrawMachiningCanvas === "function") redrawMachiningCanvas();
-        if (typeof updateTabBasketPrice === "function") updateTabBasketPrice();
-
-        var orderId = getCutlistOrderId();
-        if (orderId) {
-            var updateBtn = document.getElementById("updateBasketBtn");
-            if (updateBtn) {
-                updateBtn.innerHTML = "<span>Update Order #" + orderId + "</span>";
-            }
-        }
-
-        window.isRestoringCutlist = false;
-        return true;
-    };
-
-    window.ensureCutlistOrderId = function () {
-        var existingId = getCutlistOrderId();
-        if (existingId > 0) {
-            return existingId;
-        }
-
-        var newId = Math.floor(100000 + Math.random() * 900000);
-        window.cutlistOrderId = newId;
-
-        if (window.history && window.history.replaceState) {
-            var search = window.location.search || "";
-            var newSearch = search ? (search + "&order_id=" + newId) : ("?order_id=" + newId);
-            var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + newSearch;
-            window.history.replaceState({ order_id: newId }, "", newUrl);
-        }
-
-        return newId;
-    };
-
-    window.loadCutlistState = function () {
-        var orderId = getCutlistOrderId();
-        console.log("[loadCutlistState] Initial orderId =", orderId);
-
-        // Auto-assign order ID and update URL if missing
-        if (!orderId) {
-            orderId = ensureCutlistOrderId();
-            console.log("[loadCutlistState] Auto-assigned orderId =", orderId);
-        }
-
-        var serverState = window.cutlistPreloadedOrderData || null;
-        console.log("[loadCutlistState] serverState =", serverState);
-
-        var localStateRaw = null;
-        try {
-            localStateRaw = localStorage.getItem("cutlist_" + orderId);
-        } catch (e) { }
-
-        var localState = localStateRaw ? JSON.parse(localStateRaw) : null;
-        console.log("[loadCutlistState] localState =", localState);
-
-        var stateToRestore = null;
-
-        if (serverState && localState) {
-            var serverTime = serverState.updatedAt ? new Date(serverState.updatedAt).getTime() : 0;
-            var localTime = localState.updatedAt ? new Date(localState.updatedAt).getTime() : 0;
-            stateToRestore = (localTime > serverTime) ? localState : serverState;
-            console.log("[loadCutlistState] Comparing times. Server: " + serverTime + " | Local: " + localTime + " -> Restoring: " + (localTime > serverTime ? "Local" : "Server"));
-        } else if (serverState) {
-            stateToRestore = serverState;
-            console.log("[loadCutlistState] Restoring serverState");
-        } else if (localState) {
-            stateToRestore = localState;
-            console.log("[loadCutlistState] Restoring localState");
-        }
-
-        if (stateToRestore) {
-            restoreCutlistState(stateToRestore);
-        } else if (typeof cutlistWcVars !== "undefined" && cutlistWcVars.rest_url) {
-            var restEndpoint = cutlistWcVars.rest_url + "orders/" + orderId + "/cutlist";
-            console.log("[loadCutlistState] Fetching from REST:", restEndpoint);
-            fetch(restEndpoint, {
-                method: "GET",
-                headers: { "X-WP-Nonce": cutlistWcVars.rest_nonce || "" }
-            })
-                .then(function (res) { return res.json(); })
-                .then(function (res) {
-                    console.log("[loadCutlistState] REST response:", res);
-                    if (res && res.success && res.data) {
-                        restoreCutlistState(res.data);
-                    }
-                })
-                .catch(function (err) {
-                    console.error("[loadCutlistState] REST load error:", err);
-                });
-        }
-    };
-
-    // Auto-load state on initialization after the DOM has fully settled
-    if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", function () {
-            setTimeout(loadCutlistState, 100);
         });
-    } else {
-        setTimeout(loadCutlistState, 100);
     }
+
 })();

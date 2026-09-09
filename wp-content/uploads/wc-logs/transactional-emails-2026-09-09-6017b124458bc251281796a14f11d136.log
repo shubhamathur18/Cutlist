@@ -1,0 +1,6 @@
+2026-09-09T04:58:59+00:00 INFO Email "new_order" for order #173 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":173}
+2026-09-09T04:59:00+00:00 INFO Email "customer_processing_order" for order #173 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":173}
+2026-09-09T05:05:26+00:00 INFO Email "customer_invoice" for order #173 sent CONTEXT: {"email_type":"customer_invoice","status":"sent","recipient":"admin","order":173}
+2026-09-09T06:58:52+00:00 INFO Email "new_order" for order #175 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":175}
+2026-09-09T06:58:52+00:00 INFO Email "customer_processing_order" for order #175 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":175}
+2026-09-09T09:59:49+00:00 INFO Email "customer_reset_password" for user #1 sent CONTEXT: {"email_type":"customer_reset_password","status":"sent","recipient":"admin","user":1}

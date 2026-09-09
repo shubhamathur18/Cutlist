@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 <?php
 $wc_cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '#';
 $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '#';
+$wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : '&pound;0.00';
 ?>
 <div class="cb-topbar" id="cbTopbar" style="display:none">
     <a href="<?php echo esc_url($wc_cart_url); ?>"
@@ -104,7 +105,7 @@ $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url(
                 <span class="tab-price">&pound;0.00</span>
             </span>
         </a>
-        <a href="basket.html" class="tab-basket-btn">
+        <a href="<?php echo esc_url($wc_cart_url); ?>" class="tab-basket-btn">
             <span class="tab-basket-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -115,7 +116,7 @@ $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url(
             </span>
             <span class="tab-basket-text">
                 <span class="tab-basket-label"><?php esc_html_e('View Basket', 'cutlist-catalogue'); ?></span>
-                <span class="tab-basket-price">&pound;0.00</span>
+                <span class="tab-basket-price"><?php echo wp_kses_post($wc_cart_total); ?></span>
             </span>
             <span class="tab-basket-arrow">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
@@ -426,6 +427,9 @@ $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url(
             <button id="downloadRowBtn" style="width:257px">
                 <?php esc_html_e('Download cutting list', 'cutlist-catalogue'); ?>
             </button>
+            <button id="downloadSampleBtn" type="button" style="width:257px">
+                <?php esc_html_e('Download sample cutlist', 'cutlist-catalogue'); ?>
+            </button>
         </div>
     </div>
 
@@ -480,81 +484,8 @@ $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url(
     </div>
 
     <div class="closed">
-        <div class="section-title">
-            <h2><?php esc_html_e('Full sheets', 'cutlist-catalogue'); ?></h2>
-            <div class="toggle">
-                <span class="toggle-label"><?php esc_html_e('Collapse', 'cutlist-catalogue'); ?></span>
-                <span class="arrow"></span>
-            </div>
-        </div>
-        <div class="table-area" id="fsTableArea">
-            <table id="fsTable">
-                <tr class="header-row">
-                    <th>#</th>
-                    <th><?php esc_html_e('Material decor code / name', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Thick', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Length', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Width', 'cutlist-catalogue'); ?><br>[mm]</th>
-                    <th><?php esc_html_e('Brand', 'cutlist-catalogue'); ?></th>
-                    <th><?php esc_html_e('Qty', 'cutlist-catalogue'); ?></th>
-                    <th class="text-right"><?php esc_html_e('Actions', 'cutlist-catalogue'); ?></th>
-                </tr>
-                <tr class="fs-row">
-                    <td class="rownum">1</td>
-                    <td class="decor"><?php echo cutlist_proto_render_decor_cell(); ?></td>
-                    <td class="small thick">
-                        <select disabled>
-                            <option value="">–</option>
-                            <option value="8">8</option>
-                            <option value="12">12</option>
-                            <option value="16">16</option>
-                            <option value="18">18</option>
-                            <option value="25">25</option>
-                            <option value="38">38</option>
-                        </select>
-                    </td>
-                    <td class="small fs-length"><input disabled placeholder="0"></td>
-                    <td class="small fs-width"><input disabled placeholder="0"></td>
-                    <td class="fs-brand">–</td>
-                    <td class="qty"><input disabled></td>
-                    <td class="actions">
-                        <div class="actions-inner">
-                            <span class="delete"
-                                title="<?php esc_attr_e('Delete row', 'cutlist-catalogue'); ?>">×</span>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="fs-row">
-                    <td class="rownum">2</td>
-                    <td class="decor"><?php echo cutlist_proto_render_decor_cell(); ?></td>
-                    <td class="small thick">
-                        <select disabled>
-                            <option value="">–</option>
-                            <option value="8">8</option>
-                            <option value="12">12</option>
-                            <option value="16">16</option>
-                            <option value="18">18</option>
-                            <option value="25">25</option>
-                            <option value="38">38</option>
-                        </select>
-                    </td>
-                    <td class="small fs-length"><input disabled placeholder="0"></td>
-                    <td class="small fs-width"><input disabled placeholder="0"></td>
-                    <td class="fs-brand">–</td>
-                    <td class="qty"><input disabled></td>
-                    <td class="actions">
-                        <div class="actions-inner">
-                            <span class="delete"
-                                title="<?php esc_attr_e('Delete row', 'cutlist-catalogue'); ?>">×</span>
-                        </div>
-                    </td>
-                </tr>
-            </table>
-            <div class="btn-area">
-                <button id="addFsRowBtn"><?php esc_html_e('Add a row', 'cutlist-catalogue'); ?></button>
-            </div>
-        </div>
-        <div class="section-title">
+
+         <div class="section-title">
             <h2><?php esc_html_e('Edging tape', 'cutlist-catalogue'); ?></h2>
             <div class="toggle">
                 <span class="toggle-label"><?php esc_html_e('Expand', 'cutlist-catalogue'); ?></span>
@@ -663,6 +594,81 @@ $wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url(
                     disabled><?php esc_html_e('Add a row', 'cutlist-catalogue'); ?></button>
             </div>
         </div>
+        <div class="section-title">
+            <h2><?php esc_html_e('Full sheets', 'cutlist-catalogue'); ?></h2>
+            <div class="toggle">
+                <span class="toggle-label"><?php esc_html_e('Collapse', 'cutlist-catalogue'); ?></span>
+                <span class="arrow"></span>
+            </div>
+        </div>
+        <div class="table-area" id="fsTableArea">
+            <table id="fsTable">
+                <tr class="header-row">
+                    <th>#</th>
+                    <th><?php esc_html_e('Material decor code / name', 'cutlist-catalogue'); ?></th>
+                    <th><?php esc_html_e('Thick', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th><?php esc_html_e('Length', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th><?php esc_html_e('Width', 'cutlist-catalogue'); ?><br>[mm]</th>
+                    <th><?php esc_html_e('Brand', 'cutlist-catalogue'); ?></th>
+                    <th><?php esc_html_e('Qty', 'cutlist-catalogue'); ?></th>
+                    <th class="text-right"><?php esc_html_e('Actions', 'cutlist-catalogue'); ?></th>
+                </tr>
+                <tr class="fs-row">
+                    <td class="rownum">1</td>
+                    <td class="decor"><?php echo cutlist_proto_render_decor_cell(); ?></td>
+                    <td class="small thick">
+                        <select disabled>
+                            <option value="">–</option>
+                            <option value="8">8</option>
+                            <option value="12">12</option>
+                            <option value="16">16</option>
+                            <option value="18">18</option>
+                            <option value="25">25</option>
+                            <option value="38">38</option>
+                        </select>
+                    </td>
+                    <td class="small fs-length"><input disabled placeholder="0"></td>
+                    <td class="small fs-width"><input disabled placeholder="0"></td>
+                    <td class="fs-brand">–</td>
+                    <td class="qty"><input disabled></td>
+                    <td class="actions">
+                        <div class="actions-inner">
+                            <span class="delete"
+                                title="<?php esc_attr_e('Delete row', 'cutlist-catalogue'); ?>">×</span>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="fs-row">
+                    <td class="rownum">2</td>
+                    <td class="decor"><?php echo cutlist_proto_render_decor_cell(); ?></td>
+                    <td class="small thick">
+                        <select disabled>
+                            <option value="">–</option>
+                            <option value="8">8</option>
+                            <option value="12">12</option>
+                            <option value="16">16</option>
+                            <option value="18">18</option>
+                            <option value="25">25</option>
+                            <option value="38">38</option>
+                        </select>
+                    </td>
+                    <td class="small fs-length"><input disabled placeholder="0"></td>
+                    <td class="small fs-width"><input disabled placeholder="0"></td>
+                    <td class="fs-brand">–</td>
+                    <td class="qty"><input disabled></td>
+                    <td class="actions">
+                        <div class="actions-inner">
+                            <span class="delete"
+                                title="<?php esc_attr_e('Delete row', 'cutlist-catalogue'); ?>">×</span>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+            <div class="btn-area">
+                <button id="addFsRowBtn"><?php esc_html_e('Add a row', 'cutlist-catalogue'); ?></button>
+            </div>
+        </div>
+       
     </div>
     <!-- Update basket showbox -->
     <div class="update-basket-showbox" id="updateBasketShowbox">
@@ -836,6 +842,9 @@ CUT, EDGE & SPRAY SUMMARY
                     <button class="pm-gallery-nav pm-gallery-nav-next" id="pmNext" type="button">&#8250;</button>
                 </div>
                 <div class="pm-gallery-thumbs" id="pmThumbs"></div>
+            </div>
+            <!-- RIGHT -->
+            <div class="column-description">
                 <div class="panel-title" id="pmTitle"></div>
                 <div class="panel-name" id="pmName"></div>
                 <p class="panel-modal__label"><?php esc_html_e('Product size', 'cutlist-catalogue'); ?></p>
@@ -859,9 +868,24 @@ CUT, EDGE & SPRAY SUMMARY
                         </tr>
                     </tbody>
                 </table>
-            </div>
-            <!-- RIGHT -->
-            <div class="column-description">
+                <p class="pm-thickness-label"><?php esc_html_e('Available thicknesses [mm]:', 'cutlist-catalogue'); ?></p>
+                <div class="pm-thickness-options" id="pmThicknesses"></div>
+                <table class="pricing-levels__table">
+                    <tbody>
+                        <tr>
+                            <td class="pricing-levels__label">
+                                <?php esc_html_e('Full sheet price', 'cutlist-catalogue'); ?>
+                            </td>
+                            <td class="price-val">–</td>
+                        </tr>
+                        <tr>
+                            <td class="pricing-levels__label">
+                                <?php esc_html_e('Sheet price with cutting (up to 20 pieces per sheet)', 'cutlist-catalogue'); ?>
+                            </td>
+                            <td class="price-val">–</td>
+                        </tr>
+                    </tbody>
+                </table>
                 <div class="SimpleTabs__tabs">
                     <button class="SimpleTabs__tab-btn active" data-tab="desc"
                         type="button"><?php esc_html_e('Description', 'cutlist-catalogue'); ?></button>
@@ -895,25 +919,6 @@ CUT, EDGE & SPRAY SUMMARY
                         </div>
                     </div>
                 </div>
-                <p class="pm-thickness-label"><?php esc_html_e('Available thicknesses [mm]:', 'cutlist-catalogue'); ?>
-                </p>
-                <div class="pm-thickness-options" id="pmThicknesses"></div>
-                <table class="pricing-levels__table">
-                    <tbody>
-                        <tr>
-                            <td class="pricing-levels__label">
-                                <?php esc_html_e('Full sheet price', 'cutlist-catalogue'); ?>
-                            </td>
-                            <td class="price-val">–</td>
-                        </tr>
-                        <tr>
-                            <td class="pricing-levels__label">
-                                <?php esc_html_e('Sheet price with cutting (up to 20 pieces per sheet)', 'cutlist-catalogue'); ?>
-                            </td>
-                            <td class="price-val">–</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>

@@ -29,7 +29,7 @@ add_filter('acf/settings/load_json', function ($paths) {
 	return $paths;
 });
 
-require_once CUTLIST_CATALOGUE_PATH . 'includes/order-routing.php';
+// require_once CUTLIST_CATALOGUE_PATH . 'includes/order-routing.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/cpt-registration.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/gallery-meta-box.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/rest-endpoints.php';

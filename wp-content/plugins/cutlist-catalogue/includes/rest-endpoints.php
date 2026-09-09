@@ -141,10 +141,19 @@ function cutlist_rest_update_order_cutlist($request) {
 }
 
 function cutlist_rest_get_boards(WP_REST_Request $request) {
+	$page = max(1, (int) $request->get_param('page'));
+	$per_page = (int) $request->get_param('per_page');
+	if (!$per_page || $per_page < 1) {
+		$per_page = 30;
+	}
+
 	$args = [
 		'post_type' => 'board',
-		'numberposts' => -1,
 		'post_status' => 'publish',
+		'posts_per_page' => $per_page,
+		'paged' => $page,
+		'orderby' => 'title',
+		'order' => 'ASC',
 	];
 
 	$tax_query = [];
@@ -171,9 +180,52 @@ function cutlist_rest_get_boards(WP_REST_Request $request) {
 		$args['tax_query'] = $tax_query;
 	}
 
-	$posts = get_posts($args);
+	$search = trim((string) ($request->get_param('search') ?: $request->get_param('q')));
+	if ($search !== '') {
+		$search_filter = function ($where, $wp_query) use ($search) {
+			global $wpdb;
+			if ($wp_query->get('cutlist_board_search')) {
+				$like = '%' . $wpdb->esc_like($search) . '%';
+				$where .= $wpdb->prepare(
+					" AND ({$wpdb->posts}.post_title LIKE %s 
+					   OR {$wpdb->posts}.ID IN (
+					       SELECT post_id FROM {$wpdb->postmeta} 
+					       WHERE meta_key IN ('decor_code', 'decor_name', 'core') 
+					       AND meta_value LIKE %s
+					   ))",
+					$like,
+					$like
+				);
+			}
+			return $where;
+		};
+		add_filter('posts_where', $search_filter, 10, 2);
+		$args['cutlist_board_search'] = true;
+		$args['suppress_filters'] = false;
+	}
 
-	return array_values(array_map('cutlist_format_board', $posts));
+	$query = new WP_Query($args);
+
+	if ($search !== '' && isset($search_filter)) {
+		remove_filter('posts_where', $search_filter, 10);
+	}
+	$posts = $query->posts;
+	$total_items = (int) $query->found_posts;
+	$total_pages = $per_page > 0 ? (int) ceil($total_items / $per_page) : 1;
+
+	$items = array_values(array_map('cutlist_format_board', $posts));
+
+	return new WP_REST_Response([
+		'success' => true,
+		'items' => $items,
+		'pagination' => [
+			'page' => $page,
+			'per_page' => $per_page,
+			'total_items' => $total_items,
+			'total_pages' => $total_pages,
+			'has_more' => $page < $total_pages,
+		],
+	], 200);
 }
 
 function cutlist_rest_get_board(WP_REST_Request $request) {
@@ -355,41 +407,86 @@ function cutlist_format_board($post) {
 		$characteristics[] = ['label' => trim($label), 'value' => trim($value)];
 	}
 
+	$lines = [];
+	for ($i = 0; $i < count($characteristics); $i += 2) {
+		$pair = [$characteristics[$i]['label'] . ': ' . $characteristics[$i]['value']];
+		if (isset($characteristics[$i + 1])) {
+			$pair[] = $characteristics[$i + 1]['label'] . ': ' . $characteristics[$i + 1]['value'];
+		}
+		$lines[] = implode(' | ', $pair);
+	}
+
+	$slides = [];
+	foreach ($images as $img) {
+		$slides[] = [
+			'label' => $img['alt'] ?: 'Decor',
+			'bg' => "url('" . esc_url_raw($img['url']) . "') center/cover no-repeat",
+		];
+	}
+	if (!$slides) {
+		$slides[] = ['label' => 'Decor', 'bg' => '#ccc'];
+	}
+
 	$download_file = get_field('downloads', $post->ID);
 	$downloads = $download_file ? [[
 		'label' => $download_file['title'] ?: $download_file['filename'],
 		'url' => $download_file['url'],
 	]] : [];
 
-	return [
-		'id' => $post->ID,
-		'brand' => $brand,
-		'collection' => $collection,
-		'decor_code' => get_field('decor_code', $post->ID),
-		'decor_name' => get_field('decor_name', $post->ID),
-		'core' => get_field('core', $post->ID) ?: null,
-		'name' => $post->post_title,
-		'length_mm' => (float) get_field('length_mm', $post->ID),
-		'width_mm' => (float) get_field('width_mm', $post->ID),
-		'thickness_mm' => (float) get_field('thickness_mm', $post->ID),
-		'full_sheet_price' => (float) get_field('full_sheet_price', $post->ID),
-		'cutting_list_price' => (float) (get_field('cutting_list_price', $post->ID) ?: get_field('full_sheet_price', $post->ID)),
-		'machining' => [
-			'cut_to_size' => (bool) get_field('machining_cut_to_size', $post->ID),
-			'edgebanding' => (bool) get_field('machining_edgebanding', $post->ID),
-			'cnc' => (bool) get_field('machining_cnc', $post->ID),
-		],
-		// Machining Option slugs this decor can't take. Slugs rather than
-		// post IDs so the front end can compare straight against the
-		// data-option values it already uses.
-		'machining_excluded' => array_values(array_filter(array_map(function ($id) {
+	$decor_code = get_field('decor_code', $post->ID);
+	$decor_name = get_field('decor_name', $post->ID);
+	$full_sheet_price = (float) get_field('full_sheet_price', $post->ID);
+	$cutting_list_price = (float) (get_field('cutting_list_price', $post->ID) ?: $full_sheet_price);
+	$additional_cut_price = (float) (get_field('additional_cut_price', $post->ID) ?: 3.46);
+	$thickness_mm = (float) get_field('thickness_mm', $post->ID);
+	$core = get_field('core', $post->ID) ?: null;
+
+		$machining_excluded = array_values(array_filter(array_map(function ($id) {
 			$option = get_post($id);
 			return $option ? $option->post_name : null;
-		}, get_field('machining_excluded', $post->ID) ?: []))),
-		'spray_finishing' => (bool) get_field('spray_finishing', $post->ID),
-		'grain_match' => (bool) get_field('grain_match', $post->ID),
+		}, get_field('machining_excluded', $post->ID) ?: [])));
+		$spray_finishing = (bool) get_field('spray_finishing', $post->ID);
+		$grain_match = (bool) get_field('grain_match', $post->ID);
+
+		return [
+			'id' => $post->ID,
+			'brand' => $brand,
+			'collection' => $collection,
+			'decor_code' => $decor_code,
+			'decor_name' => $decor_name,
+			'core' => $core,
+			'name' => $decor_name ?: $post->post_title,
+			'title' => trim(($brand ? $brand . ' ' : '') . $decor_code),
+			'fullCode' => $decor_code,
+			'material' => $core ?: '–',
+			'length_mm' => (float) get_field('length_mm', $post->ID),
+			'width_mm' => (float) get_field('width_mm', $post->ID),
+			'length' => (float) get_field('length_mm', $post->ID),
+			'width' => (float) get_field('width_mm', $post->ID),
+			'thickness_mm' => $thickness_mm,
+			'thicknesses' => $thickness_mm ? [$thickness_mm] : [],
+			'full_sheet_price' => $full_sheet_price,
+			'cutting_list_price' => $cutting_list_price,
+			'additional_cut_price' => $additional_cut_price,
+			'price_sheet' => ($full_sheet_price > 0) ? '£' . number_format($full_sheet_price, 2) : '–',
+			'price_cut' => ($cutting_list_price > 0) ? '£' . number_format($cutting_list_price, 2) : (($full_sheet_price > 0) ? '£' . number_format($full_sheet_price, 2) : '–'),
+			'slides' => $slides,
+			'chars' => implode("\n", $lines),
+			'machining' => [
+				'cut_to_size' => (bool) get_field('machining_cut_to_size', $post->ID),
+				'edgebanding' => (bool) get_field('machining_edgebanding', $post->ID),
+				'cnc' => (bool) get_field('machining_cnc', $post->ID),
+			],
+			'machining_excluded' => $machining_excluded,
+			'machiningExcluded' => $machining_excluded,
+			'spray_finishing' => $spray_finishing,
+			'sprayFinishing' => $spray_finishing,
+			'grain_match' => $grain_match,
+			'grainMatch' => $grain_match,
 		'description' => get_field('description', $post->ID),
+		'desc' => get_field('description', $post->ID),
 		'b_side_description' => get_field('b_side_description', $post->ID),
+		'bside' => get_field('b_side_description', $post->ID),
 		'characteristics' => $characteristics,
 		'downloads' => $downloads,
 		'manufacturer_url' => get_field('manufacturer_url', $post->ID) ?: null,

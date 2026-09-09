@@ -65,23 +65,27 @@ function cutlist_proto_get_edge_tape_options()
 	foreach ($tapes as $tape) {
 		$size = $tape['size'];
 
-		if (!$tape['boards']) {
-			continue;
-		}
-
-		foreach ($tape['boards'] as $board) {
+		if (!empty($tape['boards'])) {
+			foreach ($tape['boards'] as $board) {
+				$options[] = [
+					'code' => $tape['tape_code'] . ($board['decor_code'] ? (' / ' . $board['decor_code']) : ''),
+					'name' => $tape['product_name'] . ($board['decor_name'] ? (' - ' . $board['decor_name']) : ''),
+					'size' => $size,
+					'unitPrice' => $tape['unit_price'],
+					'image' => $tape['image'],
+					'decorCode' => $board['decor_code'] ?? '',
+					'radiusEdgeFinish' => $tape['radius_edge_finish'],
+					'squareEdgeFinish' => $tape['square_edge_finish'],
+				];
+			}
+		} else {
 			$options[] = [
-				'code' => $tape['tape_code'] . ' / ' . $board['decor_code'],
-				'name' => $tape['product_name'] . ' - ' . $board['decor_name'],
+				'code' => $tape['tape_code'],
+				'name' => $tape['product_name'],
 				'size' => $size,
 				'unitPrice' => $tape['unit_price'],
 				'image' => $tape['image'],
-				// Which board (by decor code) this option is matched to — the
-				// front end only offers a tape option once its matched board
-				// has actually been added to the cutting list.
-				'decorCode' => $board['decor_code'],
-				// Which edge finishes this tape supports, for the Radius /
-				// Square toggle shown on an angled cut.
+				'decorCode' => '',
 				'radiusEdgeFinish' => $tape['radius_edge_finish'],
 				'squareEdgeFinish' => $tape['square_edge_finish'],
 			];
@@ -114,45 +118,80 @@ function cutlist_proto_get_spray_finishes()
  * classes/data-attributes) so the existing inline JS (supplier-tab
  * switching, product-row selection) needs no changes.
  */
+function cutlist_get_board_brands()
+{
+	$brands = [];
+	$terms = get_terms([
+		'taxonomy' => 'board_brand',
+		'hide_empty' => false,
+	]);
+	if (!empty($terms) && !is_wp_error($terms)) {
+		foreach ($terms as $t) {
+			$brands[$t->slug] = $t->name;
+		}
+	}
+	if (!$brands) {
+		$posts = get_posts([
+			'post_type' => 'board',
+			'numberposts' => -1,
+			'post_status' => 'publish',
+		]);
+		foreach ($posts as $p) {
+			$bterms = get_the_terms($p->ID, 'board_brand');
+			if ($bterms && !is_wp_error($bterms)) {
+				foreach ($bterms as $bt) {
+					$brands[$bt->slug] = $bt->name;
+				}
+			}
+		}
+	}
+	return $brands;
+}
+
+/**
+ * Supplier-tabs + AJAX-ready product-list markup for #decorPopup, grouped by brand.
+ */
 function cutlist_proto_render_decor_popup_inner($boards)
 {
-	$by_brand = [];
-	foreach ($boards as $board) {
-		$brand = $board['brand'] ?: 'Other';
-		$by_brand[$brand][] = $board;
+	$brands = cutlist_get_board_brands();
+
+	if (!$brands) {
+		// Fallback if no brands taxonomy exists
+		$by_brand = [];
+		foreach ($boards as $board) {
+			$brand = $board['brand'] ?: 'Other';
+			$by_brand[sanitize_title($brand)] = $brand;
+		}
+		$brands = $by_brand;
 	}
 
-	if (!$by_brand) {
+	if (!$brands) {
 		return '<div class="product-list active"><div class="product-row" style="cursor:default;"><span>' . esc_html__('No boards yet — add one in wp-admin under Boards.', 'cutlist-catalogue') . '</span></div></div>';
 	}
 
-	$brands = array_keys($by_brand);
+	$brand_slugs = array_keys($brands);
 
 	ob_start();
 	?>
 	<div class="supplier-tabs">
-		<?php foreach ($brands as $i => $brand): ?>
+		<?php foreach ($brand_slugs as $i => $slug): ?>
 			<div class="supplier-tab<?php echo $i === 0 ? ' active' : ''; ?>"
-				data-tab="<?php echo esc_attr(sanitize_title($brand)); ?>">
-				<?php echo esc_html($brand); ?>
+				data-tab="<?php echo esc_attr($slug); ?>"
+				data-brand="<?php echo esc_attr($slug); ?>">
+				<?php echo esc_html($brands[$slug]); ?>
 			</div>
 		<?php endforeach; ?>
 	</div>
-	<?php foreach ($brands as $i => $brand): ?>
-		<div class="product-list<?php echo $i === 0 ? ' active' : ''; ?>" id="<?php echo esc_attr(sanitize_title($brand)); ?>">
-			<?php foreach ($by_brand[$brand] as $board): ?>
-				<div class="product-row"
-					data-size="<?php echo esc_attr(($board['length_mm'] ?: '') . 'x' . ($board['width_mm'] ?: '')); ?>"
-					data-brand="<?php echo esc_attr($brand); ?>">
-					<span><?php echo esc_html($board['decor_code']); ?></span>
-					<span><?php echo esc_html($board['decor_name']); ?></span>
-					<!-- <span class="prod-size"><?php echo esc_html(($board['length_mm'] ?: '?') . ' x ' . ($board['width_mm'] ?: '?')); ?></span> -->
-					<span><?php echo esc_html($board['core'] ?: '—'); ?></span>
-					<span class="more">More info</span>
-				</div>
-			<?php endforeach; ?>
+	<?php foreach ($brand_slugs as $i => $slug): ?>
+		<div class="product-list<?php echo $i === 0 ? ' active' : ''; ?>" id="<?php echo esc_attr($slug); ?>" data-brand="<?php echo esc_attr($slug); ?>">
+			<div class="decor-popup-loading">
+				<span class="decor-popup-spinner"></span>
+				<span><?php esc_html_e('Loading boards...', 'cutlist-catalogue'); ?></span>
+			</div>
 		</div>
-	<?php endforeach;
+	<?php endforeach; ?>
+	<div class="product-list decor-search-results" id="decorSearchResults" style="display:none;"></div>
+	<?php
 	return ob_get_clean();
 }
 
@@ -168,7 +207,7 @@ function cutlist_proto_render_decor_cell()
 {
 	ob_start();
 	?>
-	<input placeholder="<?php esc_attr_e('Enter decor code or name', 'cutlist-catalogue'); ?>">
+	<input type="hidden" class="decor-real-input" value="" placeholder="<?php esc_attr_e('Enter decor code or name', 'cutlist-catalogue'); ?>">
 	<div class="decor-placeholder">
 		<span class="decor-placeholder-icon" aria-hidden="true">
 			<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -178,8 +217,7 @@ function cutlist_proto_render_decor_cell()
 			</svg>
 		</span>
 		<span class="decor-card-body">
-			<span
-				class="decor-placeholder-hint"><?php esc_html_e('Search decor code or name', 'cutlist-catalogue'); ?></span>
+			<input type="text" class="decor-placeholder-input" placeholder="<?php esc_attr_e('Search decor code or name', 'cutlist-catalogue'); ?>" autocomplete="off" spellcheck="false" />
 			<span class="decor-placeholder-action"><?php esc_html_e('Select a board', 'cutlist-catalogue'); ?></span>
 		</span>
 		<span class="decor-chevron" aria-hidden="true">
@@ -270,6 +308,7 @@ function cutlist_proto_build_pm_products($boards)
 			'chars' => implode("\n", $lines),
 			'full_sheet_price' => (float) ($board['full_sheet_price'] ?? 0),
 			'cutting_list_price' => (float) (!empty($board['cutting_list_price']) ? $board['cutting_list_price'] : ($board['full_sheet_price'] ?? 0)),
+			'additional_cut_price' => (float) (!empty($board['additional_cut_price']) ? $board['additional_cut_price'] : 3.46),
 			'price_sheet' => (!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–',
 			'price_cut' => (!empty($board['cutting_list_price']) && (float) $board['cutting_list_price'] > 0) ? '£' . number_format((float) $board['cutting_list_price'], 2) : ((!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–'),
 			'slides' => $slides,
@@ -370,20 +409,12 @@ add_shortcode('cutlist_table', function () {
 		]
 	);
 
-	$current_order_id = function_exists('cutlist_get_current_order_id') ? cutlist_get_current_order_id() : 0;
-	$saved_data = ($current_order_id && function_exists('cutlist_get_saved_order_data')) ? cutlist_get_saved_order_data($current_order_id) : null;
-	$preloaded_order_data_json = $saved_data ? wp_json_encode($saved_data) : 'null';
-
-	$body .= '<!-- PHP Debug Cutlist: order_id=' . $current_order_id . ' | has_saved_data=' . ($saved_data ? 'YES' : 'NO') . ' | raw_len=' . strlen($preloaded_order_data_json) . ' -->';
-
 	wp_add_inline_script(
 		'cutlist-main',
 		'window.cutlistPmProducts = ' . $pm_products_json . ';' .
 		'window.cutlistEdgeTapes = ' . $edge_tapes_json . ';' .
 		'window.cutlistSprayFinishes = ' . $spray_finishes_json . ';' .
-		'window.cutlistMachiningOptions = ' . $machining_options_json . ';' .
-		'window.cutlistOrderId = ' . (int) $current_order_id . ';' .
-		'window.cutlistPreloadedOrderData = ' . $preloaded_order_data_json . ';',
+		'window.cutlistMachiningOptions = ' . $machining_options_json . ';',
 		'before'
 	);
 	wp_add_inline_script(

@@ -363,6 +363,28 @@
             "append": ""
         },
         {
+            "key": "field_board_additional_cut_price",
+            "label": "Additional cut price (after 20 cuts per sheet)",
+            "name": "additional_cut_price",
+            "aria-label": "",
+            "type": "number",
+            "instructions": "Additional charge per single cut when the number of panels included in a single sheet cutting charge (20 cuts per sheet) is exceeded.",
+            "required": 0,
+            "conditional_logic": false,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "step": "0.01",
+            "default_value": "3.46",
+            "min": "",
+            "max": "",
+            "placeholder": "3.46",
+            "prepend": "",
+            "append": ""
+        },
+        {
             "key": "field_board_details_heading",
             "label": "Details",
             "name": "",
