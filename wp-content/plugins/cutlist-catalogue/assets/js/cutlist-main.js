@@ -72,16 +72,18 @@ function clearPanelInfoPopup(row) {
 
 // Delegated so it covers every row without a per-row listener, same
 // pattern as the decor-input handling below.
-table.addEventListener("input", function (e) {
-    var textarea = e.target.closest(".panel-info-textarea");
-    if (!textarea) return;
+if (table) {
+    table.addEventListener("input", function (e) {
+        var textarea = e.target.closest(".panel-info-textarea");
+        if (!textarea) return;
 
-    var row = textarea.closest("tr");
-    var popupEl = textarea.closest(".panel-info-popup");
-    row.dataset.panelInfo = textarea.value;
-    popupEl.querySelector(".panel-info-counter-value").textContent =
-        PANEL_INFO_MAX_LENGTH - textarea.value.length;
-});
+        var row = textarea.closest("tr");
+        var popupEl = textarea.closest(".panel-info-popup");
+        row.dataset.panelInfo = textarea.value;
+        popupEl.querySelector(".panel-info-counter-value").textContent =
+            PANEL_INFO_MAX_LENGTH - textarea.value.length;
+    });
+}
 
 // Enforce numeric-only input for Length, Width, and Qty fields
 document.addEventListener("keydown", function (e) {
@@ -201,8 +203,20 @@ function toggleInvalid(input) {
         return;
     }
 
-    if (!input.disabled && input.value.trim() === "") {
-        input.classList.add("invalid");
+    if (!input.disabled) {
+        var val = input.value.trim();
+        if (val === "") {
+            input.classList.add("invalid");
+        } else if (input.matches("td.small:not(.edging-input) input")) {
+            var num = parseInt(val, 10);
+            if (isNaN(num) || num < 30) {
+                input.classList.add("invalid");
+            } else {
+                input.classList.remove("invalid");
+            }
+        } else {
+            input.classList.remove("invalid");
+        }
     } else {
         input.classList.remove("invalid");
     }
@@ -211,8 +225,14 @@ function toggleInvalid(input) {
 
 // A part can't be cut larger than the selected board's own length/width (minus
 // the 40mm cutting margin, stored as data-max-length/data-max-width when a
+// board is picked) and must be at least 30mm.
 function checkMaxDimension(input, row) {
     if (!input || !row) return;
+    if (row.classList.contains("fs-row") || (row.closest && row.closest("#fsTable"))) {
+        hideMaxTooltip(input);
+        input.classList.remove("invalid");
+        return;
+    }
     var isLength = getDimInputs(row).lengthInput === input;
     var defaultMax = isLength ? (SHEET_LENGTH - 2 * SUMMARY_EDGE_TRIM) : (SHEET_WIDTH - 2 * SUMMARY_EDGE_TRIM);
     var max = row.dataset[isLength ? 'maxLength' : 'maxWidth'] || defaultMax;
@@ -221,9 +241,14 @@ function checkMaxDimension(input, row) {
     hideMaxTooltip(input);
 
     var value = parseInt(input.value, 10);
-    if (!isNaN(value) && value > parseInt(max, 10)) {
-        input.classList.add("invalid");
-        showMaxTooltip(input, 'Maximum ' + label + ' is ' + max + 'mm');
+    if (!isNaN(value)) {
+        if (value < 30) {
+            input.classList.add("invalid");
+            showMaxTooltip(input, 'Minimum ' + label + ' is 30mm');
+        } else if (value > parseInt(max, 10)) {
+            input.classList.add("invalid");
+            showMaxTooltip(input, 'Maximum ' + label + ' is ' + max + 'mm');
+        }
     }
 }
 
@@ -236,6 +261,7 @@ function showMaxTooltip(input, message) {
 }
 
 function hideMaxTooltip(input) {
+    if (!input || !input.parentNode) return;
     var existing = input.parentNode.querySelector(".cutlist-max-tooltip");
     if (existing) existing.remove();
 }
@@ -588,6 +614,8 @@ function openMachiningOverlay(row) {
     // Reopening a row starts with everything collapsed, so the board shows
     // its cuts without any option's dimensions layered over them.
     machiningActiveIndex = -1;
+    var anyB = machiningAppliedItems.some(function (i) { return i.view === "B"; });
+    machiningBoardView = anyB ? "B" : "A";
 
     // Availability depends on the row (decor, capabilities, thickness), so
     // the dropdown is rebuilt per row rather than once at load.
@@ -658,7 +686,7 @@ function updateSprayBtn(row) {
 
 
 function renumberRows() {
-
+    if (!table) return;
     table.querySelectorAll(":scope > * > tr:not(.header-row):not(.section-row)")
         .forEach((row, i) => {
 
@@ -674,69 +702,75 @@ function renumberRows() {
 var rowDragging = null;
 // Same "explicit tbody, or the table itself" fallback the ADD ROW handler
 // below already uses — this table has no <tbody> in its markup.
-var rowsContainer = table.querySelector(":scope > tbody") || table;
+var rowsContainer = table ? (table.querySelector(":scope > tbody") || table) : null;
 
 function isReorderableRow(row) {
     return !!row && row.parentNode === rowsContainer && !row.classList.contains("header-row");
 }
 
-table.addEventListener("mousedown", function (e) {
-    var handle = e.target.closest(".actions .icon.move");
-    if (!handle) return;
-    var row = handle.closest("tr");
-    if (isReorderableRow(row)) row.setAttribute("draggable", "true");
-});
+if (table) {
+    table.addEventListener("mousedown", function (e) {
+        var handle = e.target.closest(".actions .icon.move");
+        if (!handle) return;
+        var row = handle.closest("tr");
+        if (isReorderableRow(row)) row.setAttribute("draggable", "true");
+    });
+}
 
 // A mousedown on the handle that never turns into a drag (a plain click, or
 // the mouse released outside the table) would otherwise leave the row
 document.addEventListener("mouseup", function () {
     if (rowDragging) return; // dragend already owns cleanup for a real drag
-    table.querySelectorAll('tr[draggable="true"]').forEach(function (row) {
-        row.removeAttribute("draggable");
+    if (table) {
+        table.querySelectorAll('tr[draggable="true"]').forEach(function (row) {
+            row.removeAttribute("draggable");
+        });
+    }
+});
+
+if (table) {
+    table.addEventListener("dragstart", function (e) {
+        var row = e.target.closest("tr");
+        if (!isReorderableRow(row) || row.getAttribute("draggable") !== "true") {
+            e.preventDefault();
+            return;
+        }
+        rowDragging = row;
+        row.classList.add("row-dragging");
+        clHideOverlay(); // the insert-row hover strip would otherwise flicker under the cursor
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", ""); // Firefox refuses to start a drag without this
     });
-});
 
-table.addEventListener("dragstart", function (e) {
-    var row = e.target.closest("tr");
-    if (!isReorderableRow(row) || row.getAttribute("draggable") !== "true") {
-        e.preventDefault();
-        return;
-    }
-    rowDragging = row;
-    row.classList.add("row-dragging");
-    clHideOverlay(); // the insert-row hover strip would otherwise flicker under the cursor
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", ""); // Firefox refuses to start a drag without this
-});
+    table.addEventListener("dragover", function (e) {
+        if (!rowDragging) return;
+        var overRow = e.target.closest("tr");
+        if (!isReorderableRow(overRow) || overRow === rowDragging) return;
 
-table.addEventListener("dragover", function (e) {
-    if (!rowDragging) return;
-    var overRow = e.target.closest("tr");
-    if (!isReorderableRow(overRow) || overRow === rowDragging) return;
+        e.preventDefault(); // required for this element to become a valid drop target
+        e.dataTransfer.dropEffect = "move";
 
-    e.preventDefault(); // required for this element to become a valid drop target
-    e.dataTransfer.dropEffect = "move";
+        // Reorders live as the row is dragged, the same feel as the row
+        // physically following the cursor — not just on drop.
+        var rect = overRow.getBoundingClientRect();
+        var before = (e.clientY - rect.top) < rect.height / 2;
+        overRow.parentNode.insertBefore(rowDragging, before ? overRow : overRow.nextSibling);
+    });
 
-    // Reorders live as the row is dragged, the same feel as the row
-    // physically following the cursor — not just on drop.
-    var rect = overRow.getBoundingClientRect();
-    var before = (e.clientY - rect.top) < rect.height / 2;
-    overRow.parentNode.insertBefore(rowDragging, before ? overRow : overRow.nextSibling);
-});
+    table.addEventListener("drop", function (e) {
+        if (rowDragging) e.preventDefault(); // stop the browser navigating/opening the dropped "text"
+    });
 
-table.addEventListener("drop", function (e) {
-    if (rowDragging) e.preventDefault(); // stop the browser navigating/opening the dropped "text"
-});
-
-table.addEventListener("dragend", function () {
-    if (rowDragging) {
-        rowDragging.classList.remove("row-dragging");
-        rowDragging.removeAttribute("draggable");
-        rowDragging = null;
-        renumberRows();
-        markDirty();
-    }
-});
+    table.addEventListener("dragend", function () {
+        if (rowDragging) {
+            rowDragging.classList.remove("row-dragging");
+            rowDragging.removeAttribute("draggable");
+            rowDragging = null;
+            renumberRows();
+            markDirty();
+        }
+    });
+}
 
 
 // Once a board is chosen the decor cell swaps its input for a card: swatch,
@@ -745,7 +779,28 @@ function renderDecorCard(row, code) {
     var cell = row.querySelector(".decor");
     if (!cell) return;
 
-    var board = window.cutlistPmProducts && window.cutlistPmProducts[code];
+    var board = (window.cutlistPmProducts && window.cutlistPmProducts[code]) || null;
+    if (!board && window.cutlistPmProducts && code) {
+        var cleanCode = code.trim().toLowerCase();
+        for (var k in window.cutlistPmProducts) {
+            if (k.trim().toLowerCase() === cleanCode) {
+                board = window.cutlistPmProducts[k];
+                break;
+            }
+        }
+    }
+    if (!board && code) {
+        var dName = row.dataset.decorName || "";
+        var dImg = row.dataset.image || "";
+        if (dName || dImg || code) {
+            board = {
+                title: code,
+                name: dName,
+                swatch: dImg,
+                brand: ""
+            };
+        }
+    }
     if (!board) {
         clearDecorCard(row);
         return;
@@ -805,9 +860,12 @@ function resetRow(row) {
     clearPanelInfoPopup(row);
 
     delete row.dataset.image;
+    delete row.dataset.decorCode;
+    delete row.dataset.decorName;
     delete row.dataset.maxLength;
     delete row.dataset.maxWidth;
     delete row.dataset.priceSheet;
+    delete row.dataset.machiningApplied;
     edgeState.delete(row);
     sprayStateByRow.delete(row);
 
@@ -871,12 +929,15 @@ function createRow() {
 
 // ADD ROW
 
-document.getElementById("addRowBtn").addEventListener("click", function () {
-
-    (table.querySelector(":scope > tbody") || table).appendChild(createRow());
-    renumberRows();
-
-});
+var addRowBtnEl = document.getElementById("addRowBtn");
+if (addRowBtnEl) {
+    addRowBtnEl.addEventListener("click", function () {
+        if (table) {
+            (table.querySelector(":scope > tbody") || table).appendChild(createRow());
+            renumberRows();
+        }
+    });
+}
 
 
 // ── CUTTING LIST: INSERT ROW / SECTION HOVER ──────────────────────────
@@ -954,19 +1015,21 @@ function clScheduleHide() {
     clHideTimer = setTimeout(clHideOverlay, 120);
 }
 
-table.addEventListener('mouseover', function (e) {
-    var tr = e.target.closest('tr');
-    if (tr && !tr.classList.contains('header-row') && !tr.classList.contains('section-row') && tr.closest('table') === table) {
-        clShowOverlay(tr);
-    }
-});
+if (table) {
+    table.addEventListener('mouseover', function (e) {
+        var tr = e.target.closest('tr');
+        if (tr && !tr.classList.contains('header-row') && !tr.classList.contains('section-row') && tr.closest('table') === table) {
+            clShowOverlay(tr);
+        }
+    });
 
-table.addEventListener('mouseout', function (e) {
-    var fromTr = e.target.closest('tr');
-    if (fromTr && !fromTr.classList.contains('header-row') && !fromTr.classList.contains('section-row')) {
-        clScheduleHide();
-    }
-});
+    table.addEventListener('mouseout', function (e) {
+        var fromTr = e.target.closest('tr');
+        if (fromTr && !fromTr.classList.contains('header-row') && !fromTr.classList.contains('section-row')) {
+            clScheduleHide();
+        }
+    });
+}
 
 clOverlay.addEventListener('mouseenter', function () {
     if (clHideTimer) { clearTimeout(clHideTimer); clHideTimer = null; }
@@ -1038,39 +1101,46 @@ function renumberFsRows() {
     });
 }
 
-document.getElementById("addFsRowBtn").addEventListener("click", function () {
-    fsTable.appendChild(createFsRow());
-    renumberFsRows();
-});
-
-fsTable.addEventListener("click", function (e) {
-
-    const decorCell = e.target.closest(".decor");
-    if (decorCell) {
-        let row = decorCell.closest("tr");
-        if (typeof openDecorPopupForRow === "function") {
-            openDecorPopupForRow(row);
-        } else {
-            activeDecorInput = decorCell.querySelector(".decor-real-input") || decorCell.querySelector("input");
-            const pos = decorCell.getBoundingClientRect();
-            popup.style.left = pos.left + "px";
-            popup.style.top = (pos.bottom + window.scrollY) + "px";
-            popup.style.display = "block";
-            if (typeof ensureActiveBrandLoaded === "function") {
-                ensureActiveBrandLoaded();
-            }
+var addFsRowBtnEl = document.getElementById("addFsRowBtn");
+if (addFsRowBtnEl) {
+    addFsRowBtnEl.addEventListener("click", function () {
+        if (fsTable) {
+            fsTable.appendChild(createFsRow());
+            renumberFsRows();
         }
-        return;
-    }
+    });
+}
 
-    const deleteBtn = e.target.closest(".delete");
-    if (deleteBtn) {
-        deleteBtn.closest("tr").remove();
-        renumberFsRows();
-        return;
-    }
+if (fsTable) {
+    fsTable.addEventListener("click", function (e) {
 
-});
+        const decorCell = e.target.closest(".decor");
+        if (decorCell) {
+            let row = decorCell.closest("tr");
+            if (typeof openDecorPopupForRow === "function") {
+                openDecorPopupForRow(row);
+            } else {
+                activeDecorInput = decorCell.querySelector(".decor-real-input") || decorCell.querySelector("input");
+                const pos = decorCell.getBoundingClientRect();
+                popup.style.left = pos.left + "px";
+                popup.style.top = (pos.bottom + window.scrollY) + "px";
+                popup.style.display = "block";
+                if (typeof ensureActiveBrandLoaded === "function") {
+                    ensureActiveBrandLoaded();
+                }
+            }
+            return;
+        }
+
+        const deleteBtn = e.target.closest(".delete");
+        if (deleteBtn) {
+            deleteBtn.closest("tr").remove();
+            renumberFsRows();
+            return;
+        }
+
+    });
+}
 
 
 // EDGING TAPE TABLE
@@ -1094,6 +1164,7 @@ function etOptionHTML(t, selected) {
 // Only offer a tape once its matched board is actually on the cutting list.
 function etCuttingListDecorCodes() {
     var codes = new Set();
+    if (!table) return codes;
     table.querySelectorAll('tr:not(.header-row) .decor input').forEach(function (input) {
         var code = input.value.split(' - ')[0].trim();
         if (code) codes.add(code);
@@ -1148,6 +1219,59 @@ function etBuildRow() {
     return tr;
 }
 
+function applyTapeSelectionToEtRow(row, code, qty, fallbackPrice) {
+    if (!row || !code) return;
+    var tapeObj = (window.cutlistEdgeTapes || []).find(function (t) {
+        return t.code === code || t.code === code.split(" / ")[0] || (t.code && code && t.code.trim().toLowerCase() === code.trim().toLowerCase());
+    });
+    var sel = row.querySelector(".Select2");
+    if (!sel) return;
+
+    var price = tapeObj ? (parseFloat(tapeObj.unitPrice !== undefined ? tapeObj.unitPrice : tapeObj.price) || 0) : 0;
+    if (price <= 0 && fallbackPrice !== undefined && fallbackPrice !== null && fallbackPrice !== "") {
+        price = parseFloat(fallbackPrice) || 0;
+    }
+    var name = tapeObj ? (tapeObj.name || "") : "";
+    var size = tapeObj ? (tapeObj.size || (tapeObj.thickness ? tapeObj.thickness + "mm" : "")) : "";
+
+    sel.dataset.price = price;
+    sel.dataset.code = code;
+
+    var inputSpan = sel.querySelector(".Select2__input");
+    if (inputSpan) {
+        inputSpan.innerHTML =
+            '<div class="edgebanding-option">' +
+            '<div class="code">' + code + '</div>' +
+            '<div class="name">' + name + '</div>' +
+            (size ? '<div class="size">' + size + '</div>' : '') +
+            '</div>';
+    }
+
+    sel.classList.remove("isEmpty");
+    sel.classList.remove("is-open");
+    var dd = sel.querySelector(".Select2__dropdown");
+    if (dd) dd.innerHTML = etAllOptionsHTML(code);
+
+    var qtyInput = row.querySelector(".et-qty-input");
+    if (qtyInput) {
+        qtyInput.disabled = false;
+        if (qty !== undefined && qty !== null && qty !== "") {
+            qtyInput.value = qty;
+            var num = parseFloat(qty);
+            qtyInput.classList.toggle("invalid", isNaN(num) || num < ET_MIN_QTY);
+        } else {
+            qtyInput.classList.add("invalid");
+        }
+    }
+    row.classList.add("active");
+
+    var priceCell = row.querySelector(".et-unit-price");
+    if (priceCell) priceCell.textContent = summaryMoney(price);
+
+    var addBtn = document.getElementById("addEtRowBtn");
+    if (addBtn) addBtn.disabled = false;
+}
+
 function etRenumber() {
     document.querySelectorAll('#etTbody tr.et-row').forEach(function (row, i) {
         row.querySelector('.td-index').textContent = i + 1;
@@ -1164,68 +1288,89 @@ document.querySelectorAll('#etTbody .Select2__dropdown').forEach(function (dd) {
     dd.innerHTML = etAllOptionsHTML('');
 });
 
-document.getElementById('etTableArea').addEventListener('click', function (e) {
+var etTableAreaEl = document.getElementById('etTableArea');
+if (etTableAreaEl) {
+    etTableAreaEl.addEventListener('click', function (e) {
 
-    var wrapper = e.target.closest('.Select2__input-wrapper');
-    if (wrapper) {
-        var sel = wrapper.closest('.Select2');
-        var isOpen = sel.classList.contains('is-open');
-        etCloseAll(null);
-        if (!isOpen) sel.classList.add('is-open');
-        return;
-    }
+        var wrapper = e.target.closest('.Select2__input-wrapper');
+        if (wrapper) {
+            var sel = wrapper.closest('.Select2');
+            var isOpen = sel.classList.contains('is-open');
+            etCloseAll(null);
+            if (!isOpen) sel.classList.add('is-open');
+            return;
+        }
 
-    var opt = e.target.closest('.Select2__option');
-    if (opt && !opt.classList.contains('Select2__option--empty')) {
-        var sel = opt.closest('.Select2');
-        var row = opt.closest('tr.et-row');
-        var code = opt.dataset.code;
-        var name = opt.dataset.name;
-        var size = opt.dataset.size;
-        var price = parseFloat(opt.dataset.price) || 0;
-        sel.dataset.price = price;
-        sel.dataset.code = code;
+        var opt = e.target.closest('.Select2__option');
+        if (opt && !opt.classList.contains('Select2__option--empty')) {
+            var sel = opt.closest('.Select2');
+            var row = opt.closest('tr.et-row');
+            var code = opt.dataset.code;
+            var name = opt.dataset.name;
+            var size = opt.dataset.size;
+            var price = parseFloat(opt.dataset.price) || 0;
+            sel.dataset.price = price;
+            sel.dataset.code = code;
 
-        var inputSpan = sel.querySelector('.Select2__input');
-        inputSpan.innerHTML =
-            '<div class="edgebanding-option">' +
-            '<div class="code">' + code + '</div>' +
-            '<div class="name">' + name + '</div>' +
-            '<div class="size">' + size + '</div>' +
-            '</div>';
+            var inputSpan = sel.querySelector('.Select2__input');
+            inputSpan.innerHTML =
+                '<div class="edgebanding-option">' +
+                '<div class="code">' + code + '</div>' +
+                '<div class="name">' + name + '</div>' +
+                '<div class="size">' + size + '</div>' +
+                '</div>';
 
-        sel.classList.remove('isEmpty');
-        sel.classList.remove('is-open');
-        sel.querySelector('.Select2__dropdown').innerHTML = etAllOptionsHTML(code);
+            sel.classList.remove('isEmpty');
+            sel.classList.remove('is-open');
+            sel.querySelector('.Select2__dropdown').innerHTML = etAllOptionsHTML(code);
 
-        var qtyInput = row.querySelector('.et-qty-input');
-        if (qtyInput) { qtyInput.disabled = false; qtyInput.focus(); }
-        row.classList.add('active');
+            var qtyInput = row.querySelector('.et-qty-input');
+            if (qtyInput) {
+                qtyInput.disabled = false;
+                var num = parseFloat(qtyInput.value.trim());
+                if (isNaN(num) || num < ET_MIN_QTY) {
+                    qtyInput.classList.add('invalid');
+                } else {
+                    qtyInput.classList.remove('invalid');
+                }
+                qtyInput.focus();
+            }
+            row.classList.add('active');
 
-        var priceCell = row.querySelector('.et-unit-price');
-        if (priceCell) priceCell.textContent = '£' + price.toFixed(2);
+            var priceCell = row.querySelector('.et-unit-price');
+            if (priceCell) priceCell.textContent = summaryMoney(price);
 
-        document.getElementById('addEtRowBtn').disabled = false;
-        return;
-    }
+            var addBtn = document.getElementById('addEtRowBtn');
+            if (addBtn) addBtn.disabled = false;
+            if (typeof markDirty === "function") markDirty();
+            return;
+        }
 
-    // Now a span.delete, matching the cutting list's × — this listener is bound to
-    // #etTableArea, so it can't collide with the cutting list's own .delete
-    var removeBtn = e.target.closest('.delete');
-    if (removeBtn) {
-        removeBtn.closest('tr').remove();
-        etRenumber();
-        return;
-    }
+        // Now a span.delete, matching the cutting list's × — this listener is bound to
+        // #etTableArea, so it can't collide with the cutting list's own .delete
+        var removeBtn = e.target.closest('.delete');
+        if (removeBtn) {
+            removeBtn.closest('tr').remove();
+            etRenumber();
+            if (typeof markDirty === "function") markDirty();
+            return;
+        }
 
-});
+    });
+}
 
-document.getElementById('addEtRowBtn').addEventListener('click', function () {
-    var tbody = document.getElementById('etTbody');
-    var row = etBuildRow();
-    tbody.appendChild(row);
-    etRenumber();
-});
+var addEtRowBtnEl = document.getElementById('addEtRowBtn');
+if (addEtRowBtnEl) {
+    addEtRowBtnEl.addEventListener('click', function () {
+        var tbody = document.getElementById('etTbody');
+        if (tbody) {
+            var row = etBuildRow();
+            tbody.appendChild(row);
+            etRenumber();
+            if (typeof markDirty === "function") markDirty();
+        }
+    });
+}
 
 document.addEventListener('click', function (e) {
     if (!e.target.closest('#etTableArea .Select2')) {
@@ -1236,24 +1381,38 @@ document.addEventListener('click', function (e) {
 // Edging tape is sold with a 5 metre minimum per roll
 var ET_MIN_QTY = 5;
 
-document.getElementById('etTableArea').addEventListener('input', function (e) {
-    if (!e.target.classList.contains('et-qty-input')) return;
-    hideMaxTooltip(e.target);
-    var val = parseFloat(e.target.value);
-    var isInvalid = !isNaN(val) && val < ET_MIN_QTY;
-    e.target.classList.toggle('invalid', isInvalid);
-    if (isInvalid) showMaxTooltip(e.target, 'Minimum quantity is ' + ET_MIN_QTY + 'm');
-});
+if (etTableAreaEl) {
+    etTableAreaEl.addEventListener('input', function (e) {
+        if (!e.target.classList.contains('et-qty-input')) return;
+        hideMaxTooltip(e.target);
+        var valStr = e.target.value.trim();
+        var val = parseFloat(valStr);
+        var isInvalid = !valStr || isNaN(val) || val < ET_MIN_QTY;
+        e.target.classList.toggle('invalid', isInvalid);
+        if (isInvalid && valStr && !isNaN(val)) {
+            showMaxTooltip(e.target, 'Minimum quantity is ' + ET_MIN_QTY + 'm');
+        }
+        if (typeof markDirty === "function") markDirty();
+    });
 
-document.getElementById('etTableArea').addEventListener('focusout', function (e) {
-    if (!e.target.classList.contains('et-qty-input')) return;
-    var val = parseFloat(e.target.value);
-    if (!isNaN(val) && val < ET_MIN_QTY) {
-        e.target.value = ET_MIN_QTY;
-        e.target.classList.remove('invalid');
-    }
-    hideMaxTooltip(e.target);
-});
+    etTableAreaEl.addEventListener('focusout', function (e) {
+        if (!e.target.classList.contains('et-qty-input')) return;
+        var valStr = e.target.value.trim();
+        var val = parseFloat(valStr);
+        if (valStr !== '' && !isNaN(val) && val < ET_MIN_QTY) {
+            e.target.value = ET_MIN_QTY;
+            e.target.classList.remove('invalid');
+        } else if (!valStr) {
+            var row = e.target.closest('tr');
+            var sel = row ? row.querySelector('.Select2') : null;
+            if (sel && !sel.classList.contains('isEmpty')) {
+                e.target.classList.add('invalid');
+            }
+        }
+        hideMaxTooltip(e.target);
+        if (typeof markDirty === "function") markDirty();
+    });
+}
 
 
 // ========================================== UPDATE BASKET BUTTON
@@ -1285,11 +1444,12 @@ function collectCuttingListItems() {
         if (!decorInput) return;
 
         var decor = decorInput.value.trim();
-        var cells = row.querySelectorAll("td.small input");
-        var length = cells[0] ? cells[0].value.trim() : "";
-        var width = cells[1] ? cells[1].value.trim() : "";
+        var dims = getDimInputs(row);
+        var length = dims.lengthInput ? dims.lengthInput.value.trim() : "";
+        var width = dims.widthInput ? dims.widthInput.value.trim() : "";
         var qty = row.querySelector(".qty input") ? row.querySelector(".qty input").value.trim() : "";
         var desc = row.querySelector(".desc input") ? row.querySelector(".desc input").value.trim() : "";
+        var panelInfo = row.dataset.panelInfo ? row.dataset.panelInfo.trim() : "";
         var thickSelect = row.querySelector(".thick select");
         var thick = thickSelect ? thickSelect.value : "";
 
@@ -1364,6 +1524,7 @@ function collectCuttingListItems() {
             width: width,
             qty: parseInt(qty, 10) || 1,
             description: desc,
+            panelInfo: panelInfo,
             section: currentSection,
             edgeL1: edges.L1 || "",
             edgeL2: edges.L2 || "",
@@ -1520,7 +1681,7 @@ function computeCutItemPrices(cutItems) {
                 var itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
                 var totalItemSurcharge = surchargePerSprayPanel * itemQty;
                 item.spraySurcharge = totalItemSurcharge;
-                item.spraySurchargeSummary = "Charge added to reach minimum order value of £330.00 for spray finishing (" + summaryMoney(totalItemSurcharge) + ")";
+                item.spraySurchargeSummary = "Charge added to reach minimum order value of " + summaryMoney(330) + " for spray finishing (" + summaryMoney(totalItemSurcharge) + ")";
                 extraUnitPrice += surchargePerSprayPanel;
             } else {
                 item.spraySurcharge = 0;
@@ -1640,6 +1801,11 @@ function openSprayMinModal(currentVal, options) {
 function sendCutlistToWcCart(options) {
     options = options || {};
 
+    if (typeof hasInvalidFilledInputs === "function" && hasInvalidFilledInputs()) {
+        alert("Please correct invalid inputs before proceeding. Ensure dimensions meet board limits and edging tape quantity is at least 5m.");
+        return;
+    }
+
     if (typeof validateGrainFilesBeforeCart === "function" && !validateGrainFilesBeforeCart()) {
         return;
     }
@@ -1666,8 +1832,10 @@ function sendCutlistToWcCart(options) {
 
     if (typeof cutlistWcVars === "undefined" || !cutlistWcVars.ajax_url) {
         if (options.redirect === "cart" && typeof cutlistWcVars !== "undefined" && cutlistWcVars.cart_url) {
+            try { saveDraft(); } catch (e) { }
             window.location.href = cutlistWcVars.cart_url;
         } else if (options.redirect === "checkout" && typeof cutlistWcVars !== "undefined" && cutlistWcVars.checkout_url) {
+            try { saveDraft(); } catch (e) { }
             window.location.href = cutlistWcVars.checkout_url;
         }
         return;
@@ -1682,7 +1850,7 @@ function sendCutlistToWcCart(options) {
         ? window.sprayMinSurchargeAmount
         : 0;
 
-    var grainInfoInput = document.getElementById("grainMatchingText") || document.getElementById("grainNotes") || document.getElementById("grainInfo") || document.querySelector("textarea[name='grain_notes']") || document.querySelector("textarea[name='grainInfo']");
+    var grainInfoInput = document.getElementById("grainInfoText") || document.querySelector(".grain-info-textarea") || document.getElementById("grainMatchingText") || document.getElementById("grainNotes") || document.getElementById("grainInfo") || document.querySelector("textarea[name='grain_notes']") || document.querySelector("textarea[name='grainInfo']");
     var grainInfoVal = grainInfoInput ? grainInfoInput.value.trim() : (typeof window.cutlistGrainInfo !== "undefined" ? window.cutlistGrainInfo : "");
 
     formData.append("data", JSON.stringify({
@@ -1743,6 +1911,9 @@ function sendCutlistToWcCart(options) {
             console.groupEnd();
 
             if (res && res.success && res.data) {
+                try {
+                    saveDraft();
+                } catch (e) { }
                 if (options.redirect === "cart") {
                     window.location.href = res.data.cart_url || (typeof cutlistWcVars !== "undefined" ? cutlistWcVars.cart_url : "/cart/");
                 } else if (options.redirect === "checkout") {
@@ -1802,18 +1973,27 @@ function collectEdgingTapeItems() {
         var codeEl = sel.querySelector(".Select2__input .code");
         var nameEl = sel.querySelector(".Select2__input .name");
         var sizeEl = sel.querySelector(".Select2__input .size");
-        var qty = parseFloat(row.querySelector(".et-qty-input").value) || ET_MIN_QTY;
-        if (qty < ET_MIN_QTY) qty = ET_MIN_QTY;
+        var qtyInput = row.querySelector(".et-qty-input");
+        var qtyVal = qtyInput ? qtyInput.value.trim() : "";
+        if (!qtyVal) return; // User didn't add any quantity! Do NOT include in summary or basket!
+        var qty = parseFloat(qtyVal);
+        if (isNaN(qty) || qty < ET_MIN_QTY) return; // Must be valid and >= 5m
         var price = parseFloat(sel.dataset.price) || 0;
 
         var codeVal = codeEl ? codeEl.textContent.trim() : "";
-        var tapeObj = (window.cutlistEdgeTapes || []).find(function (t) { return t.code === codeVal; });
+        var tapeObj = (window.cutlistEdgeTapes || []).find(function (t) {
+            return t.code === codeVal || t.code === codeVal.split(" / ")[0] || (t.code && codeVal && t.code.trim().toLowerCase() === codeVal.trim().toLowerCase());
+        });
+        if (price <= 0 && tapeObj) {
+            price = parseFloat(tapeObj.unitPrice !== undefined ? tapeObj.unitPrice : tapeObj.price) || 0;
+            sel.dataset.price = price;
+        }
         var imageUrl = (tapeObj && tapeObj.image) ? tapeObj.image : "";
 
         items.push({
             code: codeVal,
-            name: nameEl ? nameEl.textContent.trim() : "",
-            size: sizeEl ? sizeEl.textContent.trim() : "",
+            name: nameEl ? nameEl.textContent.trim() : (tapeObj ? tapeObj.name : ""),
+            size: sizeEl ? sizeEl.textContent.trim() : (tapeObj ? tapeObj.size : ""),
             image: imageUrl,
             qty: qty,
             unitPrice: price
@@ -1835,6 +2015,7 @@ function collectEdgingTapeItems() {
 function collectMachiningItems() {
 
     var byOption = {};
+    if (typeof table === "undefined" || !table) return [];
 
     table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
 
@@ -1976,7 +2157,7 @@ function collectMachiningItems() {
         byOption["spray_min_charge"] = {
             label: "Spray finishing minimum order charge",
             code: "SPRAY-MIN",
-            description: "Charge added to reach minimum order value of £330.00 for spray finishing",
+            description: "Charge added to reach minimum order value of " + summaryMoney(330) + " for spray finishing",
             qty: 1,
             unitPrice: window.sprayMinSurchargeAmount,
             unit: "operation"
@@ -3550,53 +3731,56 @@ function openCutPlanModal(planKey) {
 // The summary is rebuilt from scratch on every basket update, so its
 // Details toggles (and the plan boxes' click-to-open) are wired via
 // delegation instead of per-element listeners.
-summarySection.addEventListener("click", function (e) {
+if (summarySection) {
+    summarySection.addEventListener("click", function (e) {
 
-    var cartBtn = e.target.closest("#btnWcCart, .btn-wc-cart");
-    if (cartBtn) {
-        e.preventDefault();
-        sendCutlistToWcCart({ redirect: "cart" });
-        return;
-    }
-
-    var checkoutBtn = e.target.closest("#btnWcCheckout, .btn-wc-checkout");
-    if (checkoutBtn) {
-        e.preventDefault();
-        sendCutlistToWcCart({ redirect: "checkout" });
-        return;
-    }
-
-    var box = e.target.closest(".box");
-    if (box && box.dataset.planKey) {
-        openCutPlanModal(box.dataset.planKey);
-        return;
-    }
-
-    var header = e.target.closest(".summary-header");
-    if (header) {
-        var card = header.closest(".summary-card");
-        if (card) {
-            var body = card.querySelector(".summary-body");
-            card.classList.toggle("open");
-            if (body) body.classList.toggle("is-open");
+        var cartBtn = e.target.closest("#btnWcCart, .btn-wc-cart");
+        if (cartBtn) {
+            e.preventDefault();
+            sendCutlistToWcCart({ redirect: "cart" });
+            return;
         }
-        return;
-    }
 
-});
+        var checkoutBtn = e.target.closest("#btnWcCheckout, .btn-wc-checkout");
+        if (checkoutBtn) {
+            e.preventDefault();
+            sendCutlistToWcCart({ redirect: "checkout" });
+            return;
+        }
 
-updateBasketBtn.addEventListener("click", function () {
+        var box = e.target.closest(".box");
+        if (box && box.dataset.planKey) {
+            openCutPlanModal(box.dataset.planKey);
+            return;
+        }
 
-    if (typeof validateGrainFilesBeforeCart === "function" && !validateGrainFilesBeforeCart()) {
-        return;
-    }
+        var header = e.target.closest(".summary-header");
+        if (header) {
+            var card = header.closest(".summary-card");
+            if (card) {
+                var body = card.querySelector(".summary-body");
+                card.classList.toggle("open");
+                if (body) body.classList.toggle("is-open");
+            }
+            return;
+        }
 
-    var cutItems = collectCuttingListItems();
-    var fsItems = collectFullSheetItems();
-    var etItems = collectEdgingTapeItems();
-    var ebItems = collectEdgebandingItems();
-    var mcItems = collectMachiningItems();
-    var spItems = collectSprayItems();
+    });
+}
+
+if (updateBasketBtn) {
+    updateBasketBtn.addEventListener("click", function () {
+
+        if (typeof validateGrainFilesBeforeCart === "function" && !validateGrainFilesBeforeCart()) {
+            return;
+        }
+
+        var cutItems = collectCuttingListItems();
+        var fsItems = collectFullSheetItems();
+        var etItems = collectEdgingTapeItems();
+        var ebItems = collectEdgebandingItems();
+        var mcItems = collectMachiningItems();
+        var spItems = collectSprayItems();
 
     // Price each panel from its sheet group + extra charges (machining, spray, grain)
     computeCutItemPrices(cutItems);
@@ -3615,7 +3799,8 @@ updateBasketBtn.addEventListener("click", function () {
 
     updateBasketBtn.disabled = true;
 
-});
+    });
+}
 
 document.addEventListener("click", function (e) {
     var topbarView = e.target.closest(".cb-topbar-view, .tab-basket-btn");
@@ -3648,7 +3833,7 @@ function hasValidItemsToBasket() {
                 var len = dims.lengthInput ? parseFloat(dims.lengthInput.value) : 0;
                 var wid = dims.widthInput ? parseFloat(dims.widthInput.value) : 0;
                 var qty = qtyInput ? parseFloat(qtyInput.value) : 0;
-                if (!isNaN(len) && len > 0 && !isNaN(wid) && wid > 0 && !isNaN(qty) && qty > 0) {
+                if (!isNaN(len) && len >= 30 && !isNaN(wid) && wid >= 30 && !isNaN(qty) && qty > 0) {
                     hasCut = true;
                 }
             }
@@ -3677,14 +3862,10 @@ function hasValidItemsToBasket() {
         etTbody.querySelectorAll("tr").forEach(function (row) {
             var sel = row.querySelector(".Select2");
             var qtyInp = row.querySelector(".et-qty-input");
-            var codeEl = sel ? sel.querySelector(".Select2__input .code") : null;
-            var nameEl = sel ? sel.querySelector(".Select2__input .name") : null;
-            var codeStr = codeEl ? codeEl.textContent.trim() : "";
-            var nameStr = nameEl ? nameEl.textContent.trim() : "";
-
-            if ((codeStr !== "" && codeStr !== "-") || (nameStr !== "" && nameStr !== "-") || (sel && !sel.classList.contains("isEmpty"))) {
-                var qty = qtyInp ? parseFloat(qtyInp.value) : 0;
-                if (!isNaN(qty) && qty > 0) {
+            if (sel && !sel.classList.contains("isEmpty")) {
+                var qtyVal = qtyInp ? qtyInp.value.trim() : "";
+                var qty = parseFloat(qtyVal);
+                if (!isNaN(qty) && qty >= ET_MIN_QTY) {
                     hasEt = true;
                 }
             }
@@ -3715,9 +3896,16 @@ function hasInvalidFilledInputs() {
             var decorInput = row.querySelector(".decor input");
             var decorVal = decorInput ? decorInput.value.trim() : "";
             if (decorVal !== "" && decorVal !== "-") {
-                row.querySelectorAll("input.invalid").forEach(function () {
-                    isInvalid = true;
+                row.querySelectorAll("input.invalid").forEach(function (inp) {
+                    if (!inp.closest(".fs-length") && !inp.closest(".fs-width")) {
+                        isInvalid = true;
+                    }
                 });
+                var qtyInp = row.querySelector(".qty input");
+                var qVal = qtyInp ? parseFloat(qtyInp.value) : NaN;
+                if (isNaN(qVal) || qVal < 1) {
+                    isInvalid = true;
+                }
             }
         });
     }
@@ -3727,9 +3915,17 @@ function hasInvalidFilledInputs() {
         etTbody.querySelectorAll("tr").forEach(function (row) {
             var sel = row.querySelector(".Select2");
             if (sel && !sel.classList.contains("isEmpty")) {
-                row.querySelectorAll("input.invalid").forEach(function () {
+                var qtyInp = row.querySelector(".et-qty-input");
+                var valStr = qtyInp ? qtyInp.value.trim() : "";
+                var val = parseFloat(valStr);
+                if (!valStr || isNaN(val) || val < ET_MIN_QTY) {
                     isInvalid = true;
-                });
+                    if (qtyInp) {
+                        qtyInp.classList.add("invalid");
+                    }
+                } else if (qtyInp) {
+                    qtyInp.classList.remove("invalid");
+                }
             }
         });
     }
@@ -3755,6 +3951,10 @@ function markDirty() {
     if (updateBasketBtn) {
         updateBasketBtn.disabled = hasInvalid || !hasValid;
     }
+
+    if (typeof scheduleAutoSave === "function") {
+        scheduleAutoSave();
+    }
 }
 
 document.addEventListener('input', markDirty);
@@ -3768,6 +3968,523 @@ document.addEventListener('click', function () {
 markDirty();
 setTimeout(markDirty, 200);
 setTimeout(markDirty, 500);
+
+
+// ── CUTTING LIST PERSISTENCE (AUTO-SAVE & RESTORE) ───────────────────
+
+var draftRestoreDone = false;
+var saveDraftTimer = null;
+
+function scheduleAutoSave() {
+    if (!draftRestoreDone) return;
+    clearTimeout(saveDraftTimer);
+    saveDraftTimer = setTimeout(function () {
+        saveDraft();
+    }, 400);
+}
+
+function saveDraft() {
+    if (!draftRestoreDone) return;
+    try {
+        if (typeof localStorage === "undefined") return;
+
+        var cuttingListRows = [];
+        var hasAnyData = false;
+
+        if (table) {
+            var rows = table.querySelectorAll("tr:not(.header-row)");
+            rows.forEach(function (row) {
+                if (row.classList.contains("section-row")) {
+                    var secInput = row.querySelector(".section-name-input");
+                    var secName = secInput ? secInput.value.trim() : "";
+                    if (secName) hasAnyData = true;
+                    cuttingListRows.push({
+                        type: "section",
+                        name: secName
+                    });
+                    return;
+                }
+
+                var decorInput = row.querySelector(".decor-real-input") || row.querySelector(".decor input");
+                var decorText = decorInput ? decorInput.value.trim() : "";
+                var decorCode = row.dataset.decorCode || (decorText ? decorText.split(" - ")[0].trim() : "");
+                var decorName = row.dataset.decorName || (decorText && decorText.indexOf(" - ") !== -1 ? decorText.split(" - ").slice(1).join(" - ").trim() : "");
+                var decorImage = row.dataset.image || "";
+
+                var dims = getDimInputs(row);
+                var length = dims.lengthInput ? dims.lengthInput.value.trim() : "";
+                var width = dims.widthInput ? dims.widthInput.value.trim() : "";
+                var qty = row.querySelector(".qty input") ? row.querySelector(".qty input").value.trim() : "";
+                var desc = row.querySelector(".desc input") ? row.querySelector(".desc input").value.trim() : "";
+
+                var thickSelect = row.querySelector(".thick select");
+                var thickness = thickSelect ? thickSelect.value : "";
+
+                // Edging
+                var edgeSt = null;
+                if (typeof edgeState !== "undefined" && edgeState && edgeState.has(row)) {
+                    var rawSt = edgeState.get(row);
+                    if (rawSt) {
+                        edgeSt = {
+                            L1: !!rawSt.L1,
+                            L2: !!rawSt.L2,
+                            W1: !!rawSt.W1,
+                            W2: !!rawSt.W2,
+                            finish: rawSt.finish || null
+                        };
+                    }
+                }
+                var edgingValues = {};
+                row.querySelectorAll(".edging-input").forEach(function (cell) {
+                    var input = cell.querySelector("input");
+                    if (input && input.value) {
+                        edgingValues[cell.dataset.edge] = input.value.trim();
+                    }
+                });
+
+                // Machining
+                var machiningApplied = row.dataset.machiningApplied || "";
+
+                // Spray
+                var sprayState = null;
+                if (typeof sprayStateByRow !== "undefined" && sprayStateByRow && sprayStateByRow.has(row)) {
+                    var sp = sprayStateByRow.get(row);
+                    if (sp && sp.option) {
+                        sprayState = JSON.parse(JSON.stringify(sp));
+                    }
+                }
+
+                // Grain
+                var grainInput = row.querySelector("td.grain input[type='checkbox']");
+                var grainMatch = grainInput ? grainInput.checked : false;
+
+                // Panel info
+                var panelInfo = row.dataset.panelInfo || "";
+
+                if (decorCode || decorText || length || width || qty || desc || machiningApplied || sprayState || panelInfo || grainMatch || (edgeSt && (edgeSt.L1 || edgeSt.L2 || edgeSt.W1 || edgeSt.W2)) || row.classList.contains("has-decor") || row.classList.contains("unlocked")) {
+                    hasAnyData = true;
+                }
+
+                cuttingListRows.push({
+                    type: "row",
+                    decorCode: decorCode,
+                    decorName: decorName,
+                    decorText: decorText,
+                    decorImage: decorImage,
+                    thickness: thickness,
+                    length: length,
+                    width: width,
+                    qty: qty,
+                    description: desc,
+                    edgeState: edgeSt,
+                    edgingValues: edgingValues,
+                    machiningApplied: machiningApplied,
+                    sprayState: sprayState,
+                    grainMatch: grainMatch,
+                    panelInfo: panelInfo
+                });
+            });
+        }
+
+        // Full sheet rows
+        var fsRows = [];
+        var fsTableEl = document.getElementById("fsTable");
+        if (fsTableEl) {
+            fsTableEl.querySelectorAll("tr.fs-row").forEach(function (row) {
+                var decorInput = row.querySelector(".decor input");
+                var decorText = decorInput ? decorInput.value.trim() : "";
+                var decorCode = decorText ? decorText.split(" - ")[0].trim() : "";
+                var decorName = decorText && decorText.indexOf(" - ") !== -1 ? decorText.split(" - ").slice(1).join(" - ").trim() : "";
+                var thickSelect = row.querySelector(".thick select");
+                var thickness = thickSelect ? thickSelect.value : "";
+                var qtyInput = row.querySelector(".qty input");
+                var qty = qtyInput ? qtyInput.value.trim() : "";
+                var brandCell = row.querySelector(".fs-brand");
+                var brand = brandCell ? brandCell.textContent.trim() : "";
+
+                if (decorCode || qty) {
+                    hasAnyData = true;
+                }
+
+                fsRows.push({
+                    decorCode: decorCode,
+                    decorName: decorName,
+                    decorText: decorText,
+                    decorImage: row.dataset.image || "",
+                    thickness: thickness,
+                    qty: qty,
+                    brand: brand,
+                    priceSheet: row.dataset.priceSheet || ""
+                });
+            });
+        }
+
+        // Edging tape rows
+        var etRows = [];
+        var etTbodyEl = document.getElementById("etTbody");
+        if (etTbodyEl) {
+            etTbodyEl.querySelectorAll("tr.et-row").forEach(function (row) {
+                var sel = row.querySelector(".Select2");
+                var code = sel ? (sel.dataset.code || "") : "";
+                var price = sel ? (parseFloat(sel.dataset.price) || 0) : 0;
+                var qtyInput = row.querySelector(".et-qty-input");
+                var qty = qtyInput ? qtyInput.value.trim() : "";
+
+                if (code) {
+                    hasAnyData = true;
+                }
+
+                etRows.push({
+                    code: code,
+                    price: price,
+                    qty: qty
+                });
+            });
+        }
+
+        // Grain matching notes
+        var grainInfoInput = document.getElementById("grainInfoText") || document.querySelector(".grain-info-textarea") || document.getElementById("grainMatchingText") || document.getElementById("grainNotes") || document.getElementById("grainInfo") || document.querySelector("textarea[name='grain_notes']") || document.querySelector("textarea[name='grainInfo']");
+        var grainInfo = grainInfoInput ? grainInfoInput.value.trim() : "";
+        if (grainInfo) {
+            hasAnyData = true;
+        }
+
+        if (!hasAnyData) {
+            localStorage.removeItem("cutlist_draft");
+            return;
+        }
+
+        var draftData = {
+            version: 1,
+            timestamp: Date.now(),
+            rows: cuttingListRows,
+            fsRows: fsRows,
+            etRows: etRows,
+            grainInfo: grainInfo
+        };
+
+        localStorage.setItem("cutlist_draft", JSON.stringify(draftData));
+    } catch (e) {
+        console.warn("Could not save cutlist draft:", e);
+    }
+}
+
+function restoreDraft() {
+    try {
+        if (typeof localStorage === "undefined") return false;
+        var rawDraft = localStorage.getItem("cutlist_draft");
+        if (!rawDraft) return false;
+
+        var draft = JSON.parse(rawDraft);
+        if (!draft || (!draft.rows && !draft.fsRows && !draft.etRows)) return false;
+
+        // 1. Restore cutting list table rows
+        if (Array.isArray(draft.rows) && draft.rows.length && table) {
+            getMasterRowTemplate();
+
+            var tbody = table.querySelector(":scope > tbody") || table;
+
+            var existingRows = table.querySelectorAll("tr:not(.header-row)");
+            existingRows.forEach(function (r) { r.remove(); });
+
+            draft.rows.forEach(function (item) {
+                if (item.type === "section") {
+                    var secRow = createSectionRow();
+                    var nameIn = secRow.querySelector(".section-name-input");
+                    if (nameIn) nameIn.value = item.name || "";
+                    tbody.appendChild(secRow);
+                    return;
+                }
+
+                var row = createRow();
+                tbody.appendChild(row);
+
+                var codeToRestore = item.decorCode || (item.decorText ? item.decorText.split(" - ")[0].trim() : "");
+                if (codeToRestore) {
+                    var pmObj = window.cutlistPmProducts && (window.cutlistPmProducts[codeToRestore] || window.cutlistPmProducts[item.decorCode]);
+                    var dName = item.decorName || (pmObj ? (pmObj.name || pmObj.decor_name) : (item.decorText && item.decorText.indexOf(" - ") !== -1 ? item.decorText.split(" - ").slice(1).join(" - ").trim() : ""));
+                    var dImg = item.decorImage || (pmObj ? pmObj.swatch : "");
+                    applyBoardSelectionToRow(row, codeToRestore, dName, dImg);
+                    if (item.decorText) {
+                        var dIn = row.querySelector(".decor-real-input") || row.querySelector(".decor input");
+                        if (dIn) dIn.value = item.decorText;
+                    }
+                }
+
+                if (item.thickness) {
+                    var thickSelect = row.querySelector(".thick select");
+                    if (thickSelect) {
+                        if (!Array.from(thickSelect.options).some(function (opt) { return opt.value === String(item.thickness); })) {
+                            var opt = document.createElement("option");
+                            opt.value = item.thickness;
+                            opt.textContent = item.thickness;
+                            thickSelect.appendChild(opt);
+                        }
+                        thickSelect.value = item.thickness;
+                    }
+                }
+
+                var dims = getDimInputs(row);
+                if (dims.lengthInput && item.length !== undefined && item.length !== "") {
+                    dims.lengthInput.value = item.length;
+                    dims.lengthInput.classList.remove("invalid");
+                }
+                if (dims.widthInput && item.width !== undefined && item.width !== "") {
+                    dims.widthInput.value = item.width;
+                    dims.widthInput.classList.remove("invalid");
+                }
+                var qtyIn = row.querySelector(".qty input");
+                if (qtyIn && item.qty !== undefined && item.qty !== "") {
+                    qtyIn.value = item.qty;
+                    qtyIn.classList.remove("invalid");
+                }
+                var descIn = row.querySelector(".desc input");
+                if (descIn && item.description !== undefined) {
+                    descIn.value = item.description;
+                }
+
+                // Enable/disable edging inputs based on restored length and width
+                updateEdging(row);
+
+                // Edging
+                if (item.edgeState) {
+                    var state = getEdgeState(row);
+                    EDGE_KEYS.forEach(function (k) {
+                        state[k] = item.edgeState[k] ? true : null;
+                        state.visited[k] = !!item.edgeState[k];
+                    });
+                    state.finish = item.edgeState.finish || null;
+
+                    var tape = edgeTapeForRow(row);
+                    var shortCode = edgeTapeShortCode(tape);
+                    row.querySelectorAll(".edging-input").forEach(function (td) {
+                        var edge = td.dataset.edge;
+                        var input = td.querySelector("input");
+                        if (input) {
+                            input.value = state[edge] ? shortCode : (item.edgingValues && item.edgingValues[edge] ? item.edgingValues[edge] : "");
+                        }
+                    });
+                } else if (item.edgingValues && Object.keys(item.edgingValues).length > 0) {
+                    var state = getEdgeState(row);
+                    row.querySelectorAll(".edging-input").forEach(function (td) {
+                        var edge = td.dataset.edge;
+                        var input = td.querySelector("input");
+                        if (input && item.edgingValues[edge]) {
+                            input.value = item.edgingValues[edge];
+                            state[edge] = true;
+                            state.visited[edge] = true;
+                        }
+                    });
+                }
+
+                // Machining
+                if (item.machiningApplied) {
+                    var mStr = typeof item.machiningApplied === "string" ? item.machiningApplied : JSON.stringify(item.machiningApplied);
+                    row.dataset.machiningApplied = mStr;
+                }
+                if (typeof updateMachiningBtn === "function") {
+                    updateMachiningBtn(row);
+                }
+
+                // Spray
+                if (item.sprayState && typeof sprayStateByRow !== "undefined") {
+                    sprayStateByRow.set(row, item.sprayState);
+                }
+                if (typeof updateSprayBtn === "function") {
+                    updateSprayBtn(row);
+                }
+
+                // Grain match
+                var grainInput = row.querySelector("td.grain input[type='checkbox']");
+                if (grainInput && item.grainMatch !== undefined) {
+                    grainInput.checked = !!item.grainMatch;
+                }
+
+                // Panel info
+                if (item.panelInfo) {
+                    row.dataset.panelInfo = String(item.panelInfo).slice(0, PANEL_INFO_MAX_LENGTH);
+                }
+            });
+
+            renumberRows();
+        }
+
+        // 2. Restore full sheet rows
+        var fsTableEl = document.getElementById("fsTable");
+        if (fsTableEl && Array.isArray(draft.fsRows) && draft.fsRows.length) {
+            getMasterFsRowTemplate();
+            var existingFs = fsTableEl.querySelectorAll("tr.fs-row");
+            existingFs.forEach(function (r) { r.remove(); });
+
+            draft.fsRows.forEach(function (fsItem) {
+                var fsRow = createFsRow();
+                fsTableEl.appendChild(fsRow);
+
+                var fsCodeToRestore = fsItem.decorCode || (fsItem.decorText ? fsItem.decorText.split(" - ")[0].trim() : "");
+                if (fsCodeToRestore) {
+                    var pmObj = window.cutlistPmProducts && (window.cutlistPmProducts[fsCodeToRestore] || window.cutlistPmProducts[fsItem.decorCode]);
+                    var dName = fsItem.decorName || (pmObj ? (pmObj.name || pmObj.decor_name) : (fsItem.decorText && fsItem.decorText.indexOf(" - ") !== -1 ? fsItem.decorText.split(" - ").slice(1).join(" - ").trim() : ""));
+                    var dImg = fsItem.decorImage || (pmObj ? pmObj.swatch : "");
+                    applyBoardSelectionToRow(fsRow, fsCodeToRestore, dName, dImg);
+                    if (fsItem.decorText) {
+                        var dIn = fsRow.querySelector(".decor input");
+                        if (dIn) dIn.value = fsItem.decorText;
+                    }
+                }
+                if (fsItem.thickness) {
+                    var thickSelect = fsRow.querySelector(".thick select");
+                    if (thickSelect) thickSelect.value = fsItem.thickness;
+                }
+                var qtyIn = fsRow.querySelector(".qty input");
+                if (qtyIn && fsItem.qty !== undefined && fsItem.qty !== "") {
+                    qtyIn.value = fsItem.qty;
+                    qtyIn.classList.remove("invalid");
+                }
+                if (fsItem.brand) {
+                    var brandCell = fsRow.querySelector(".fs-brand");
+                    if (brandCell) brandCell.textContent = fsItem.brand;
+                }
+                if (fsItem.priceSheet) {
+                    fsRow.dataset.priceSheet = fsItem.priceSheet;
+                }
+            });
+
+            renumberFsRows();
+
+            var hasFsData = draft.fsRows.some(function (r) {
+                return r && (r.decorCode || r.decorText || (r.qty !== undefined && r.qty !== ""));
+            });
+            if (hasFsData) {
+                var fsArea = document.getElementById("fsTableArea");
+                if (fsArea) {
+                    fsArea.classList.remove("collapsed");
+                    var fsTitle = fsArea.previousElementSibling;
+                    if (fsTitle && fsTitle.classList.contains("section-title")) {
+                        var fsArr = fsTitle.querySelector(".arrow");
+                        var fsLbl = fsTitle.querySelector(".toggle-label");
+                        if (fsArr) fsArr.classList.remove("down");
+                        if (fsLbl) fsLbl.textContent = "Collapse";
+                    }
+                }
+            }
+        }
+
+        // 3. Restore edging tape rows
+        var etTbodyEl = document.getElementById("etTbody");
+        if (etTbodyEl && Array.isArray(draft.etRows) && draft.etRows.length) {
+            var existingEt = etTbodyEl.querySelectorAll("tr.et-row");
+            existingEt.forEach(function (r) { r.remove(); });
+
+            draft.etRows.forEach(function (etItem) {
+                var etRow = etBuildRow();
+                etTbodyEl.appendChild(etRow);
+                if (etItem.code) {
+                    applyTapeSelectionToEtRow(etRow, etItem.code, etItem.qty, etItem.price);
+                }
+            });
+
+            etRenumber();
+
+            var hasEtData = draft.etRows.some(function (r) {
+                return r && r.code;
+            });
+            if (hasEtData) {
+                var etArea = document.getElementById("etTableArea");
+                if (etArea) {
+                    etArea.classList.remove("collapsed");
+                    var etTitle = etArea.previousElementSibling;
+                    if (etTitle && etTitle.classList.contains("section-title")) {
+                        var etArr = etTitle.querySelector(".arrow");
+                        var etLbl = etTitle.querySelector(".toggle-label");
+                        if (etArr) etArr.classList.remove("down");
+                        if (etLbl) etLbl.textContent = "Collapse";
+                    }
+                }
+            }
+        }
+
+        // 4. Restore grain notes
+        if (draft.grainInfo) {
+            var grainInfoInput = document.getElementById("grainInfoText") || document.querySelector(".grain-info-textarea") || document.getElementById("grainMatchingText") || document.getElementById("grainNotes") || document.getElementById("grainInfo") || document.querySelector("textarea[name='grain_notes']") || document.querySelector("textarea[name='grainInfo']");
+            if (grainInfoInput) {
+                grainInfoInput.value = draft.grainInfo;
+            }
+        }
+
+        // 5. Update dropdowns, validations and prices
+        etRefreshDropdowns();
+        if (typeof updateGrainSection === "function") updateGrainSection();
+        if (typeof markDirty === "function") markDirty();
+        if (typeof updateTabBasketPrice === "function") updateTabBasketPrice();
+
+        showDraftRestoredToast();
+        return true;
+    } catch (err) {
+        console.error("Error restoring cutlist draft:", err);
+        return false;
+    }
+}
+
+function showDraftRestoredToast() {
+    var existing = document.getElementById("cutlistDraftToast");
+    if (existing) existing.remove();
+
+    var toast = document.createElement("div");
+    toast.id = "cutlistDraftToast";
+    toast.className = "cutlist-draft-toast";
+    toast.innerHTML =
+        '<div class="cutlist-draft-toast__icon">' +
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' +
+        '</div>' +
+        '<div class="cutlist-draft-toast__content">' +
+        '<strong>Previous list restored</strong>' +
+        '<span>Your saved boards, machining & options have been reloaded.</span>' +
+        '</div>' +
+        '<button type="button" class="cutlist-draft-toast__close" aria-label="Dismiss">&times;</button>';
+
+    document.body.appendChild(toast);
+
+    var timer = setTimeout(function () {
+        if (toast.parentNode) {
+            toast.classList.add("fade-out");
+            setTimeout(function () { if (toast.parentNode) toast.remove(); }, 400);
+        }
+    }, 5000);
+
+    toast.querySelector(".cutlist-draft-toast__close").addEventListener("click", function () {
+        clearTimeout(timer);
+        toast.classList.add("fade-out");
+        setTimeout(function () { if (toast.parentNode) toast.remove(); }, 300);
+    });
+}
+
+window.addEventListener("beforeunload", function () {
+    if (draftRestoreDone) {
+        saveDraft();
+    }
+});
+
+window.addEventListener("pagehide", function () {
+    if (draftRestoreDone) {
+        saveDraft();
+    }
+});
+
+document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden" && draftRestoreDone) {
+        saveDraft();
+    }
+});
+
+// Immediately save draft if the user clicks any link to navigate away (e.g. to cart or menu)
+document.addEventListener("click", function (e) {
+    var link = e.target.closest("a");
+    if (link && link.href && !link.href.startsWith("#") && !link.href.startsWith("javascript:")) {
+        if (draftRestoreDone) {
+            saveDraft();
+        }
+    }
+}, true);
 
 
 // SECTION COLLAPSE / EXPAND (full-width — entire section-title is the click
@@ -3813,9 +4530,10 @@ if (hdrAddRowBtn) hdrAddRowBtn.addEventListener("click", function () {
 
 // TABLE CLICK DELEGATION (open popup / delete row)
 
-table.addEventListener("click", function (e) {
+if (table) {
+    table.addEventListener("click", function (e) {
 
-    let edgeInput = e.target.closest(".edging-input input");
+        let edgeInput = e.target.closest(".edging-input input");
 
     if (edgeInput && !edgeInput.disabled) {
 
@@ -3923,58 +4641,61 @@ table.addEventListener("click", function (e) {
     }
 
 });
+}
 
 
 
 
 // TABLE INPUT DELEGATION (edging + required-field validation + numeric restriction)
 
-table.addEventListener("keydown", function (e) {
-    if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
-        // Disallow 'e', 'E', '+', '-', '.'
-        if (["e", "E", "+", "-", "."].includes(e.key)) {
-            e.preventDefault();
+if (table) {
+    table.addEventListener("keydown", function (e) {
+        if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
+            // Disallow 'e', 'E', '+', '-', '.'
+            if (["e", "E", "+", "-", "."].includes(e.key)) {
+                e.preventDefault();
+            }
         }
-    }
-});
+    });
 
-table.addEventListener("input", function (e) {
+    table.addEventListener("input", function (e) {
 
-    let row = e.target.closest("tr");
+        let row = e.target.closest("tr");
 
-    if (!row || row.classList.contains("header-row")) return;
+        if (!row || row.classList.contains("header-row")) return;
 
-    if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
-        if (e.target.value && /\D/.test(e.target.value)) {
-            e.target.value = e.target.value.replace(/\D/g, "");
+        if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
+            if (e.target.value && /\D/.test(e.target.value)) {
+                e.target.value = e.target.value.replace(/\D/g, "");
+            }
         }
-    }
 
-    if (e.target.matches("td.small:not(.edging-input) input")) {
+        if (e.target.matches("td.small:not(.edging-input) input")) {
 
-        toggleInvalid(e.target);
-        updateEdging(row);
-        checkMaxDimension(e.target, row);
+            toggleInvalid(e.target);
+            updateEdging(row);
+            checkMaxDimension(e.target, row);
 
-    }
-
-
-    if (e.target.matches(".qty input")) {
-
-        toggleInvalid(e.target);
-        updateMachiningBtn(row);
-        updateSprayBtn(row);
-
-    }
+        }
 
 
-    if (e.target.matches(".decor input")) {
+        if (e.target.matches(".qty input")) {
 
-        etRefreshDropdowns();
+            toggleInvalid(e.target);
+            updateMachiningBtn(row);
+            updateSprayBtn(row);
 
-    }
+        }
 
-});
+
+        if (e.target.matches(".decor input")) {
+
+            etRefreshDropdowns();
+
+        }
+
+    });
+}
 
 
 
@@ -4252,7 +4973,16 @@ function openDecorPopupForRow(row) {
     popup.style.display = "block";
 
     var placeholderInp = decorCell.querySelector(".decor-placeholder-input");
+    var popupSearchInp = popup.querySelector(".decor-popup-search-input");
     var initialQuery = placeholderInp ? placeholderInp.value : "";
+
+    if (popupSearchInp) {
+        popupSearchInp.value = initialQuery || "";
+        setTimeout(function () {
+            popupSearchInp.focus();
+            if (initialQuery) popupSearchInp.select();
+        }, 50);
+    }
 
     if (initialQuery && initialQuery.trim()) {
         executeDecorSearch(initialQuery, placeholderInp);
@@ -4267,6 +4997,10 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
 
     var selectedBoard = window.cutlistPmProducts && window.cutlistPmProducts[code];
     var name = decorName || (selectedBoard ? (selectedBoard.name || selectedBoard.decor_name || "") : "");
+    currentRow.dataset.decorCode = code;
+    if (name) {
+        currentRow.dataset.decorName = name;
+    }
 
     var decorInput = currentRow.querySelector(".decor-real-input") || currentRow.querySelector(".decor input");
     if (decorInput) {
@@ -4360,11 +5094,31 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
 
     var dims = getDimInputs(currentRow);
     var qtyInput = currentRow.querySelector(".qty input");
-    if (dims.lengthInput) toggleInvalid(dims.lengthInput);
-    if (dims.widthInput) toggleInvalid(dims.widthInput);
+    if (!currentRow.classList.contains("fs-row")) {
+        if (dims.lengthInput) {
+            toggleInvalid(dims.lengthInput);
+            checkMaxDimension(dims.lengthInput, currentRow);
+        }
+        if (dims.widthInput) {
+            toggleInvalid(dims.widthInput);
+            checkMaxDimension(dims.widthInput, currentRow);
+        }
+    } else {
+        if (dims.lengthInput) {
+            hideMaxTooltip(dims.lengthInput);
+            dims.lengthInput.classList.remove("invalid");
+        }
+        if (dims.widthInput) {
+            hideMaxTooltip(dims.widthInput);
+            dims.widthInput.classList.remove("invalid");
+        }
+    }
     if (qtyInput) toggleInvalid(qtyInput);
 
-    if (!currentRow.classList.contains("fs-row")) etRefreshDropdowns();
+    if (!currentRow.classList.contains("fs-row")) {
+        updateEdging(currentRow);
+        etRefreshDropdowns();
+    }
 }
 
 // Global live listeners for decor placeholder search inputs
@@ -4408,7 +5162,11 @@ if (popup) {
     if (clearBtn) {
         clearBtn.addEventListener("click", function (e) {
             e.stopPropagation();
-            if (searchInput) searchInput.value = "";
+            if (searchInput) {
+                searchInput.value = "";
+                searchInput.focus();
+            }
+            clearBtn.style.display = "none";
             executeDecorSearch("", null);
         });
     }
@@ -4418,6 +5176,10 @@ if (popup) {
         var tab = e.target.closest(".supplier-tab");
         if (tab) {
             decorPopupState.searchQuery = "";
+            var searchInp = popup.querySelector(".decor-popup-search-input");
+            if (searchInp) searchInp.value = "";
+            var searchClear = popup.querySelector(".decor-popup-search-clear");
+            if (searchClear) searchClear.style.display = "none";
             var resultsEl = document.getElementById("decorSearchResults");
             if (resultsEl) {
                 resultsEl.style.display = "none";
@@ -4505,8 +5267,10 @@ if (popup) {
 var grainSection = document.getElementById("grainMatchSection");
 
 function updateGrainSection() {
-    var anyChecked = table.querySelector(".grain input:checked");
-    grainSection.style.display = anyChecked ? "" : "none";
+    var anyChecked = table ? table.querySelector(".grain input:checked") : null;
+    if (grainSection) {
+        grainSection.style.display = anyChecked ? "" : "none";
+    }
 }
 
 // Rows are lettered A, B, C... in the order their Grain match checkbox was
@@ -4526,18 +5290,20 @@ function grainLetterFor(index) {
 
 function updateGrainLetters() {
     grainCheckedOrder = grainCheckedOrder.filter(function (row) {
-        return row.isConnected && row.querySelector(".grain input").checked;
+        return row.isConnected && row.querySelector(".grain input") && row.querySelector(".grain input").checked;
     });
 
-    table.querySelectorAll(".grain input:checked").forEach(function (cb) {
-        var row = cb.closest("tr");
-        if (grainCheckedOrder.indexOf(row) === -1) grainCheckedOrder.push(row);
-    });
+    if (table) {
+        table.querySelectorAll(".grain input:checked").forEach(function (cb) {
+            var row = cb.closest("tr");
+            if (grainCheckedOrder.indexOf(row) === -1) grainCheckedOrder.push(row);
+        });
 
-    table.querySelectorAll(".grain-letter").forEach(function (badge) {
-        badge.textContent = "";
-        badge.classList.remove("visible");
-    });
+        table.querySelectorAll(".grain-letter").forEach(function (badge) {
+            badge.textContent = "";
+            badge.classList.remove("visible");
+        });
+    }
 
     grainCheckedOrder.forEach(function (row, i) {
         var badge = row.querySelector(".grain-letter");
@@ -4547,22 +5313,24 @@ function updateGrainLetters() {
     });
 }
 
-table.addEventListener("change", function (e) {
-    if (e.target.closest(".grain")) {
-        updateGrainSection();
-        updateGrainLetters();
-    }
-});
-
-// Deleting a row can remove the last ticked checkbox
-table.addEventListener("click", function (e) {
-    if (e.target.closest(".delete")) {
-        setTimeout(function () {
+if (table) {
+    table.addEventListener("change", function (e) {
+        if (e.target.closest(".grain")) {
             updateGrainSection();
             updateGrainLetters();
-        });
-    }
-});
+        }
+    });
+
+    // Deleting a row can remove the last ticked checkbox
+    table.addEventListener("click", function (e) {
+        if (e.target.closest(".delete")) {
+            setTimeout(function () {
+                updateGrainSection();
+                updateGrainLetters();
+            });
+        }
+    });
+}
 
 var grainUploadedFiles = [];
 
@@ -4606,7 +5374,7 @@ function clearGrainFileUploadError() {
 }
 
 function validateGrainFilesBeforeCart() {
-    var anyGrainChecked = !!table.querySelector(".grain input:checked");
+    var anyGrainChecked = table ? !!table.querySelector(".grain input:checked") : false;
     if (!anyGrainChecked) return true;
 
     var hasGrainFiles = (grainUploadedFiles && grainUploadedFiles.length > 0);
@@ -4773,12 +5541,24 @@ function openPanelModal(code) {
         '<tr><td class="left">Width:</td><td class="right">' + p.width + ' mm</td></tr>' +
         '<tr><td class="left">Thickness:</td><td class="right">' + firstThick + ' mm</td></tr>';
 
-    document.getElementById('pmDesc').innerHTML = p.desc.replace(/\n/g, '<br>');
+    function formatPanelModalText(val) {
+        if (!val) return '';
+        var str = String(val).trim();
+        if (/<[a-z][\s\S]*>/i.test(str)) {
+            return str.replace(/<\/(p|div|ul|ol|li|h[1-6])>\s*<br\s*\/?>/gi, '</$1>')
+                      .replace(/<br\s*\/?>\s*<(p|div|ul|ol|li|h[1-6])/gi, '<$1')
+                      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '')
+                      .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+        }
+        return str.replace(/\r\n|\r|\n/g, '<br>');
+    }
+
+    document.getElementById('pmDesc').innerHTML = formatPanelModalText(p.desc);
 
     var bsideSection = document.getElementById('pmBsideSection');
     if (p.bside) {
         bsideSection.style.display = '';
-        document.getElementById('pmBside').innerHTML = p.bside.replace(/\n/g, '<br>');
+        document.getElementById('pmBside').innerHTML = formatPanelModalText(p.bside);
     } else {
         bsideSection.style.display = 'none';
     }
@@ -4811,8 +5591,8 @@ function openPanelModal(code) {
             '</div>';
     }).join('');
 
-    var priceSheet = (p && p.price_sheet && p.price_sheet !== '–') ? p.price_sheet : (p && isFinite(parseFloat(p.full_sheet_price)) && parseFloat(p.full_sheet_price) > 0 ? '£' + parseFloat(p.full_sheet_price).toFixed(2) : '–');
-    var priceCut = (p && p.price_cut && p.price_cut !== '–') ? p.price_cut : (p && isFinite(parseFloat(p.cutting_list_price)) && parseFloat(p.cutting_list_price) > 0 ? '£' + parseFloat(p.cutting_list_price).toFixed(2) : priceSheet);
+    var priceSheet = (p && p.price_sheet && p.price_sheet !== '–') ? p.price_sheet : (p && isFinite(parseFloat(p.full_sheet_price)) && parseFloat(p.full_sheet_price) > 0 ? summaryMoney(p.full_sheet_price) : '–');
+    var priceCut = (p && p.price_cut && p.price_cut !== '–') ? p.price_cut : (p && isFinite(parseFloat(p.cutting_list_price)) && parseFloat(p.cutting_list_price) > 0 ? summaryMoney(p.cutting_list_price) : priceSheet);
 
     var pricingBody = document.querySelector('.pricing-levels__table tbody');
     if (pricingBody) {
@@ -4833,46 +5613,66 @@ function openPanelModal(code) {
 }
 
 // gallery prev/next
-document.getElementById('pmPrev').addEventListener('click', function () { pmShowSlide(pmSlideIdx - 1); });
-document.getElementById('pmNext').addEventListener('click', function () { pmShowSlide(pmSlideIdx + 1); });
+var pmPrev = document.getElementById('pmPrev');
+if (pmPrev) pmPrev.addEventListener('click', function () { pmShowSlide(pmSlideIdx - 1); });
+var pmNext = document.getElementById('pmNext');
+if (pmNext) pmNext.addEventListener('click', function () { pmShowSlide(pmSlideIdx + 1); });
 
 // thumbnail clicks (delegated)
-document.getElementById('pmThumbs').addEventListener('click', function (e) {
-    var thumb = e.target.closest('.pm-gallery-thumb');
-    if (!thumb) return;
-    pmShowSlide(parseInt(thumb.dataset.idx, 10));
-});
+var pmThumbs = document.getElementById('pmThumbs');
+if (pmThumbs) {
+    pmThumbs.addEventListener('click', function (e) {
+        var thumb = e.target.closest('.pm-gallery-thumb');
+        if (!thumb) return;
+        pmShowSlide(parseInt(thumb.dataset.idx, 10));
+    });
+}
 
 // tab switching
-document.querySelector('.panel-reveal').addEventListener('click', function (e) {
-    var btn = e.target.closest('.SimpleTabs__tab-btn');
-    if (!btn) return;
-    var tab = btn.dataset.tab;
-    document.querySelectorAll('.SimpleTabs__tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
-    document.getElementById('pmTabDesc').classList.toggle('active', tab === 'desc');
-    document.getElementById('pmTabFaq').classList.toggle('active', tab === 'faq');
-});
+var panelReveal = document.querySelector('.panel-reveal');
+if (panelReveal) {
+    panelReveal.addEventListener('click', function (e) {
+        var btn = e.target.closest('.SimpleTabs__tab-btn');
+        if (!btn) return;
+        var tab = btn.dataset.tab;
+        document.querySelectorAll('.SimpleTabs__tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+        var pmTabDesc = document.getElementById('pmTabDesc');
+        if (pmTabDesc) pmTabDesc.classList.toggle('active', tab === 'desc');
+        var pmTabFaq = document.getElementById('pmTabFaq');
+        if (pmTabFaq) pmTabFaq.classList.toggle('active', tab === 'faq');
+    });
+}
 
 // close panel modal
-document.getElementById('panelModalClose').addEventListener('click', function () {
-    document.getElementById('panelModalOverlay').classList.remove('is-open');
-});
-document.getElementById('panelModalOverlay').addEventListener('click', function (e) {
-    if (!e.target.closest('.panel-reveal')) {
-        document.getElementById('panelModalOverlay').classList.remove('is-open');
-    }
-});
+var panelModalClose = document.getElementById('panelModalClose');
+if (panelModalClose) {
+    panelModalClose.addEventListener('click', function () {
+        var overlay = document.getElementById('panelModalOverlay');
+        if (overlay) overlay.classList.remove('is-open');
+    });
+}
+var panelModalOverlay = document.getElementById('panelModalOverlay');
+if (panelModalOverlay) {
+    panelModalOverlay.addEventListener('click', function (e) {
+        if (!e.target.closest('.panel-reveal')) {
+            panelModalOverlay.classList.remove('is-open');
+        }
+    });
+}
 
 // "More info" click inside decor popup — use delegation on popup container
-document.getElementById('decorPopup').addEventListener('click', function (e) {
-    var moreSpan = e.target.closest('.more');
-    if (!moreSpan) return;
-    e.stopPropagation();
-    var row = moreSpan.closest('.product-row');
-    if (!row) return;
-    var code = row.children[0].innerText.trim();
-    openPanelModal(code);
-});
+var decorPopup = document.getElementById('decorPopup');
+if (decorPopup) {
+    decorPopup.addEventListener('click', function (e) {
+        var moreSpan = e.target.closest('.more');
+        if (!moreSpan) return;
+        e.stopPropagation();
+        var row = moreSpan.closest('.product-row');
+        if (!row) return;
+        var code = row.children[0].innerText.trim();
+        openPanelModal(code);
+    });
+}
 
 
 let panelSummaryCurrentData = null;
@@ -4932,6 +5732,7 @@ function hasEdgebandingTape(rowObj, edge) {
 var panelSummaryStage = null;
 var panelSummaryLayer = null;
 var panelSummaryShapes = null;
+var panelSummaryBoardView = null;
 
 function initPanelSummaryStage() {
     if (panelSummaryStage || typeof Konva === "undefined") return;
@@ -5070,7 +5871,12 @@ function redrawPanelSummaryCanvas(row) {
     var midX = x + rectW / 2;
     var midY = y + rectH / 2;
 
-    var flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+    var flipLength;
+    if (panelSummaryBoardView) {
+        flipLength = (panelSummaryBoardView === "B");
+    } else {
+        flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B") || (shelfItem && shelfItem.view === "B") || (jHandleItem && jHandleItem.view === "B"));
+    }
 
     var panelFill = "#ffffff";
     var spraySt = sprayStateByRow ? sprayStateByRow.get(row) : null;
@@ -5086,6 +5892,12 @@ function redrawPanelSummaryCanvas(row) {
 
     var faceBox = document.getElementById("panelSummaryFaceBox");
     if (faceBox) {
+        if (!faceBox.querySelector(".machining-face-inner")) {
+            faceBox.innerHTML = '<div class="machining-face-inner">' +
+                '<div class="machining-face-side front"><div>FRONT</div><div>FACE</div></div>' +
+                '<div class="machining-face-side back"><div>BACK</div><div>FACE</div></div>' +
+                '</div>';
+        }
         faceBox.classList.toggle("flipped", flipLength);
     }
 
@@ -5237,6 +6049,12 @@ function openPanelSummaryModal(row) {
 
     overlay._row = row;
     populatePanelSummaryContextBar(row);
+
+    var rawApplied = row ? (row.dataset.machiningApplied || "") : "";
+    var appliedItems = [];
+    try { appliedItems = rawApplied ? JSON.parse(rawApplied) : []; } catch (e) { appliedItems = []; }
+    var anyB = appliedItems.some(function (i) { return i.view === "B"; });
+    panelSummaryBoardView = anyB ? "B" : "A";
 
     panelSummaryCurrentData = getPanelSummaryData(row);
     renderPanelSummaryDrawing();
@@ -5834,12 +6652,18 @@ if (panelNextBtn) {
     panelNextBtn.onclick = panelSummaryNext;
 
 }
-document.getElementById('panelSummaryModalClose').addEventListener('click', closePanelSummaryModal);
-document.getElementById('panelSummaryModalOverlay').addEventListener('click', function (e) {
-    if (!e.target.closest('.panel-summary-modal')) {
-        closePanelSummaryModal();
-    }
-});
+var panelSummaryModalClose = document.getElementById('panelSummaryModalClose');
+if (panelSummaryModalClose) {
+    panelSummaryModalClose.addEventListener('click', closePanelSummaryModal);
+}
+var panelSummaryModalOverlay = document.getElementById('panelSummaryModalOverlay');
+if (panelSummaryModalOverlay) {
+    panelSummaryModalOverlay.addEventListener('click', function (e) {
+        if (!e.target.closest('.panel-summary-modal')) {
+            closePanelSummaryModal();
+        }
+    });
+}
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         closePanelSummaryModal();
@@ -5849,10 +6673,16 @@ document.addEventListener('keydown', function (e) {
 var panelSummaryFaceBox = document.getElementById('panelSummaryFaceBox');
 if (panelSummaryFaceBox) {
     panelSummaryFaceBox.addEventListener('click', function () {
-        var isFront = panelSummaryFaceBox.textContent.includes('FRONT');
-        panelSummaryFaceBox.innerHTML = isFront
-            ? '<div>BACK</div><div>FACE</div>'
-            : '<div>FRONT</div><div>FACE</div>';
+        var isCurrentlyFlipped = panelSummaryFaceBox.classList.contains("flipped");
+        var targetSide = isCurrentlyFlipped ? "A" : "B";
+        panelSummaryBoardView = targetSide;
+
+        var row = (panelSummaryRows && panelSummaryCurrentIndex >= 0)
+            ? panelSummaryRows[panelSummaryCurrentIndex]
+            : (document.getElementById('panelSummaryModalOverlay') ? document.getElementById('panelSummaryModalOverlay')._row : null);
+        if (row) {
+            redrawPanelSummaryCanvas(row);
+        }
     });
 }
 
@@ -5870,99 +6700,90 @@ if (panelSummaryRotateBtn) {
 
 // EDGE POPUP INTERACTIONS
 
-edgeTabs.addEventListener("click", function (e) {
+if (edgeTabs) {
+    edgeTabs.addEventListener("click", function (e) {
+        let tab = e.target.closest(".edge-tab");
+        if (!tab || !activeEdgeRow) return;
+        activeEdge = tab.dataset.edge;
 
-    let tab = e.target.closest(".edge-tab");
-
-    if (!tab || !activeEdgeRow) return;
-
-    activeEdge = tab.dataset.edge;
-
-    // Opening an edge for the first time on an already-taped row applies that same
-    // tape and finish to it, so the tape is only ever chosen once per panel.
-    edgeVisit(getEdgeState(activeEdgeRow), activeEdge);
-
-    renderEdgePopup();
-
-});
+        // Opening an edge for the first time on an already-taped row applies that same
+        // tape and finish to it, so the tape is only ever chosen once per panel.
+        edgeVisit(getEdgeState(activeEdgeRow), activeEdge);
+        renderEdgePopup();
+    });
+}
 
 
 // Applies (or removes) the tape on the edge currently being edited. It has to
 // re-render rather than just toggle a class: the finish options are gated on
-edgeSummaryBtn.addEventListener("click", function () {
+if (edgeSummaryBtn) {
+    edgeSummaryBtn.addEventListener("click", function () {
+        if (!activeEdgeRow || !activeEdge || edgeSummaryBtn.disabled) return;
+        let state = getEdgeState(activeEdgeRow);
+        let tape = edgeTapeForRow(activeEdgeRow);
+        let allowed = machiningTapeFinishes(tape ? tape.code : "");
 
-    if (!activeEdgeRow || !activeEdge || edgeSummaryBtn.disabled) return;
-
-    let state = getEdgeState(activeEdgeRow);
-    let tape = edgeTapeForRow(activeEdgeRow);
-    let allowed = machiningTapeFinishes(tape ? tape.code : "");
-
-    // Same roll of tape across the whole row (it's matched from the decor, not
-    // chosen per edge — see edgeTapeForRow), so applying or removing it acts on
-    edgeApplyToggle(state, activeEdge, allowed);
-
-    renderEdgePopup();
-
-});
+        // Same roll of tape across the whole row (it's matched from the decor, not
+        // chosen per edge — see edgeTapeForRow), so applying or removing it acts on
+        edgeApplyToggle(state, activeEdge, allowed);
+        renderEdgePopup();
+    });
+}
 
 
-edgeFinishOptions.addEventListener("click", function (e) {
+if (edgeFinishOptions) {
+    edgeFinishOptions.addEventListener("click", function (e) {
+        let opt = e.target.closest(".edge-finish-option");
+        if (!opt || !activeEdgeRow || !activeEdge) return;
 
-    let opt = e.target.closest(".edge-finish-option");
+        // These are divs, not buttons, so a "disabled" one still receives
+        // clicks — it has to be rejected here.
+        if (opt.classList.contains("disabled")) return;
 
-    if (!opt || !activeEdgeRow || !activeEdge) return;
-
-    // These are divs, not buttons, so a "disabled" one still receives
-    // clicks — it has to be rejected here.
-    if (opt.classList.contains("disabled")) return;
-
-    let state = getEdgeState(activeEdgeRow);
-
-    // Shared across the row, not just this edge — see getEdgeState().
-    state.finish = opt.dataset.finish;
-
-    renderEdgePopup();
-
-});
+        let state = getEdgeState(activeEdgeRow);
+        // Shared across the row, not just this edge — see getEdgeState().
+        state.finish = opt.dataset.finish;
+        renderEdgePopup();
+    });
+}
 
 
-edgeModeToggle.addEventListener("click", function (e) {
-
-    let btn = e.target.closest(".mode-btn");
-
-    if (!btn) return;
-
-    edgeModeToggle.querySelectorAll(".mode-btn")
-        .forEach(b => b.classList.remove("active"));
-
-    btn.classList.add("active");
-
-});
+if (edgeModeToggle) {
+    edgeModeToggle.addEventListener("click", function (e) {
+        let btn = e.target.closest(".mode-btn");
+        if (!btn) return;
+        edgeModeToggle.querySelectorAll(".mode-btn")
+            .forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+    });
+}
 
 
-document.getElementById("edgePopupClose")
-    .addEventListener("click", closeEdgePopup);
+var edgePopupClose = document.getElementById("edgePopupClose");
+if (edgePopupClose) {
+    edgePopupClose.addEventListener("click", closeEdgePopup);
+}
 
 
 
 
 // MACHINING OVERLAY INTERACTIONS
 
-document.getElementById("machiningClose")
-    .addEventListener("click", closeMachiningOverlay);
+var machiningClose = document.getElementById("machiningClose");
+if (machiningClose) {
+    machiningClose.addEventListener("click", closeMachiningOverlay);
+}
 
 
-machiningOverlay.addEventListener("click", function (e) {
-
-    // Must be a direct-target check (e.target === machiningOverlay), not
-    // e.target.closest(".machining-modal") — several buttons inside the applied-
-    if (e.target === machiningOverlay) {
-
-        closeMachiningOverlay();
-
-    }
-
-});
+if (machiningOverlay) {
+    machiningOverlay.addEventListener("click", function (e) {
+        // Must be a direct-target check (e.target === machiningOverlay), not
+        // e.target.closest(".machining-modal") — several buttons inside the applied-
+        if (e.target === machiningOverlay) {
+            closeMachiningOverlay();
+        }
+    });
+}
 
 
 // MACHINING OPTION DROPDOWN The sidebar's option list (Panel shaping / Surface
@@ -6334,6 +7155,7 @@ var machiningCurrentRow = null;
 // Which applied item is open in the sidebar, or -1 for none. The canvas draws
 // only this item's dimensions, value labels and position callouts — with
 var machiningActiveIndex = -1;
+var machiningBoardView = "A";
 var machiningAppliedItems = [];
 var machiningAppliedList = document.getElementById("machiningAppliedList");
 
@@ -6351,6 +7173,76 @@ function machiningCornerLabels(corner) {
 
 var MACHINING_GROOVE_MAX_WIDTH_MM = 50;
 var MACHINING_GROOVE_DEPTH_MARGIN_MM = 3;
+var MACHINING_GROOVE_MIN_SHOULDER_MM = 10;
+
+function machiningGrooveDistRange(item, dimsOrLength, width) {
+    var lengthMm, widthMm;
+    if (typeof dimsOrLength === "object" && dimsOrLength !== null) {
+        lengthMm = dimsOrLength.length;
+        widthMm = dimsOrLength.width;
+    } else {
+        lengthMm = dimsOrLength;
+        widthMm = width;
+    }
+    var isVert = item && item.edge === "W1-W2";
+    var crossTotal = isVert ? lengthMm : widthMm;
+    if (isNaN(crossTotal) || crossTotal <= 0) crossTotal = 9998;
+    var wMm = item ? parseFloat(item.width) : 20;
+    if (isNaN(wMm) || wMm <= 0) wMm = 20;
+    var halfW = wMm / 2;
+    var distMin = Math.ceil(MACHINING_GROOVE_MIN_SHOULDER_MM + halfW);
+    var distMax = Math.max(distMin, Math.floor(crossTotal - MACHINING_GROOVE_MIN_SHOULDER_MM - halfW));
+    return { min: distMin, max: distMax, crossTotal: crossTotal };
+}
+
+function machiningGrooveVisualShoulderPx(crossPx) {
+    return Math.max(8, Math.min(14, Math.round(crossPx * 0.08)));
+}
+
+function machiningGrooveDistToPx(distMm, item, geo) {
+    var isVert = item && item.edge === "W1-W2";
+    var crossTotal = isVert ? geo.length : geo.width;
+    var crossPx = isVert ? geo.rectW : geo.rectH;
+    if (!(crossTotal > 0) || !(crossPx > 0)) return crossPx / 2;
+    var range = machiningGrooveDistRange(item, geo.length, geo.width);
+    var dMin = range.min;
+    var dMax = range.max;
+    var wMm = item ? parseFloat(item.width) : 20;
+    if (isNaN(wMm) || wMm <= 0) wMm = 20;
+    var thPx = Math.max(4, Math.min(10, Math.round(wMm * (crossPx / crossTotal))));
+    var minShoulder = machiningGrooveVisualShoulderPx(crossPx);
+    var centerMinPx = minShoulder + thPx / 2;
+    var centerMaxPx = Math.max(centerMinPx, crossPx - minShoulder - thPx / 2);
+
+    if (dMax <= dMin) return crossPx / 2;
+    var val = parseFloat(distMm);
+    var clampedMm = Math.max(dMin, Math.min(dMax, isNaN(val) ? (dMin + dMax) / 2 : val));
+    var u = (clampedMm - dMin) / (dMax - dMin);
+    return centerMinPx + u * (centerMaxPx - centerMinPx);
+}
+
+function machiningGroovePxToDist(pxFromEdge, item, geo) {
+    var isVert = item && item.edge === "W1-W2";
+    var crossTotal = isVert ? geo.length : geo.width;
+    var crossPx = isVert ? geo.rectW : geo.rectH;
+    if (!(crossTotal > 0) || !(crossPx > 0)) return 0;
+    var range = machiningGrooveDistRange(item, geo.length, geo.width);
+    var dMin = range.min;
+    var dMax = range.max;
+    var wMm = item ? parseFloat(item.width) : 20;
+    if (isNaN(wMm) || wMm <= 0) wMm = 20;
+    var thPx = Math.max(4, Math.min(10, Math.round(wMm * (crossPx / crossTotal))));
+    var minShoulder = machiningGrooveVisualShoulderPx(crossPx);
+    var centerMinPx = minShoulder + thPx / 2;
+    var centerMaxPx = Math.max(centerMinPx, crossPx - minShoulder - thPx / 2);
+
+    if (centerMaxPx <= centerMinPx || dMax <= dMin) {
+        return Math.round((dMin + dMax) / 2);
+    }
+    var u = (pxFromEdge - centerMinPx) / (centerMaxPx - centerMinPx);
+    u = Math.max(0, Math.min(1, u));
+    return Math.round(dMin + u * (dMax - dMin));
+}
 
 // The groove's two ends touch whichever edges it *doesn't* run parallel to — a
 // groove "along L1-L2" runs left-right, so its ends touch W1/W2, and its
@@ -6368,6 +7260,17 @@ function loadMachiningAppliedItems(row) {
     } catch (err) {
         machiningAppliedItems = [];
     }
+    machiningAppliedItems.forEach(function (item) {
+        if (!item.view) {
+            var opt = machiningOptionBySlug(item.option);
+            var beh = opt ? opt.behaviour : (item.behaviour || item.option);
+            if (beh === "hinge-holes" || beh === "groove" || beh === "shelf-holes") {
+                item.view = "B";
+            } else {
+                item.view = "A";
+            }
+        }
+    });
 }
 
 // Konva-based technical drawing for the Machining panel. Shapes are created
@@ -6723,10 +7626,8 @@ function initMachiningStage() {
         var item = activeGrooveItem();
         if (!item) return;
         var dims = machiningCurrentDims();
-        var distMax = item.edge === "W1-W2"
-            ? (isNaN(dims.length) ? 9998 : dims.length - 1)
-            : (isNaN(dims.width) ? 9998 : dims.width - 1);
-        promptMachiningPositionEdit(machiningShapes.grooveDistLabel.group, parseFloat(item.distance), 0, distMax, function (val) {
+        var range = machiningGrooveDistRange(item, dims);
+        promptMachiningPositionEdit(machiningShapes.grooveDistLabel.group, parseFloat(item.distance), range.min, range.max, function (val) {
             item.distance = val;
             saveMachiningAppliedItems();
             renderMachiningAppliedList();
@@ -6850,6 +7751,26 @@ function initMachiningStage() {
         var geo = machiningLastGeometry;
         var item = activeGrooveItem();
         if (!geo || !item) return pos;
+        var isVertical = item.edge === "W1-W2";
+        var crossTotal = isVertical ? geo.length : geo.width;
+        var crossPx = isVertical ? geo.rectW : geo.rectH;
+        if (crossTotal > 0 && crossPx > 0) {
+            var minShoulder = machiningGrooveVisualShoulderPx(crossPx);
+            var wMm = item ? parseFloat(item.width) : 20;
+            if (isNaN(wMm) || wMm <= 0) wMm = 20;
+            var thPx = Math.max(4, Math.min(10, Math.round(wMm * (crossPx / crossTotal))));
+            var centerMinPx = minShoulder + thPx / 2;
+            if (isVertical) {
+                return {
+                    x: Math.max(geo.x + centerMinPx, Math.min(geo.right - centerMinPx, pos.x)),
+                    y: geo.y - POS_TIP_GAP
+                };
+            }
+            return {
+                x: geo.x - POS_TIP_GAP,
+                y: Math.max(geo.y + centerMinPx, Math.min(geo.bottom - centerMinPx, pos.y))
+            };
+        }
         if (item.edge === "W1-W2") {
             return { x: Math.max(geo.x, Math.min(geo.right, pos.x)), y: geo.y - POS_TIP_GAP };
         }
@@ -6864,22 +7785,21 @@ function initMachiningStage() {
         var crossPx = isVertical ? geo.rectW : geo.rectH;
         if (!(crossTotal > 0)) return;
         var dragMismatch = machiningFaceMismatch(item, geo);
-        var mm;
+        var pxFromEdge;
         if (isVertical) {
             var xPos = machiningShapes.grooveDistLabel.arrow.x();
             var vEdge = machiningMirrorEdge(item.distanceEdge, dragMismatch);
-            mm = vEdge === "W2" ? (geo.right - xPos) * (crossTotal / crossPx) : (xPos - geo.x) * (crossTotal / crossPx);
+            pxFromEdge = vEdge === "W2" ? (geo.right - xPos) : (xPos - geo.x);
         } else {
             // Measured off L1/L2, so it follows the B-side flip.
             var yPos = machiningShapes.grooveDistLabel.arrow.y();
             var flipped = item.view === "B";
             var hEdge = machiningMirrorEdge(item.distanceEdge, dragMismatch);
-            var pxFromEdge = hEdge === "L2"
+            pxFromEdge = hEdge === "L2"
                 ? machiningPxFromL2(geo, yPos, flipped)
                 : machiningPxFromL1(geo, yPos, flipped);
-            mm = pxFromEdge * (crossTotal / crossPx);
         }
-        item.distance = Math.max(0, Math.min(crossTotal - 1, Math.round(mm)));
+        item.distance = machiningGroovePxToDist(pxFromEdge, item, geo);
         // Dragging this callout means the groove is the open item, so its annotation
         // stays visible (the redraw path derives that from machiningActiveIndex; here
         updateMachiningGroove(item, geo, true);
@@ -7546,7 +8466,8 @@ function machiningGrooveCrossPosMm(item, geo) {
     var crossTotal = isVertical ? geo.length : geo.width;
     var distMm = parseFloat(item.distance);
     if (isNaN(distMm)) distMm = crossTotal / 2;
-    if (crossTotal > 0) distMm = Math.max(0, Math.min(crossTotal - 1, distMm));
+    var range = machiningGrooveDistRange(item, geo.length, geo.width);
+    if (crossTotal > 0) distMm = Math.max(range.min, Math.min(range.max, distMm));
 
     return !isVertical
         ? (item.distanceEdge === "L2" ? geo.width - distMm : distMm)
@@ -7604,11 +8525,12 @@ function updateMachiningGroove(grooveItem, geo, active, targetShapes) {
             var wMm = parseFloat(item.width);
             if (isNaN(wMm) || wMm <= 0) wMm = 20;
 
+            var dRange = machiningGrooveDistRange(item, geo.length, geo.width);
             if (runTot > 0) {
                 if (isFinite(rEnd1)) rEnd1 = Math.max(0, Math.min(runTot - 1, rEnd1));
                 if (isFinite(rEnd2)) rEnd2 = Math.max(0, Math.min(runTot - 1, rEnd2));
             }
-            if (crossTot > 0) dMm = Math.max(0, Math.min(crossTot - 1, dMm));
+            if (crossTot > 0) dMm = Math.max(dRange.min, Math.min(dRange.max, dMm));
 
             var crossMm = !isVert
                 ? (item.distanceEdge === "L2" ? geo.width - dMm : dMm)
@@ -7630,8 +8552,8 @@ function updateMachiningGroove(grooveItem, geo, active, targetShapes) {
 
             var sPx = runTot > 0 ? bnds.start_point * (runPxLen / runTot) : 0;
             var ePx = runTot > 0 ? bnds.end_point * (runPxLen / runTot) : runPxLen;
-            var dPx = crossTot > 0 ? dMm * (crossPxLen / crossTot) : crossPxLen / 2;
-            var thPx = crossTot > 0 ? Math.max(4, wMm * (crossPxLen / crossTot)) : 8;
+            var dPx = machiningGrooveDistToPx(dMm, item, geo);
+            var thPx = crossTot > 0 ? Math.max(4, Math.min(10, Math.round(wMm * (crossPxLen / crossTot)))) : 6;
 
             var bRect;
             var flp = item.view === "B";
@@ -7691,11 +8613,12 @@ function updateMachiningGroove(grooveItem, geo, active, targetShapes) {
     var widthMm = parseFloat(grooveItem.width);
     if (isNaN(widthMm) || widthMm <= 0) widthMm = 20;
 
+    var activeRange = machiningGrooveDistRange(grooveItem, geo.length, geo.width);
     if (runTotal > 0) {
         if (isFinite(rawEnd1)) rawEnd1 = Math.max(0, Math.min(runTotal - 1, rawEnd1));
         if (isFinite(rawEnd2)) rawEnd2 = Math.max(0, Math.min(runTotal - 1, rawEnd2));
     }
-    if (crossTotal > 0) distMm = Math.max(0, Math.min(crossTotal - 1, distMm));
+    if (crossTotal > 0) distMm = Math.max(activeRange.min, Math.min(activeRange.max, distMm));
 
     // Where the groove sits on the axis it *doesn't* run along, in real
     // panel coordinates — the boundary engine works unflipped.
@@ -7734,8 +8657,8 @@ function updateMachiningGroove(grooveItem, geo, active, targetShapes) {
 
     var startPx = runTotal > 0 ? bounds.start_point * (runPx / runTotal) : 0;
     var endPx = runTotal > 0 ? bounds.end_point * (runPx / runTotal) : runPx;
-    var distPx = crossTotal > 0 ? distMm * (crossPx / crossTotal) : crossPx / 2;
-    var thicknessPx = crossTotal > 0 ? Math.max(4, widthMm * (crossPx / crossTotal)) : 8;
+    var distPx = machiningGrooveDistToPx(distMm, grooveItem, geo);
+    var thicknessPx = crossTotal > 0 ? Math.max(4, Math.min(10, Math.round(widthMm * (crossPx / crossTotal)))) : 6;
 
     var barRect, end1Pt, end2Pt, distPt;
 
@@ -8200,24 +9123,32 @@ function updateMachiningShelf(shelfItem, geo, active, targetShapes) {
         return;
     }
 
+    var flipped = !!(geo && geo.overallFlip) && alongLength;
     var crossPxPerMm = alongLength ? (geo.rectH / dims.width) : (geo.rectW / dims.length);
+    var r1Val = machiningNumOr(shelfItem.row1, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm;
+    var r2Val = machiningNumOr(shelfItem.row2, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm;
+
     // Row one is inset from the near edge (L1 / W1), row two from the far
-    // one (L2 / W2), so they close in from opposite sides.
-    var crossNear = alongLength ? geo.y : geo.x;
-    var crossFar = alongLength ? geo.bottom : geo.right;
-    var row2Px = crossFar - machiningNumOr(shelfItem.row2, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm;
+    // one (L2 / W2). When flipped, L1 and L2 swap top<->bottom.
+    var crossNear = alongLength ? (flipped ? geo.bottom : geo.y) : geo.x;
+    var crossFar = alongLength ? (flipped ? geo.y : geo.bottom) : geo.right;
+    var row1Px = flipped ? (geo.bottom - r1Val) : (crossNear + r1Val);
+    var row2Px = flipped ? (geo.y + r2Val) : (crossFar - r2Val);
+    var outSign = flipped ? -1 : 1;
+    var bracketCross = flipped ? (row2Px + 14) : (row2Px - 14);
 
     var ctx = {
         alongLength: alongLength,
         runMm: runMm,
         runOrigin: alongLength ? geo.x : geo.y,
         runPxPerMm: alongLength ? (geo.rectW / dims.length) : (geo.rectH / dims.width),
-        row1Px: crossNear + machiningNumOr(shelfItem.row1, MACHINING_SHELF_DEFAULT_ROW_MM) * crossPxPerMm,
+        row1Px: row1Px,
         row2Px: row2Px,
         crossFar: crossFar,
+        outSign: outSign,
         // Bracket line sits just inside row two, with legs dropping to the
         // holes it measures between.
-        bracketCross: row2Px - 14,
+        bracketCross: bracketCross,
         positions: g.positions,
         step: g.step,
         span: g.span
@@ -8278,7 +9209,7 @@ function machiningShelfLayout(refs, ctx, starts) {
     }
     function outward(mm, offsetPx) {
         var along = ctx.runOrigin + mm * ctx.runPxPerMm;
-        var cross = ctx.crossFar + offsetPx;
+        var cross = ctx.crossFar + (ctx.outSign || 1) * offsetPx;
         return ctx.alongLength ? { x: along, y: cross } : { x: cross, y: along };
     }
     function alongFrom(p, d) {
@@ -8335,7 +9266,7 @@ function machiningShelfLayout(refs, ctx, starts) {
         var bh = boxText.height();
         var near = outward(startMm, HINGE_TIP_GAP + HINGE_TRI_H + HINGE_BOX_GAP);
         var bx = ctx.alongLength ? near.x - bw / 2 : near.x;
-        var by = ctx.alongLength ? near.y : near.y - bh / 2;
+        var by = ctx.alongLength ? (ctx.outSign === -1 ? near.y - bh : near.y) : near.y - bh / 2;
         refs.boxes[i].position({ x: bx, y: by });
         refs.boxes[i].size({ width: bw, height: bh });
         boxText.position({ x: bx, y: by });
@@ -8359,7 +9290,7 @@ function machiningShelfBindInteractions(refs, ctx, starts, item) {
     // cross-axis line, hence the per-band locked coordinate.
     [
         { nodes: refs.handles, cross: ctx.row2Px, grab: false },
-        { nodes: refs.pointers, cross: ctx.crossFar + HINGE_TIP_GAP, grab: true }
+        { nodes: refs.pointers, cross: ctx.crossFar + (ctx.outSign || 1) * HINGE_TIP_GAP, grab: true }
     ].forEach(function (band) {
         band.nodes.forEach(function (node, index) {
             node.draggable(true);
@@ -8435,11 +9366,10 @@ function updateMachiningJHandle(item, geo, active, targetShapes) {
     var rawEdge = item.edge || "L1";
     var cutClearance = machiningHingeCutClearance(rawEdge, dims, (geo && geo.appliedItems) || machiningAppliedItems);
 
-    // J handle is always routed on the front (A side) — if some other B-side
-    // item is forcing the diagram to show the back, this edge is on the face
-    // NOT being shown, so it mirrors onto the opposite edge (see
-    // machiningFaceMismatch()) rather than staying at its native L1/W1 spot.
-    var edge = machiningMirrorEdge(rawEdge, machiningFaceMismatch(item, geo));
+    // J handle can be routed on either face (A or B side).
+    // When the board is viewed flipped, L1 and L2 swap ends on screen, so the
+    // edge mirrors to match whichever screen position L1/L2 sits at.
+    var edge = machiningMirrorEdge(rawEdge, !!(geo && geo.overallFlip));
     var axes = machiningJHandleAxes(edge, dims);
     var isVertical = axes.isVertical;
     var runMm = axes.run;
@@ -8780,7 +9710,15 @@ function redrawMachiningCanvas() {
 
     // "A side" (default) shows L1 at the top; "B side" swaps L1/L2 — kept in sync
     // with whichever item's A/B toggle and the "Panel shows" face box below
-    var flipLength = !!(machiningAnyAngledCutOnB(machiningAppliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+    var activeItem = (machiningActiveIndex >= 0 && machiningAppliedItems[machiningActiveIndex]) ? machiningAppliedItems[machiningActiveIndex] : null;
+    var flipLength;
+    if (activeItem && activeItem.view) {
+        flipLength = (activeItem.view === "B");
+    } else if (machiningBoardView) {
+        flipLength = (machiningBoardView === "B");
+    } else {
+        flipLength = !!(machiningAnyAngledCutOnB(machiningAppliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B") || (shelfItem && shelfItem.view === "B") || (jHandleItem && jHandleItem.view === "B"));
+    }
 
     // Badge centres sit cfg.badgeOffset outside the board edge, not on the
     // border line itself.
@@ -9314,11 +10252,8 @@ function buildHingeHolesDetailHTML(item, index, label) {
         '<div class="machining-hinge-row machining-hinge-view-row">' +
         '<div class="machining-detail-label">Holes drilled on</div>' +
         '<div class="machining-toggle-row" data-role="hinge-view">' +
-        // Hinge cups are bored into the back of the panel, so A side is
-        // shown for orientation but never selectable.
-        '<button type="button" class="machining-toggle-btn" data-view="A" disabled ' +
-        'title="Hinge holes are drilled on the back face">A side<br><small>Front face</small></button>' +
-        '<button type="button" class="machining-toggle-btn selected" data-view="B">B side<br><small>Back face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "A" ? " selected" : "") + '" data-view="A">A side<br><small>Front face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view !== "A" ? " selected" : "") + '" data-view="B">B side<br><small>Back face</small></button>' +
         "</div>" +
         "</div>" +
         '<div class="machining-preview-box">' + buildHingePreviewSVG(item) + "</div>" +
@@ -9552,11 +10487,8 @@ function buildJHandleDetailHTML(item, index, label) {
         '<div class="machining-shelf-row machining-hinge-view-row">' +
         '<div class="machining-detail-label">' + panelSummaryEscape(label) + " cut on:</div>" +
         '<div class="machining-toggle-row" data-role="jhandle-view">' +
-        '<button type="button" class="machining-toggle-btn selected" data-view="A">A side<br><small>Front face</small></button>' +
-        // The recess is routed into the front face, so B side is shown for
-        // orientation but never selectable.
-        '<button type="button" class="machining-toggle-btn" data-view="B" disabled ' +
-        'title="J handle is cut on the front face">B side<br><small>Back face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view !== "B" ? " selected" : "") + '" data-view="A">A side<br><small>Front face</small></button>' +
+        '<button type="button" class="machining-toggle-btn' + (item.view === "B" ? " selected" : "") + '" data-view="B">B side<br><small>Back face</small></button>' +
         "</div>" +
         "</div>" +
 
@@ -9699,9 +10631,9 @@ function buildGrooveDetailHTML(item, index) {
     var runMax = isVertical
         ? (!isNaN(dims.width) ? dims.width - 1 : 9998)
         : (!isNaN(dims.length) ? dims.length - 1 : 9998);
-    var distMax = isVertical
-        ? (!isNaN(dims.length) ? dims.length - 1 : 9998)
-        : (!isNaN(dims.width) ? dims.width - 1 : 9998);
+    var distRange = machiningGrooveDistRange(item, dims);
+    var distMin = distRange.min;
+    var distMax = distRange.max;
     var labels = machiningGrooveLabels(item.edge);
 
     var thickEl = document.getElementById("mThick");
@@ -9755,7 +10687,7 @@ function buildGrooveDetailHTML(item, index) {
         '<div class="machining-offset-field"><label>Specify edge</label>' +
         '<select class="machining-select machining-groove-distance-edge">' + distEdgeOptionsHTML + "</select></div>" +
         '<div class="machining-offset-field"><label>Edge to groove</label>' +
-        '<input type="number" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + machiningFieldValue(item.distance) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="distance" data-min="' + distMin + '" data-max="' + distMax + '" value="' + machiningFieldValue(item.distance) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">Groove cut on:</div>' +
         '<div class="machining-toggle-row" data-role="view">' +
@@ -9769,6 +10701,7 @@ function buildGrooveDetailHTML(item, index) {
             ? '<div class="machining-hinge-note">' + panelSummaryEscape(item.boundary.error) + "</div>"
             : "") +
         '<div class="machining-groove-note">Notes: Max groove depth: ' + maxDepth + "mm" +
+        "<br>Min edge shoulder: " + MACHINING_GROOVE_MIN_SHOULDER_MM + "mm" +
         (item.boundary && item.boundary.start_point != null
             ? "<br>Cut " + Math.round(item.boundary.total_groove_length) + "mm, from " +
             Math.round(item.boundary.start_point) + "mm to " +
@@ -9977,9 +10910,10 @@ if (machiningAddBtn) {
             }
 
             var grooveDims = machiningCurrentDims();
-            var grooveCrossTotal = (newEdge === "W1-W2") ? grooveDims.length : grooveDims.width;
-            var grooveDefaultDistance = (!isNaN(grooveCrossTotal) && grooveCrossTotal > 0)
-                ? Math.round(grooveCrossTotal / 2) : "";
+            var dummyItem = { edge: newEdge, width: 20 };
+            var range = machiningGrooveDistRange(dummyItem, grooveDims);
+            var grooveDefaultDistance = (!isNaN(range.crossTotal) && range.crossTotal > 0)
+                ? Math.max(range.min, Math.min(range.max, Math.round(range.crossTotal / 2))) : "";
             machiningAppliedItems.push({
                 option: "groove",
                 edge: newEdge,
@@ -10044,6 +10978,9 @@ if (machiningAddBtn) {
         // A freshly added option opens for editing, so it is the one the
         // canvas annotates.
         machiningActiveIndex = machiningAppliedItems.length - 1;
+        if (machiningAppliedItems[machiningActiveIndex] && machiningAppliedItems[machiningActiveIndex].view) {
+            machiningBoardView = machiningAppliedItems[machiningActiveIndex].view;
+        }
 
         renderMachiningAppliedList();
         saveMachiningAppliedItems();
@@ -10077,6 +11014,9 @@ if (machiningAppliedList) {
 
         if (e.target.closest(".machining-applied-chip")) {
             machiningActiveIndex = (machiningActiveIndex === index) ? -1 : index;
+            if (machiningActiveIndex >= 0 && machiningAppliedItems[machiningActiveIndex] && machiningAppliedItems[machiningActiveIndex].view) {
+                machiningBoardView = machiningAppliedItems[machiningActiveIndex].view;
+            }
             renderMachiningAppliedList();
             // The canvas annotates only the open item, so opening or
             // closing one changes what it draws.
@@ -10148,6 +11088,12 @@ if (machiningAppliedList) {
             item.edge = edgeBtn.dataset.edge;
             if (item.option === "groove" || item.behaviour === "groove") {
                 item.distanceEdge = (item.edge === "W1-W2") ? "W1" : "L1";
+                var dims = machiningCurrentDims();
+                var range = machiningGrooveDistRange(item, dims);
+                var curDist = parseFloat(item.distance);
+                if (!isNaN(curDist)) {
+                    item.distance = Math.max(range.min, Math.min(range.max, curDist));
+                }
             }
             // Switching axis changes which edges the end points/distance are
             // measured from, and their valid max — re-render picks that up.
@@ -10159,6 +11105,7 @@ if (machiningAppliedList) {
         var viewBtn = e.target.closest(".machining-toggle-btn[data-view]");
         if (viewBtn) {
             item.view = viewBtn.dataset.view;
+            machiningBoardView = item.view;
             renderMachiningAppliedList();
             saveMachiningAppliedItems();
             return;
@@ -10320,6 +11267,19 @@ if (machiningAppliedList) {
             item[field] = clamped;
         }
 
+        if ((item.option === "groove" || item.behaviour === "groove") && field === "width") {
+            var dims = machiningCurrentDims();
+            var range = machiningGrooveDistRange(item, dims);
+            if (item.distance !== "" && item.distance !== undefined && item.distance !== null) {
+                var curDist = parseFloat(item.distance);
+                if (!isNaN(curDist)) {
+                    item.distance = Math.max(range.min, Math.min(range.max, curDist));
+                }
+            }
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+        }
+
         redrawMachiningCanvas();
 
     });
@@ -10334,43 +11294,84 @@ if (machiningAppliedList) {
 }
 
 
-// Clicking the front/back half is an alternate control for the same A
-// side/B side toggle the active item's own sidebar buttons expose — routed
-// through that real button (via a synthetic click) rather than duplicating
-// its view-change/redraw logic here, so per-type rules (e.g. hinge holes
-// being back-only) stay enforced in one place.
-machiningFaceBox.addEventListener("click", function (e) {
+// Clicking the front/back face box toggles between Front face (A side) and Back face (B side),
+// matching the functionality of the A side / B side view toggle row:
+// flipping the canvas board diagram, updating L1/L2 and annotations, and syncing with
+// the active item's sidebar toggle button.
+if (machiningFaceBox) {
+    machiningFaceBox.addEventListener("click", function (e) {
 
-    var side = e.target.closest(".back") ? "B" : "A";
-    var itemEl = machiningAppliedList.querySelector('.machining-applied-item[data-index="' + machiningActiveIndex + '"]');
-    if (!itemEl) return;
+        // If currently showing Back face (flipped), user wants Front face ("A"); otherwise Back face ("B")
+        var isCurrentlyFlipped = machiningFaceBox.classList.contains("flipped");
+        var targetSide = isCurrentlyFlipped ? "A" : "B";
 
-    var btn = itemEl.querySelector('.machining-toggle-btn[data-view="' + side + '"]');
-    if (btn && !btn.disabled) btn.click();
+        // 1. If an active item has an A/B view toggle button, route through it
+        var itemEl = machiningAppliedList ? machiningAppliedList.querySelector('.machining-applied-item[data-index="' + machiningActiveIndex + '"]') : null;
+        if (itemEl) {
+            var btn = itemEl.querySelector('.machining-toggle-btn[data-view="' + targetSide + '"]');
+            if (btn) {
+                if (!btn.disabled) {
+                    btn.click();
+                }
+                return;
+            }
+        }
 
-});
+        // 2. If an active item exists but has no button in DOM, update its view directly
+        var activeItem = (machiningActiveIndex >= 0 && machiningAppliedItems[machiningActiveIndex]) ? machiningAppliedItems[machiningActiveIndex] : null;
+        if (activeItem && ("view" in activeItem || activeItem.option === "angled-cut" || activeItem.behaviour === "angled-cut" || activeItem.option === "groove" || activeItem.behaviour === "groove" || activeItem.option === "shelf-holes" || activeItem.behaviour === "shelf-holes" || activeItem.option === "hinge-holes" || activeItem.behaviour === "hinge-holes" || activeItem.option === "j-handle" || activeItem.behaviour === "j-handle")) {
+            activeItem.view = targetSide;
+            machiningBoardView = targetSide;
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+            return;
+        }
+
+        // 3. If no active item, find any applied item that supports A/B view
+        var itemToToggle = machiningAppliedItems.filter(function (i) {
+            var opt = machiningOptionBySlug(i.option);
+            var b = opt ? opt.behaviour : (i.behaviour || i.option);
+            return b === "angled-cut" || b === "groove" || b === "shelf-holes" || b === "hinge-holes" || b === "j-handle";
+        })[0];
+
+        if (itemToToggle) {
+            itemToToggle.view = targetSide;
+            machiningBoardView = targetSide;
+            renderMachiningAppliedList();
+            saveMachiningAppliedItems();
+            return;
+        }
+
+        // 4. If no items or none with view, toggle the board view directly
+        machiningBoardView = targetSide;
+        redrawMachiningCanvas();
+
+    });
+}
 
 
-document.getElementById("machiningZoomIn")
-    .addEventListener("click", function () {
-
+var machiningZoomIn = document.getElementById("machiningZoomIn");
+if (machiningZoomIn) {
+    machiningZoomIn.addEventListener("click", function () {
         machiningZoom = Math.min(machiningZoom + 0.1, 1.8);
-
-        machiningDiagram.style.transform =
-            "translate(-50%, -50%) scale(" + machiningZoom + ")";
-
+        if (machiningDiagram) {
+            machiningDiagram.style.transform =
+                "translate(-50%, -50%) scale(" + machiningZoom + ")";
+        }
     });
+}
 
 
-document.getElementById("machiningZoomOut")
-    .addEventListener("click", function () {
-
+var machiningZoomOut = document.getElementById("machiningZoomOut");
+if (machiningZoomOut) {
+    machiningZoomOut.addEventListener("click", function () {
         machiningZoom = Math.max(machiningZoom - 0.1, 0.6);
-
-        machiningDiagram.style.transform =
-            "translate(-50%, -50%) scale(" + machiningZoom + ")";
-
+        if (machiningDiagram) {
+            machiningDiagram.style.transform =
+                "translate(-50%, -50%) scale(" + machiningZoom + ")";
+        }
     });
+}
 
 
 // SPRAY FINISHING OVERLAY
@@ -10574,7 +11575,7 @@ function redrawSprayCanvas() {
     var midX = x + rectW / 2;
     var midY = y + rectH / 2;
 
-    var flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B"));
+    var flipLength = !!(machiningAnyAngledCutOnB(appliedItems) || (grooveItem && grooveItem.view === "B") || (hingeItem && hingeItem.view === "B") || (shelfItem && shelfItem.view === "B") || (jHandleItem && jHandleItem.view === "B"));
 
     var panelFill = "#ffffff";
     if (sprayState && sprayState.option && SPRAY_OPTIONS[sprayState.option]) {
@@ -10811,37 +11812,41 @@ function closeSprayOverlay() {
 
 }
 
-document.getElementById("sprayClose").addEventListener("click", closeSprayOverlay);
+var sprayClose = document.getElementById("sprayClose");
+if (sprayClose) {
+    sprayClose.addEventListener("click", closeSprayOverlay);
+}
 
-sprayOverlay.addEventListener("click", function (e) {
+if (sprayOverlay) {
+    sprayOverlay.addEventListener("click", function (e) {
+        if (e.target === sprayOverlay) closeSprayOverlay();
+    });
+}
 
-    if (e.target === sprayOverlay) closeSprayOverlay();
+if (sprayFaceBox) {
+    sprayFaceBox.addEventListener("click", function () {
+        var isFront = sprayFaceBox.textContent.includes("FRONT");
+        sprayFaceBox.innerHTML = isFront
+            ? "<div>BACK</div><div>FACE</div>"
+            : "<div>FRONT</div><div>FACE</div>";
+    });
+}
 
-});
+var sprayZoomIn = document.getElementById("sprayZoomIn");
+if (sprayZoomIn) {
+    sprayZoomIn.addEventListener("click", function () {
+        sprayZoom = Math.min(sprayZoom + 0.1, 1.8);
+        if (sprayDiagram) sprayDiagram.style.transform = "translate(-50%, -50%) scale(" + sprayZoom + ")";
+    });
+}
 
-sprayFaceBox.addEventListener("click", function () {
-
-    var isFront = sprayFaceBox.textContent.includes("FRONT");
-
-    sprayFaceBox.innerHTML = isFront
-        ? "<div>BACK</div><div>FACE</div>"
-        : "<div>FRONT</div><div>FACE</div>";
-
-});
-
-document.getElementById("sprayZoomIn").addEventListener("click", function () {
-
-    sprayZoom = Math.min(sprayZoom + 0.1, 1.8);
-    sprayDiagram.style.transform = "translate(-50%, -50%) scale(" + sprayZoom + ")";
-
-});
-
-document.getElementById("sprayZoomOut").addEventListener("click", function () {
-
-    sprayZoom = Math.max(sprayZoom - 0.1, 0.6);
-    sprayDiagram.style.transform = "translate(-50%, -50%) scale(" + sprayZoom + ")";
-
-});
+var sprayZoomOut = document.getElementById("sprayZoomOut");
+if (sprayZoomOut) {
+    sprayZoomOut.addEventListener("click", function () {
+        sprayZoom = Math.max(sprayZoom - 0.1, 0.6);
+        if (sprayDiagram) sprayDiagram.style.transform = "translate(-50%, -50%) scale(" + sprayZoom + ")";
+    });
+}
 
 
 // SPRAY FINISHING OPTIONS — Spray Finish CPT (wp-admin), not hardcoded.
@@ -10914,7 +11919,7 @@ function sprayPanelArea() {
 }
 
 function sprayMoney(n) {
-    return "£" + n.toFixed(2);
+    return summaryMoney(n);
 }
 
 // The dropdown itself stays open-able even once a finish is applied — a
@@ -11213,79 +12218,77 @@ if (spraySelectWrap) {
 
 }
 
-document.querySelector(".spray-sidebar").addEventListener("change", function (e) {
+var spraySidebar = document.querySelector(".spray-sidebar");
+if (spraySidebar) {
+    spraySidebar.addEventListener("change", function (e) {
+        if (e.target.id === "sprayBrand") {
+            sprayState.brand = e.target.value;
+            var sprayColourEl = document.getElementById("sprayColour");
+            if (sprayColourEl) sprayColourEl.disabled = !sprayState.brand;
+        }
 
-    if (e.target.id === "sprayBrand") {
-        sprayState.brand = e.target.value;
-        document.getElementById("sprayColour").disabled = !sprayState.brand;
-    }
-
-    if (e.target.id === "sprayBOnly") {
-        sprayState.bOnly = e.target.checked;
-        updateSprayVisuals();
-    }
-
-    if (e.target.id === "bSideSprayType") {
-        sprayState.bSideSprayType = e.target.value;
-        sprayStateByRow.set(sprayCurrentRow, sprayState);
-        renderSpraySidebar();
-        updateSprayVisuals();
-    }
-
-    if (e.target.classList.contains("spray-return-edge-cb")) {
-        var edge = e.target.dataset.edge;
-        if (edge) {
-            if (!sprayState.bSideReturnEdges) {
-                sprayState.bSideReturnEdges = { L1: true, L2: true, W1: true, W2: true };
-            }
-            sprayState.bSideReturnEdges[edge] = e.target.checked;
-            sprayStateByRow.set(sprayCurrentRow, sprayState);
+        if (e.target.id === "sprayBOnly") {
+            sprayState.bOnly = e.target.checked;
             updateSprayVisuals();
         }
-    }
 
-});
+        if (e.target.id === "bSideSprayType") {
+            sprayState.bSideSprayType = e.target.value;
+            sprayStateByRow.set(sprayCurrentRow, sprayState);
+            renderSpraySidebar();
+            updateSprayVisuals();
+        }
 
-document.querySelector(".spray-sidebar").addEventListener("input", function (e) {
+        if (e.target.classList.contains("spray-return-edge-cb")) {
+            var edge = e.target.dataset.edge;
+            if (edge) {
+                if (!sprayState.bSideReturnEdges) {
+                    sprayState.bSideReturnEdges = { L1: true, L2: true, W1: true, W2: true };
+                }
+                sprayState.bSideReturnEdges[edge] = e.target.checked;
+                sprayStateByRow.set(sprayCurrentRow, sprayState);
+                updateSprayVisuals();
+            }
+        }
+    });
 
-    if (e.target.id === "sprayColour") sprayState.colour = e.target.value;
+    spraySidebar.addEventListener("input", function (e) {
+        if (e.target.id === "sprayColour") sprayState.colour = e.target.value;
+    });
 
-});
+    spraySidebar.addEventListener("click", function (e) {
+        if (e.target.closest(".machining-applied-remove")) {
+            sprayState = defaultSprayState();
+            sprayStateByRow.set(sprayCurrentRow, sprayState);
+            renderSpraySidebar();
+            return;
+        }
 
-document.querySelector(".spray-sidebar").addEventListener("click", function (e) {
+        var sideBtn = e.target.closest(".spray-side-btn");
+        if (sideBtn) {
+            // Browsers don't fire click on a disabled button, but this
+            // listener is delegated — so guard rather than rely on that. A
+            // side is permanently on; only B is a real toggle.
+            if (sideBtn.disabled) return;
+            var side = sideBtn.dataset.side;
+            sprayState.sides[side] = !sprayState.sides[side];
+            renderSpraySidebar();
+            updateSprayVisuals();
+            return;
+        }
 
-    if (e.target.closest(".machining-applied-remove")) {
-        sprayState = defaultSprayState();
-        sprayStateByRow.set(sprayCurrentRow, sprayState);
-        renderSpraySidebar();
-        return;
-    }
-
-    var sideBtn = e.target.closest(".spray-side-btn");
-    if (sideBtn) {
-        // Browsers don't fire click on a disabled button, but this
-        // listener is delegated — so guard rather than rely on that. A
-        // side is permanently on; only B is a real toggle.
-        if (sideBtn.disabled) return;
-        var side = sideBtn.dataset.side;
-        sprayState.sides[side] = !sprayState.sides[side];
-        renderSpraySidebar();
-        updateSprayVisuals();
-        return;
-    }
-
-    var finishCard = e.target.closest(".spray-finish-card");
-    if (finishCard) {
-        sprayState.finish = parseInt(finishCard.dataset.finish, 10);
-        document.querySelectorAll(".spray-finish-card").forEach(function (c) {
-            c.classList.remove("selected");
-        });
-        finishCard.classList.add("selected");
-        updateSprayVisuals();
-        return;
-    }
-
-});
+        var finishCard = e.target.closest(".spray-finish-card");
+        if (finishCard) {
+            sprayState.finish = parseInt(finishCard.dataset.finish, 10);
+            document.querySelectorAll(".spray-finish-card").forEach(function (c) {
+                c.classList.remove("selected");
+            });
+            finishCard.classList.add("selected");
+            updateSprayVisuals();
+            return;
+        }
+    });
+}
 
 var sprayRotateBtn = document.getElementById("sprayRotate");
 if (sprayRotateBtn) {
@@ -11794,18 +12797,13 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
         }
     } catch (e) { }
 
-    // Clear any previously saved local storage cutlist data
+    // Restore saved cutting list draft from localStorage if available
     try {
-        if (typeof localStorage !== "undefined") {
-            localStorage.removeItem("cutlist_draft");
-            localStorage.removeItem("cutlistBasket");
-            Object.keys(localStorage).forEach(function (k) {
-                if (k.indexOf("cutlist_") === 0) {
-                    localStorage.removeItem(k);
-                }
-            });
-        }
-    } catch (e) { }
+        restoreDraft();
+    } catch (e) {
+        console.error("Error restoring cutlist draft:", e);
+    }
+    draftRestoreDone = true;
 
     // Real-time listener for WooCommerce cart drawer/page additions, removals & fragment updates
     if (typeof jQuery !== "undefined") {

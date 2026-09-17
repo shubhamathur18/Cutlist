@@ -416,6 +416,7 @@ function cutlist_ajax_add_to_cart()
 			$length = !empty($item['length']) ? sanitize_text_field($item['length']) : '';
 			$width = !empty($item['width']) ? sanitize_text_field($item['width']) : '';
 			$desc = !empty($item['description']) ? sanitize_text_field($item['description']) : '';
+			$panel_info = !empty($item['panelInfo']) ? sanitize_text_field($item['panelInfo']) : '';
 			$price = isset($item['unitPrice']) ? max(0, (float) $item['unitPrice']) : 0;
 
 			// Resolve decor featured image
@@ -517,6 +518,7 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_length' => $length,
 				'cutlist_width' => $width,
 				'cutlist_description' => $desc,
+				'cutlist_panel_info' => $panel_info,
 				'cutlist_edges' => $edge_summary,
 				'cutlist_machining' => $machining_summary,
 				'cutlist_panel_shaping' => $panel_shaping,
@@ -531,7 +533,7 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_unit_price' => $price,
 				'cutlist_image_id' => $decor_img['id'],
 				'cutlist_image_url' => $image_url,
-				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $section . $edge_summary . $machining_summary . $panel_shaping . $surface_shaping . $drilling . $spray_summary . $grain_summary . json_encode($panel_grain_files) . $panel_grain_info . $extra_cuts_summary . $selected_offcuts_summary . $price . $idx . microtime(true)),
+				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $panel_info . $section . $edge_summary . $machining_summary . $panel_shaping . $surface_shaping . $drilling . $spray_summary . $grain_summary . json_encode($panel_grain_files) . $panel_grain_info . $extra_cuts_summary . $selected_offcuts_summary . $price . $idx . microtime(true)),
 			);
 
 			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
@@ -580,6 +582,30 @@ function cutlist_ajax_add_to_cart()
 			$size = !empty($item['size']) ? sanitize_text_field($item['size']) : '';
 			$price = isset($item['unitPrice']) ? max(0, (float) $item['unitPrice']) : 0;
 
+			// Fallback: Resolve price from edge_tape post if missing or 0 from frontend
+			if ($price <= 0 && !empty($code)) {
+				$tape_code = trim(explode(' / ', $code)[0]);
+				$tape_code = trim(explode(' - ', $tape_code)[0]);
+				$t_posts = get_posts(array(
+					'post_type' => 'edge_tape',
+					'post_status' => 'publish',
+					'numberposts' => 1,
+					'meta_query' => array(
+						array(
+							'key' => 'tape_code',
+							'value' => $tape_code,
+							'compare' => '=',
+						),
+					),
+				));
+				if (!empty($t_posts)) {
+					$db_price = (float) get_field('unit_price', $t_posts[0]->ID);
+					if ($db_price > 0) {
+						$price = $db_price;
+					}
+				}
+			}
+
 			// Resolve edge tape image
 			$tape_img = cutlist_get_edge_tape_image($code . ' ' . $name);
 			$image_url = !empty($item['image']) ? esc_url_raw($item['image']) : $tape_img['url'];
@@ -610,7 +636,8 @@ function cutlist_ajax_add_to_cart()
 			$label = !empty($m_item['label']) ? sanitize_text_field($m_item['label']) : '';
 			if ($code === 'SPRAY-MIN' || (!empty($m_item['slug']) && $m_item['slug'] === 'spray_min_charge') || stripos($label, 'Spray finishing minimum') !== false) {
 				$qty = isset($m_item['qty']) ? max(1, (int) $m_item['qty']) : 1;
-				$desc = !empty($m_item['description']) ? sanitize_text_field($m_item['description']) : __('Charge added to reach minimum order value of £330.00 for spray finishing', 'cutlist-catalogue');
+				$min_val_str = function_exists('wc_price') ? wp_strip_all_tags(wc_price(330)) : '£330.00';
+				$desc = !empty($m_item['description']) ? sanitize_text_field($m_item['description']) : sprintf(__('Charge added to reach minimum order value of %s for spray finishing', 'cutlist-catalogue'), $min_val_str);
 				$price = isset($m_item['unitPrice']) ? max(0, (float) $m_item['unitPrice']) : 0;
 
 				if ($price > 0) {
@@ -635,12 +662,13 @@ function cutlist_ajax_add_to_cart()
 	// Fallback: If sprayMinSurcharge is passed directly and not yet added
 	if (!$spray_min_added && !empty($data['sprayMinSurcharge']) && (float) $data['sprayMinSurcharge'] > 0) {
 		$price = (float) $data['sprayMinSurcharge'];
+		$min_val_str = function_exists('wc_price') ? wp_strip_all_tags(wc_price(330)) : '£330.00';
 		$cart_item_data = array(
 			'cutlist_type' => __('Additional Service', 'cutlist-catalogue'),
 			'cutlist_title' => __('Service: Spray finishing minimum order charge (SPRAY-MIN)', 'cutlist-catalogue'),
 			'cutlist_code' => 'SPRAY-MIN',
 			'cutlist_name' => __('Spray finishing minimum order charge', 'cutlist-catalogue'),
-			'cutlist_description' => __('Charge added to reach minimum order value of £330.00 for spray finishing', 'cutlist-catalogue'),
+			'cutlist_description' => sprintf(__('Charge added to reach minimum order value of %s for spray finishing', 'cutlist-catalogue'), $min_val_str),
 			'cutlist_unit_price' => $price,
 			'cutlist_unique_key' => 'srv_spray_min_' . md5($price . microtime(true)),
 		);
@@ -670,7 +698,7 @@ add_action('wp_ajax_nopriv_cutlist_add_to_cart', 'cutlist_ajax_add_to_cart');
  */
 function cutlist_ajax_get_cart_total()
 {
-	$total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : '&pound;0.00';
+	$total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : (function_exists('wc_price') ? wc_price(0) : '&pound;0.00');
 	$count = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_contents_count() : 0;
 	wp_send_json_success(array(
 		'cart_total' => $total,
@@ -685,7 +713,7 @@ add_action('wp_ajax_nopriv_cutlist_get_cart_total', 'cutlist_ajax_get_cart_total
  */
 function cutlist_add_cart_fragments($fragments)
 {
-	$total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : '&pound;0.00';
+	$total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : (function_exists('wc_price') ? wc_price(0) : '&pound;0.00');
 	$fragments['.tab-basket-price'] = '<span class="tab-basket-price">' . $total . '</span>';
 	return $fragments;
 }
@@ -705,6 +733,7 @@ function cutlist_apply_custom_cart_item_data($cart)
 	foreach ($cart->get_cart() as $cart_item_key => $cart_item) {
 		if (isset($cart_item['cutlist_unit_price'])) {
 			$cart_item['data']->set_price((float) $cart_item['cutlist_unit_price']);
+			$cart_item['data']->set_regular_price((float) $cart_item['cutlist_unit_price']);
 		}
 		if (!empty($cart_item['cutlist_image_id'])) {
 			$cart_item['data']->set_image_id((int) $cart_item['cutlist_image_id']);
@@ -716,6 +745,29 @@ function cutlist_apply_custom_cart_item_data($cart)
 }
 add_action('woocommerce_before_calculate_totals', 'cutlist_apply_custom_cart_item_data', 10, 1);
 add_action('woocommerce_cart_loaded_from_session', 'cutlist_apply_custom_cart_item_data', 10, 1);
+
+/**
+ * Ensures custom cutlist prices, titles, and images are applied immediately
+ * when individual cart items are reconstructed from session.
+ */
+function cutlist_get_cart_item_from_session($cart_item, $values, $key)
+{
+	if (isset($values['cutlist_unit_price'])) {
+		$cart_item['cutlist_unit_price'] = $values['cutlist_unit_price'];
+		if (isset($cart_item['data']) && is_object($cart_item['data'])) {
+			$cart_item['data']->set_price((float) $values['cutlist_unit_price']);
+			$cart_item['data']->set_regular_price((float) $values['cutlist_unit_price']);
+		}
+	}
+	if (!empty($values['cutlist_title']) && isset($cart_item['data']) && is_object($cart_item['data'])) {
+		$cart_item['data']->set_name($values['cutlist_title']);
+	}
+	if (!empty($values['cutlist_image_id']) && isset($cart_item['data']) && is_object($cart_item['data'])) {
+		$cart_item['data']->set_image_id((int) $values['cutlist_image_id']);
+	}
+	return $cart_item;
+}
+add_filter('woocommerce_get_cart_item_from_session', 'cutlist_get_cart_item_from_session', 20, 3);
 
 /**
  * Customizes the cart item thumbnail in WooCommerce Cart and Checkout (Classic & mini-cart).
@@ -867,8 +919,14 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 	}
 	if (!empty($cart_item['cutlist_description'])) {
 		$item_data[] = array(
-			'name' => __('Description / Note', 'cutlist-catalogue'),
+			'name' => __('Part Description', 'cutlist-catalogue'),
 			'value' => esc_html($cart_item['cutlist_description']),
+		);
+	}
+	if (!empty($cart_item['cutlist_panel_info'])) {
+		$item_data[] = array(
+			'name' => __('Additional Note', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_panel_info']),
 		);
 	}
 	if (!empty($cart_item['cutlist_edges'])) {
@@ -998,7 +1056,10 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 		$item->add_meta_data(__('Dimensions', 'cutlist-catalogue'), $values['cutlist_dimensions']);
 	}
 	if (!empty($values['cutlist_description'])) {
-		$item->add_meta_data(__('Description / Note', 'cutlist-catalogue'), $values['cutlist_description']);
+		$item->add_meta_data(__('Part Description', 'cutlist-catalogue'), $values['cutlist_description']);
+	}
+	if (!empty($values['cutlist_panel_info'])) {
+		$item->add_meta_data(__('Additional Note', 'cutlist-catalogue'), $values['cutlist_panel_info']);
 	}
 	if (!empty($values['cutlist_edges'])) {
 		$item->add_meta_data(__('Edging Tape', 'cutlist-catalogue'), $values['cutlist_edges']);
@@ -1074,14 +1135,33 @@ add_action('woocommerce_checkout_create_order', 'cutlist_attach_order_level_meta
 
 /**
  * Helper: Checks if a cart item is an Edging Tape item subject to minimum quantity.
+ * NOTE: This applies ONLY to standalone/separate edging tape orders (from the Edging tape section),
+ * NEVER to Cut Panels that have edge banding details applied.
  */
 function cutlist_is_edge_tape_cart_item($cart_item)
 {
 	if (empty($cart_item) || !is_array($cart_item)) {
 		return false;
 	}
-	if (!empty($cart_item['cutlist_min_qty']) && (int) $cart_item['cutlist_min_qty'] >= 5) {
-		return true;
+	// Explicitly exclude Cut Panels, Full Sheets, and Services
+	if (!empty($cart_item['cutlist_type']) && (
+		$cart_item['cutlist_type'] === 'Cut Panel' ||
+		$cart_item['cutlist_type'] === __('Cut Panel', 'cutlist-catalogue') ||
+		$cart_item['cutlist_type'] === 'Full Sheet' ||
+		$cart_item['cutlist_type'] === __('Full Sheet', 'cutlist-catalogue') ||
+		$cart_item['cutlist_type'] === 'Additional Service' ||
+		$cart_item['cutlist_type'] === __('Additional Service', 'cutlist-catalogue')
+	)) {
+		return false;
+	}
+	if (!empty($cart_item['cutlist_unique_key']) && (
+		strpos($cart_item['cutlist_unique_key'], 'cut_') === 0 ||
+		strpos($cart_item['cutlist_unique_key'], 'fs_') === 0
+	)) {
+		return false;
+	}
+	if (!empty($cart_item['cutlist_title']) && stripos($cart_item['cutlist_title'], 'Cut Panel') !== false) {
+		return false;
 	}
 	if (!empty($cart_item['cutlist_type']) && (
 		$cart_item['cutlist_type'] === 'Edging Tape' ||
@@ -1092,7 +1172,13 @@ function cutlist_is_edge_tape_cart_item($cart_item)
 	if (!empty($cart_item['cutlist_unique_key']) && strpos($cart_item['cutlist_unique_key'], 'et_') === 0) {
 		return true;
 	}
-	if (!empty($cart_item['cutlist_title']) && stripos($cart_item['cutlist_title'], 'Edging Tape') !== false) {
+	if (!empty($cart_item['cutlist_min_qty']) && (int) $cart_item['cutlist_min_qty'] >= 5) {
+		return true;
+	}
+	if (!empty($cart_item['cutlist_title']) && (
+		stripos($cart_item['cutlist_title'], 'Edging Tape:') === 0 ||
+		stripos($cart_item['cutlist_title'], __('Edging Tape:', 'cutlist-catalogue')) === 0
+	)) {
 		return true;
 	}
 	return false;
@@ -1153,6 +1239,24 @@ function cutlist_cart_item_quantity_html($product_quantity, $cart_item_key, $car
 	return $product_quantity;
 }
 add_filter('woocommerce_cart_item_quantity', 'cutlist_cart_item_quantity_html', 20, 3);
+
+/**
+ * Adds CSS classes to WooCommerce cart item rows to clearly distinguish
+ * standalone Edging Tape items from Cut Panels and Full Sheets.
+ */
+function cutlist_add_cart_item_class($class, $cart_item, $cart_item_key)
+{
+	if (cutlist_is_edge_tape_cart_item($cart_item)) {
+		$class .= ' cutlist-item-edging-tape';
+	} elseif (!empty($cart_item['cutlist_type']) && (
+		$cart_item['cutlist_type'] === 'Cut Panel' ||
+		$cart_item['cutlist_type'] === __('Cut Panel', 'cutlist-catalogue')
+	)) {
+		$class .= ' cutlist-item-cut-panel';
+	}
+	return $class;
+}
+add_filter('woocommerce_cart_item_class', 'cutlist_add_cart_item_class', 10, 3);
 
 /**
  * Validates cart item quantity updates: blocks reducing Edging Tape below 5 meters.
@@ -1538,15 +1642,74 @@ function cutlist_cart_item_details_custom_styles()
 	</style>
 	<script>
 	(function () {
+		/**
+		 * Determines if a cart item row is a standalone Edging Tape order
+		 * (from the bottom Edging Tape section) and NOT a Cut Panel with edgebanding details.
+		 */
+		function isStandaloneEdgingTapeRow(row) {
+			if (!row) return false;
+
+			// If explicitly tagged with cutlist classes
+			if (row.classList.contains('cutlist-item-cut-panel')) return false;
+			if (row.classList.contains('cutlist-item-edging-tape')) return true;
+
+			var text = (row.innerText || '').replace(/\s+/g, ' ');
+
+			// Cut Panels and Full Sheets can NEVER be standalone edging tape
+			// (Cut panels display edgebanding details like "Edging Tape: L1:M1" in metadata)
+			if (
+				text.indexOf('Item Type: Cut Panel') !== -1 ||
+				text.indexOf('Cut Panel:') !== -1 ||
+				text.indexOf('Cut Panel [') !== -1
+			) {
+				return false;
+			}
+			if (
+				text.indexOf('Item Type: Full Sheet') !== -1 ||
+				text.indexOf('Full Sheet:') !== -1
+			) {
+				return false;
+			}
+			if (
+				text.indexOf('Item Type: Additional Service') !== -1 ||
+				text.indexOf('Additional Service:') !== -1
+			) {
+				return false;
+			}
+
+			// Standalone edging tape metadata explicitly declares "Item Type: Edging Tape"
+			if (text.indexOf('Item Type: Edging Tape') !== -1) {
+				return true;
+			}
+
+			// Inspect the product name element specifically (in both classic cart & block cart)
+			var titleEl = row.querySelector(
+				'.wc-block-components-product-name, .product-name a, .product-name, [class*="product-name"]'
+			);
+			if (titleEl) {
+				var titleText = (titleEl.innerText || '').trim();
+				if (titleText.indexOf('Cut Panel') !== -1) {
+					return false;
+				}
+				if (titleText.indexOf('Edging Tape') === 0 || titleText.indexOf('Edging Tape:') === 0) {
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		function enforceEdgeTapeMinQty() {
 			var hasInvalidEdgeTape = false;
 			var cartRows = document.querySelectorAll(
 				'.woocommerce-cart-form__cart-item, .wc-block-cart-items__row, .wc-block-cart-item, tr.cart_item, .cart_item'
 			);
 			cartRows.forEach(function (row) {
-				var text = row.innerText || '';
-				if (text.indexOf('Edging Tape') !== -1 || text.indexOf('Item Type: Edging Tape') !== -1) {
-					var qtyInput = row.querySelector('input.qty, input[type="number"], .wc-block-components-quantity-selector__input');
+				var isEdgeTape = isStandaloneEdgingTapeRow(row);
+				var qtyInput = row.querySelector('input.qty, input[type="number"], .wc-block-components-quantity-selector__input');
+				var minusBtn = row.querySelector('.wc-block-components-quantity-selector__button--minus, .minus, [data-action="minus"], button.minus');
+
+				if (isEdgeTape) {
 					if (qtyInput) {
 						qtyInput.setAttribute('min', '5');
 						var val = parseInt(qtyInput.value, 10);
@@ -1558,7 +1721,6 @@ function cutlist_cart_item_details_custom_styles()
 							qtyInput.classList.remove('invalid');
 							qtyInput.style.borderColor = '';
 						}
-						var minusBtn = row.querySelector('.wc-block-components-quantity-selector__button--minus, .minus, [data-action="minus"], button.minus');
 						if (minusBtn) {
 							if (val <= 5) {
 								minusBtn.setAttribute('disabled', 'disabled');
@@ -1569,6 +1731,25 @@ function cutlist_cart_item_details_custom_styles()
 								minusBtn.style.opacity = '';
 								minusBtn.style.pointerEvents = '';
 							}
+						}
+					}
+				} else {
+					// Non-edge-tape item (Cut Panel, Full Sheet, etc.): ensure no 5m restriction is applied!
+					if (qtyInput) {
+						if (qtyInput.getAttribute('min') === '5') {
+							qtyInput.setAttribute('min', '1');
+						}
+						qtyInput.classList.remove('invalid');
+						if (qtyInput.style.borderColor === 'rgb(220, 38, 38)' || qtyInput.style.borderColor === '#dc2626') {
+							qtyInput.style.borderColor = '';
+						}
+					}
+					if (minusBtn) {
+						var val = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+						if (val > 1) {
+							minusBtn.removeAttribute('disabled');
+							minusBtn.style.opacity = '';
+							minusBtn.style.pointerEvents = '';
 						}
 					}
 				}
@@ -1595,7 +1776,7 @@ function cutlist_cart_item_details_custom_styles()
 				var invalid = false;
 				document.querySelectorAll('input.qty, input[type="number"], .wc-block-components-quantity-selector__input').forEach(function (inp) {
 					var row = inp.closest('.woocommerce-cart-form__cart-item, .wc-block-cart-items__row, .wc-block-cart-item, tr.cart_item, .cart_item');
-					if (row && (row.innerText || '').indexOf('Edging Tape') !== -1) {
+					if (row && isStandaloneEdgingTapeRow(row)) {
 						var v = parseInt(inp.value, 10);
 						if (!isNaN(v) && v < 5 && v > 0) {
 							invalid = true;
@@ -3277,7 +3458,19 @@ function cutlist_handle_print_order_page()
 }
 add_action('template_redirect', 'cutlist_handle_print_order_page', 1);
 
-
-
-
-
+/**
+ * Clears the saved cutting list draft from localStorage once an order has been successfully placed.
+ */
+function cutlist_clear_draft_on_order_received($order_id)
+{
+	?>
+	<script>
+	try {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.removeItem('cutlist_draft');
+		}
+	} catch (e) {}
+	</script>
+	<?php
+}
+add_action('woocommerce_thankyou', 'cutlist_clear_draft_on_order_received', 10, 1);

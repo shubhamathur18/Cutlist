@@ -448,6 +448,7 @@ function cutlist_format_board($post) {
 		$spray_finishing = (bool) get_field('spray_finishing', $post->ID);
 		$grain_match = (bool) get_field('grain_match', $post->ID);
 
+		$currency_sym = function_exists('get_woocommerce_currency_symbol') ? html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8') : '£';
 		return [
 			'id' => $post->ID,
 			'brand' => $brand,
@@ -468,8 +469,8 @@ function cutlist_format_board($post) {
 			'full_sheet_price' => $full_sheet_price,
 			'cutting_list_price' => $cutting_list_price,
 			'additional_cut_price' => $additional_cut_price,
-			'price_sheet' => ($full_sheet_price > 0) ? '£' . number_format($full_sheet_price, 2) : '–',
-			'price_cut' => ($cutting_list_price > 0) ? '£' . number_format($cutting_list_price, 2) : (($full_sheet_price > 0) ? '£' . number_format($full_sheet_price, 2) : '–'),
+			'price_sheet' => ($full_sheet_price > 0) ? $currency_sym . number_format($full_sheet_price, 2) : '–',
+			'price_cut' => ($cutting_list_price > 0) ? $currency_sym . number_format($cutting_list_price, 2) : (($full_sheet_price > 0) ? $currency_sym . number_format($full_sheet_price, 2) : '–'),
 			'slides' => $slides,
 			'chars' => implode("\n", $lines),
 			'machining' => [

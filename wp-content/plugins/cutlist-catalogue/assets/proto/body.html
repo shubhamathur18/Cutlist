@@ -391,11 +391,11 @@
         <div class="section-title">
             <h2>Full sheets</h2>
             <div class="toggle">
-                <span class="toggle-label">Collapse</span>
-                <span class="arrow"></span>
+                <span class="toggle-label">Expand</span>
+                <span class="arrow down"></span>
             </div>
         </div>
-        <div class="table-area" id="fsTableArea">
+        <div class="table-area collapsed" id="fsTableArea">
             <table id="fsTable">
                 <tr class="header-row">
                     <th>#</th>
@@ -830,6 +830,16 @@ CUT, EDGE & SPRAY SUMMARY
     </div>
 </div>
 <div class="decor-popup" id="decorPopup">
+    <div class="decor-popup-search-wrap">
+        <span class="decor-popup-search-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </span>
+        <input type="text" class="decor-popup-search-input" placeholder="Search decor code, name, or core..." autocomplete="off" spellcheck="false">
+        <button type="button" class="decor-popup-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+    </div>
     <div class="supplier-tabs">
         <div class="supplier-tab active" data-tab="egger">
             Egger

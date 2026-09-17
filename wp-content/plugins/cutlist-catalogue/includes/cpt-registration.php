@@ -16,6 +16,7 @@ add_action('init', 'cutlist_register_taxonomies');
 add_action('init', 'cutlist_seed_default_spray_finishes', 20);
 add_action('init', 'cutlist_seed_default_machining_options', 20);
 add_action('init', 'cutlist_seed_dummy_egger_boards', 25);
+add_action('init', 'cutlist_cleanup_duplicate_boards', 30);
 
 function cutlist_register_post_types() {
 
@@ -535,6 +536,7 @@ function cutlist_board_section_heading_css() {
 
 add_action('acf/init', function() {
 	if (function_exists('acf_add_local_field_group')) {
+		$currency_sym = function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '£';
 		acf_add_local_field_group(array(
 			'key' => 'group_machining_option_fields',
 			'title' => 'Machining Option Details',
@@ -582,7 +584,7 @@ add_action('acf/init', function() {
 					'name' => 'price',
 					'type' => 'number',
 					'step' => '0.01',
-					'prepend' => '£',
+					'prepend' => $currency_sym,
 				),
 				array(
 					'key' => 'field_machining_option_edging_price',
@@ -591,7 +593,7 @@ add_action('acf/init', function() {
 					'type' => 'number',
 					'step' => '0.01',
 					'default_value' => 28.87,
-					'prepend' => '£',
+					'prepend' => $currency_sym,
 				),
 				array(
 					'key' => 'field_machining_option_edging_service_code',
@@ -624,7 +626,7 @@ add_action('acf/init', function() {
 					'type' => 'number',
 					'step' => '0.01',
 					'instructions' => 'Price per sheet used for cut-to-size cutting list calculations.',
-					'prepend' => '£',
+					'prepend' => $currency_sym,
 				),
 				array(
 					'key' => 'field_board_additional_cut_price',
@@ -634,7 +636,7 @@ add_action('acf/init', function() {
 					'step' => '0.01',
 					'default_value' => '3.46',
 					'instructions' => 'Additional charge per single cut when the number of panels included in a single sheet cutting charge (20 cuts per sheet) is exceeded.',
-					'prepend' => '£',
+					'prepend' => $currency_sym,
 				),
 			),
 			'location' => array(
@@ -813,4 +815,47 @@ function cutlist_seed_dummy_egger_boards() {
 	}
 
 	update_option('cutlist_dummy_egger_seeded_v1', 1);
+}
+
+function cutlist_cleanup_duplicate_boards() {
+	if (get_option('cutlist_duplicate_boards_cleaned_v2')) {
+		return;
+	}
+
+	$boards = get_posts([
+		'post_type'   => 'board',
+		'post_status' => 'publish',
+		'numberposts' => -1,
+		'orderby'     => 'ID',
+		'order'       => 'ASC',
+	]);
+
+	$seen = [];
+	foreach ($boards as $b) {
+		$brand_terms = get_the_terms($b->ID, 'board_brand');
+		$brand_slug = ($brand_terms && !is_wp_error($brand_terms)) ? $brand_terms[0]->slug : '';
+		$code = trim((string) get_post_meta($b->ID, 'decor_code', true));
+		if (!$code) {
+			$code = trim((string) $b->post_title);
+		}
+		$key = $brand_slug . '|' . strtolower($code);
+
+		if (isset($seen[$key])) {
+			$orig_id = $seen[$key];
+			$gallery_meta_key = defined('CUTLIST_BOARD_GALLERY_META') ? CUTLIST_BOARD_GALLERY_META : '_board_gallery_ids';
+			$orig_has_img = has_post_thumbnail($orig_id) || get_post_meta($orig_id, $gallery_meta_key, true);
+			$curr_has_img = has_post_thumbnail($b->ID) || get_post_meta($b->ID, $gallery_meta_key, true);
+
+			if ($curr_has_img && !$orig_has_img) {
+				wp_delete_post($orig_id, true);
+				$seen[$key] = $b->ID;
+			} else {
+				wp_delete_post($b->ID, true);
+			}
+		} else {
+			$seen[$key] = $b->ID;
+		}
+	}
+
+	update_option('cutlist_duplicate_boards_cleaned_v2', 1);
 }

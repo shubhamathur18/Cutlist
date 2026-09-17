@@ -6583,11 +6583,11 @@
             <div class="section-title">
                 <h2>Full sheets</h2>
                 <div class="toggle">
-                    <span class="toggle-label">Collapse</span>
-                    <span class="arrow"></span>
+                    <span class="toggle-label">Expand</span>
+                    <span class="arrow down"></span>
                 </div>
             </div>
-            <div class="table-area" id="fsTableArea">
+            <div class="table-area collapsed" id="fsTableArea">
                 <table id="fsTable">
                     <tr class="header-row">
                         <th>#</th>
@@ -7022,6 +7022,16 @@ CUT, EDGE & SPRAY SUMMARY
         </div>
     </div>
     <div class="decor-popup" id="decorPopup">
+        <div class="decor-popup-search-wrap">
+            <span class="decor-popup-search-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </span>
+            <input type="text" class="decor-popup-search-input" placeholder="Search decor code, name, or core..." autocomplete="off" spellcheck="false">
+            <button type="button" class="decor-popup-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
         <div class="supplier-tabs">
             <div class="supplier-tab active" data-tab="egger">
                 Egger
@@ -7395,13 +7405,23 @@ CUT, EDGE & SPRAY SUMMARY
 
             if (!input) return;
 
-            if (!input.disabled && input.value.trim() === "") {
-
-                input.classList.add("invalid");
-
+            if (!input.disabled) {
+                var val = input.value.trim();
+                if (val === "") {
+                    input.classList.add("invalid");
+                } else if (input.matches("td.small:not(.edging-input) input")) {
+                    var num = parseInt(val, 10);
+                    if (isNaN(num) || num < 30) {
+                        input.classList.add("invalid");
+                    } else {
+                        input.classList.remove("invalid");
+                    }
+                } else {
+                    input.classList.remove("invalid");
+                }
             } else {
-
                 input.classList.remove("invalid");
+            }
 
             }
 
@@ -9037,14 +9057,26 @@ CUT, EDGE & SPRAY SUMMARY
                 '<tr><td class="left">Width:</td><td class="right">' + p.width + ' mm</td></tr>' +
                 '<tr><td class="left">Thickness:</td><td class="right">' + firstThick + ' mm</td></tr>';
 
+            function formatPanelModalText(val) {
+                if (!val) return '';
+                var str = String(val).trim();
+                if (/<[a-z][\s\S]*>/i.test(str)) {
+                    return str.replace(/<\/(p|div|ul|ol|li|h[1-6])>\s*<br\s*\/?>/gi, '</$1>')
+                              .replace(/<br\s*\/?>\s*<(p|div|ul|ol|li|h[1-6])/gi, '<$1')
+                              .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '')
+                              .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+                }
+                return str.replace(/\r\n|\r|\n/g, '<br>');
+            }
+
             // description
-            document.getElementById('pmDesc').innerHTML = p.desc.replace(/\n/g, '<br>');
+            document.getElementById('pmDesc').innerHTML = formatPanelModalText(p.desc);
 
             // B side description (show section only if provided)
             var bsideSection = document.getElementById('pmBsideSection');
             if (p.bside) {
                 bsideSection.style.display = '';
-                document.getElementById('pmBside').innerHTML = p.bside.replace(/\n/g, '<br>');
+                document.getElementById('pmBside').innerHTML = formatPanelModalText(p.bside);
             } else {
                 bsideSection.style.display = 'none';
             }

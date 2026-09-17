@@ -15,118 +15,12 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+
+$active_tab = 'cutspray';
+$currency_sym = function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '&pound;';
+include CUTLIST_CATALOGUE_PATH . 'templates/parts/header-tabs.php';
 ?>
-<?php
-$wc_cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : '#';
-$wc_checkout_url = function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '#';
-$wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : '&pound;0.00';
-?>
-<div class="cb-topbar" id="cbTopbar" style="display:none">
-    <a href="<?php echo esc_url($wc_cart_url); ?>"
-        class="cb-topbar-btn cb-topbar-view"><?php esc_html_e('View basket', 'cutlist-catalogue'); ?></a>
-    <a href="<?php echo esc_url($wc_checkout_url); ?>"
-        class="cb-topbar-btn cb-topbar-checkout"><?php esc_html_e('Checkout', 'cutlist-catalogue'); ?></a>
-</div>
-<div class="header">
-    <div class="tabs">
-        <a href="javascript:void(0)" class="tab active">
-            <span class="tab-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    <line x1="3" y1="9" x2="21" y2="9" />
-                    <line x1="9" y1="21" x2="9" y2="9" />
-                </svg>
-            </span>
-            <span class="tab-content">
-                <!-- <span class="tab-number">1</span> -->
-                <span class="tab-label"><?php esc_html_e('Cut, Edge & Spray', 'cutlist-catalogue'); ?></span>
-                <span class="tab-price">&pound;0.00</span>
-            </span>
-        </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
-            <span class="tab-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="3" />
-                    <path
-                        d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-                </svg>
-            </span>
-            <span class="tab-content">
-                <!-- <span class="tab-number">2</span> -->
-                <span class="tab-label"><?php esc_html_e('CNC Machining', 'cutlist-catalogue'); ?></span>
-                <span class="tab-price">&pound;0.00</span>
-            </span>
-        </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
-            <span class="tab-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="12" y1="3" x2="12" y2="21" />
-                </svg>
-            </span>
-            <span class="tab-content">
-                <!-- <span class="tab-number">3</span> -->
-                <span class="tab-label"><?php esc_html_e('Sliding Doors', 'cutlist-catalogue'); ?></span>
-                <span class="tab-price">&pound;0.00</span>
-            </span>
-        </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
-            <span class="tab-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M3 12h18" />
-                </svg>
-            </span>
-            <span class="tab-content">
-                <!-- <span class="tab-number">4</span> -->
-                <span class="tab-label"><?php esc_html_e('Hinged Doors', 'cutlist-catalogue'); ?></span>
-                <span class="tab-price">&pound;0.00</span>
-            </span>
-        </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
-            <span class="tab-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="M2 8h20M8 4v16" />
-                </svg>
-            </span>
-            <span class="tab-content">
-                <!-- <span class="tab-number">5</span> -->
-                <span class="tab-label"><?php esc_html_e('Furniture Fittings', 'cutlist-catalogue'); ?></span>
-                <span class="tab-price">&pound;0.00</span>
-            </span>
-        </a>
-        <a href="<?php echo esc_url($wc_cart_url); ?>" class="tab-basket-btn">
-            <span class="tab-basket-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                </svg>
-            </span>
-            <span class="tab-basket-text">
-                <span class="tab-basket-label"><?php esc_html_e('View Basket', 'cutlist-catalogue'); ?></span>
-                <span class="tab-basket-price"><?php echo wp_kses_post($wc_cart_total); ?></span>
-            </span>
-            <span class="tab-basket-arrow">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="9 18 15 12 9 6" />
-                </svg>
-            </span>
-        </a>
-    </div>
-</div>
+
 <div class="container tab-panel active" data-panel="cutspray">
     <div class="section-title">
         <h2><?php esc_html_e('Cutting list', 'cutlist-catalogue'); ?></h2>
@@ -184,8 +78,8 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input type="number" min="1"></td>
-                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="30"></td>
+                <td class="small"><input type="number" min="30"></td>
                 <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
@@ -266,8 +160,8 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input type="number" min="1"></td>
-                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="30"></td>
+                <td class="small"><input type="number" min="30"></td>
                 <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
@@ -347,8 +241,8 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input type="number" min="1"></td>
-                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="30"></td>
+                <td class="small"><input type="number" min="30"></td>
                 <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
@@ -485,7 +379,7 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
 
     <div class="closed">
 
-         <div class="section-title">
+        <div class="section-title">
             <h2><?php esc_html_e('Edging tape', 'cutlist-catalogue'); ?></h2>
             <div class="toggle">
                 <span class="toggle-label"><?php esc_html_e('Expand', 'cutlist-catalogue'); ?></span>
@@ -597,11 +491,11 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
         <div class="section-title">
             <h2><?php esc_html_e('Full sheets', 'cutlist-catalogue'); ?></h2>
             <div class="toggle">
-                <span class="toggle-label"><?php esc_html_e('Collapse', 'cutlist-catalogue'); ?></span>
-                <span class="arrow"></span>
+                <span class="toggle-label"><?php esc_html_e('Expand', 'cutlist-catalogue'); ?></span>
+                <span class="arrow down"></span>
             </div>
         </div>
-        <div class="table-area" id="fsTableArea">
+        <div class="table-area collapsed" id="fsTableArea">
             <table id="fsTable">
                 <tr class="header-row">
                     <th>#</th>
@@ -668,7 +562,7 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                 <button id="addFsRowBtn"><?php esc_html_e('Add a row', 'cutlist-catalogue'); ?></button>
             </div>
         </div>
-       
+
     </div>
     <!-- Update basket showbox -->
     <div class="update-basket-showbox" id="updateBasketShowbox">
@@ -688,10 +582,10 @@ CUT, EDGE & SPRAY SUMMARY
         <div class="summary-card">
             <div class="summary-header">
                 <div class="summary-header-left">
-                    <span><?php esc_html_e('Sheets to be cut', 'cutlist-catalogue'); ?></span><strong>£848.80</strong>
+                    <span><?php esc_html_e('Sheets to be cut', 'cutlist-catalogue'); ?></span><strong><?php echo esc_html($currency_sym . '0.00'); ?></strong>
                 </div>
                 <div class="summary-header-right">
-                    <span><?php esc_html_e('Cutting plans x2', 'cutlist-catalogue'); ?></span>
+                    <span><?php esc_html_e('Cutting plans', 'cutlist-catalogue'); ?></span>
 
                     <button class="summary-toggle" type="button">
                         <?php esc_html_e('Details', 'cutlist-catalogue'); ?>
@@ -699,42 +593,19 @@ CUT, EDGE & SPRAY SUMMARY
                     </button>
                 </div>
             </div>
-            <div class="summary-body  is-open">
+            <div class="summary-body is-open">
                 <h3><?php esc_html_e('Select offcuts', 'cutlist-catalogue'); ?></h3>
                 <p class="summary-note">
                     <?php esc_html_e('If there are any offcuts, you can mark them here to be included with your order free of charge.', 'cutlist-catalogue'); ?>
                 </p>
-                <div class="plans">
-                    <div class="plan">
-                        <div>Plan 1</div>
-                        <div class="box">
-                            <div class="panel"></div>
-                            <div class="offcut"><?php esc_html_e('Offcut', 'cutlist-catalogue'); ?></div>
-                        </div>
-                        <p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
-                        <div class="sheet">
-                            <strong>x2</strong><span><?php esc_html_e('sheets', 'cutlist-catalogue'); ?></span>
-                        </div>
-                    </div>
-                    <div class="plan">
-                        <div>Plan 2</div>
-                        <div class="box">
-                            <div class="panel"></div>
-                            <div class="offcut"><?php esc_html_e('Offcut', 'cutlist-catalogue'); ?></div>
-                        </div>
-                        <p>H1227-TM12-19 Brown Abano Ash<br>2800 × 2070 × 19mm</p>
-                        <div class="sheet">
-                            <strong>x2</strong><span><?php esc_html_e('sheets', 'cutlist-catalogue'); ?></span>
-                        </div>
-                    </div>
-                </div>
+                <div class="plans"></div>
             </div>
         </div>
 
         <div class="summary-card">
             <div class="summary-header">
                 <div class="summary-header-left">
-                    <span><?php esc_html_e('Edgebanding', 'cutlist-catalogue'); ?></span><strong>£89.12</strong>
+                    <span><?php esc_html_e('Edgebanding', 'cutlist-catalogue'); ?></span><strong><?php echo esc_html($currency_sym . '0.00'); ?></strong>
                 </div>
                 <div class="summary-header-right">
 
@@ -755,18 +626,10 @@ CUT, EDGE & SPRAY SUMMARY
                         <th><?php esc_html_e('Unit price', 'cutlist-catalogue'); ?></th>
                         <th><?php esc_html_e('Line total', 'cutlist-catalogue'); ?></th>
                     </tr>
-                    <tr>
-                        <td>16</td>
-                        <td>M1-42</td>
-                        <td>Matt ABS edging - Brown Abano Ash</td>
-                        <td>42x1mm</td>
-                        <td>£5.57</td>
-                        <td>£89.12</td>
-                    </tr>
                 </table>
                 <div class="total">
-                    <strong><?php echo esc_html__('This section:', 'cutlist-catalogue') . ' £89.12'; ?></strong>
-                    <div><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' £106.94'; ?></div>
+                    <strong><?php echo esc_html__('This section:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></strong>
+                    <div><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></div>
                 </div>
             </div>
         </div>
@@ -774,7 +637,7 @@ CUT, EDGE & SPRAY SUMMARY
         <div class="summary-card">
             <div class="summary-header">
                 <div class="summary-header-left">
-                    <span><?php esc_html_e('Additional services', 'cutlist-catalogue'); ?></span><strong>£115.50</strong>
+                    <span><?php esc_html_e('Additional services', 'cutlist-catalogue'); ?></span><strong><?php echo esc_html($currency_sym . '0.00'); ?></strong>
                 </div>
                 <div class="summary-header-right">
 
@@ -795,25 +658,17 @@ CUT, EDGE & SPRAY SUMMARY
                         <th><?php esc_html_e('Unit price', 'cutlist-catalogue'); ?></th>
                         <th><?php esc_html_e('Line total', 'cutlist-catalogue'); ?></th>
                     </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>BND-FS</td>
-                        <td>Bonding</td>
-                        <td>Bonding of two panels</td>
-                        <td>£57.75</td>
-                        <td>£115.50</td>
-                    </tr>
                 </table>
                 <div class="total">
-                    <strong><?php echo esc_html__('This section:', 'cutlist-catalogue') . ' £115.50'; ?></strong>
-                    <div><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' £138.60'; ?></div>
+                    <strong><?php echo esc_html__('This section:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></strong>
+                    <div><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></div>
                 </div>
             </div>
         </div>
 
         <div class="grand">
-            <div class="price"><?php echo esc_html__('Total:', 'cutlist-catalogue') . ' £1,053.42'; ?></div>
-            <div class="vat"><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' £1,264.10'; ?></div>
+            <div class="price"><?php echo esc_html__('Total:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></div>
+            <div class="vat"><?php echo esc_html__('With VAT:', 'cutlist-catalogue') . ' ' . esc_html($currency_sym . '0.00'); ?></div>
         </div>
 
 </div>
@@ -868,7 +723,8 @@ CUT, EDGE & SPRAY SUMMARY
                         </tr>
                     </tbody>
                 </table>
-                <p class="pm-thickness-label"><?php esc_html_e('Available thicknesses [mm]:', 'cutlist-catalogue'); ?></p>
+                <p class="pm-thickness-label"><?php esc_html_e('Available thicknesses [mm]:', 'cutlist-catalogue'); ?>
+                </p>
                 <div class="pm-thickness-options" id="pmThicknesses"></div>
                 <table class="pricing-levels__table">
                     <tbody>
@@ -1228,7 +1084,7 @@ CUT, EDGE & SPRAY SUMMARY
                 <div id="spraySidebarBody"></div>
                 <div class="spray-total-row">
                     <span><?php esc_html_e('Total panel spray price:', 'cutlist-catalogue'); ?></span>
-                    <strong id="sprayTotal">&pound;0.00</strong>
+                    <strong id="sprayTotal"><?php echo esc_html($currency_sym . '0.00'); ?></strong>
                 </div>
             </div>
             <div class="machining-canvas">
@@ -1274,10 +1130,10 @@ CUT, EDGE & SPRAY SUMMARY
         </div>
         <h2 class="spray-min-title"><?php esc_html_e('Spray Finishing Order Size', 'cutlist-catalogue'); ?></h2>
         <p class="spray-min-desc">
-            <?php esc_html_e('Spray finishing jobs are subject to a minimum order value of £330.00. Currently, your job value is ', 'cutlist-catalogue'); ?><span
-                id="sprayMinCurrentVal">&pound;0.00</span><?php esc_html_e('. Please add some extra panels to spray or accept an additional charge of', 'cutlist-catalogue'); ?>
+            <?php printf(esc_html__('Spray finishing jobs are subject to a minimum order value of %s330.00. Currently, your job value is ', 'cutlist-catalogue'), esc_html($currency_sym)); ?><span
+                id="sprayMinCurrentVal"><?php echo esc_html($currency_sym . '0.00'); ?></span><?php esc_html_e('. Please add some extra panels to spray or accept an additional charge of', 'cutlist-catalogue'); ?>
         </p>
-        <div class="spray-min-charge" id="sprayMinDiffVal">&pound;0.00</div>
+        <div class="spray-min-charge" id="sprayMinDiffVal"><?php echo esc_html($currency_sym . '0.00'); ?></div>
         <div class="spray-min-actions">
             <button type="button" class="btn-spray-edit"
                 id="btnSprayEdit"><?php esc_html_e('Edit Cutting List', 'cutlist-catalogue'); ?></button>

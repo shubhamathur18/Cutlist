@@ -72,6 +72,7 @@ function cutlist_proto_get_edge_tape_options()
 					'name' => $tape['product_name'] . ($board['decor_name'] ? (' - ' . $board['decor_name']) : ''),
 					'size' => $size,
 					'unitPrice' => $tape['unit_price'],
+					'price' => $tape['unit_price'],
 					'image' => $tape['image'],
 					'decorCode' => $board['decor_code'] ?? '',
 					'radiusEdgeFinish' => $tape['radius_edge_finish'],
@@ -84,6 +85,7 @@ function cutlist_proto_get_edge_tape_options()
 				'name' => $tape['product_name'],
 				'size' => $size,
 				'unitPrice' => $tape['unit_price'],
+				'price' => $tape['unit_price'],
 				'image' => $tape['image'],
 				'decorCode' => '',
 				'radiusEdgeFinish' => $tape['radius_edge_finish'],
@@ -173,6 +175,16 @@ function cutlist_proto_render_decor_popup_inner($boards)
 
 	ob_start();
 	?>
+	<div class="decor-popup-search-wrap">
+		<span class="decor-popup-search-icon" aria-hidden="true">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="11" cy="11" r="8"></circle>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+			</svg>
+		</span>
+		<input type="text" class="decor-popup-search-input" placeholder="<?php esc_attr_e('Search decor code, name, or core...', 'cutlist-catalogue'); ?>" autocomplete="off" spellcheck="false">
+		<button type="button" class="decor-popup-search-clear" style="display:none;" aria-label="<?php esc_attr_e('Clear search', 'cutlist-catalogue'); ?>">&times;</button>
+	</div>
 	<div class="supplier-tabs">
 		<?php foreach ($brand_slugs as $i => $slug): ?>
 			<div class="supplier-tab<?php echo $i === 0 ? ' active' : ''; ?>"
@@ -269,6 +281,7 @@ function cutlist_proto_render_panel_info_popup()
 function cutlist_proto_build_pm_products($boards)
 {
 	$out = [];
+	$currency_sym = function_exists('get_woocommerce_currency_symbol') ? html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8') : '£';
 	foreach ($boards as $board) {
 		$chars = $board['characteristics'];
 		$lines = [];
@@ -309,8 +322,8 @@ function cutlist_proto_build_pm_products($boards)
 			'full_sheet_price' => (float) ($board['full_sheet_price'] ?? 0),
 			'cutting_list_price' => (float) (!empty($board['cutting_list_price']) ? $board['cutting_list_price'] : ($board['full_sheet_price'] ?? 0)),
 			'additional_cut_price' => (float) (!empty($board['additional_cut_price']) ? $board['additional_cut_price'] : 3.46),
-			'price_sheet' => (!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–',
-			'price_cut' => (!empty($board['cutting_list_price']) && (float) $board['cutting_list_price'] > 0) ? '£' . number_format((float) $board['cutting_list_price'], 2) : ((!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? '£' . number_format((float) $board['full_sheet_price'], 2) : '–'),
+			'price_sheet' => (!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? $currency_sym . number_format((float) $board['full_sheet_price'], 2) : '–',
+			'price_cut' => (!empty($board['cutting_list_price']) && (float) $board['cutting_list_price'] > 0) ? $currency_sym . number_format((float) $board['cutting_list_price'], 2) : ((!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? $currency_sym . number_format((float) $board['full_sheet_price'], 2) : '–'),
 			'slides' => $slides,
 			'thicknesses' => $board['thickness_mm'] ? [$board['thickness_mm']] : [],
 			'machining' => $board['machining'],
@@ -324,23 +337,33 @@ function cutlist_proto_build_pm_products($boards)
 	return $out;
 }
 
-add_shortcode('cutlist_table', function () {
-	$boards = cutlist_proto_get_boards();
-	$spray_finishes = cutlist_proto_get_spray_finishes();
+function cutlist_get_cutlist_page_url()
+{
+	$page = get_page_by_path('cutlist');
+	return $page ? get_permalink($page) : home_url('/cutlist/');
+}
+
+function cutlist_get_cnc_page_url()
+{
+	$page = get_page_by_path('cnc-machining');
+	return $page ? get_permalink($page) : home_url('/cnc-machining/');
+}
+
+function cutlist_enqueue_frontend_assets($boards, $spray_finishes)
+{
+	wp_enqueue_style(
+		'cutlist-header-tabs-css',
+		cutlist_proto_asset_url('css/header-tabs.css'),
+		[],
+		filemtime(cutlist_proto_asset_path('css/header-tabs.css'))
+	);
 
 	wp_enqueue_style(
 		'cutlist-css',
 		cutlist_proto_asset_url('css/cutlist-main.css'),
-		[],
+		['cutlist-header-tabs-css'],
 		filemtime(cutlist_proto_asset_path('css/cutlist-main.css'))
 	);
-
-	// A real PHP template (not a static HTML asset string-replaced at
-	// runtime) so it can use translation functions, conditionals, etc.
-	// directly — $boards/$spray_finishes are in scope for it via this include.
-	ob_start();
-	include CUTLIST_CATALOGUE_PATH . 'templates/cutlist-table.php';
-	$body = ob_get_clean();
 
 	$pm_products_json = wp_json_encode(cutlist_proto_build_pm_products($boards));
 	$edge_tapes_json = wp_json_encode(cutlist_proto_get_edge_tape_options());
@@ -349,12 +372,6 @@ add_shortcode('cutlist_table', function () {
 		array_map('cutlist_format_machining_option', cutlist_get_machining_option_posts())
 	);
 
-	// JS must go through wp_enqueue_script/wp_add_inline_script, never be
-	// echoed inline inside the shortcode's returned HTML: content returned
-	// from a shortcode is still post-processed by 'the_content' filters
-	// (wptexturize, convert_chars, ...) after the shortcode expands, which
-	// mangle raw JS syntax — e.g. "&&" was getting rewritten to
-	// "&#038;&#038;", breaking the script with a SyntaxError.
 	wp_enqueue_script(
 		'cutlist-proto-basket-store',
 		cutlist_proto_asset_url('js/basket-store.js'),
@@ -362,12 +379,7 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/basket-store.js')),
 		true
 	);
-	// Vendored locally (assets/js/konva.min.js, Konva 9.x, MIT-licensed) —
-	// same self-hosted pattern as every other script here, no CDN/build
-	// step. Draws the Machining overlay's technical diagram (panel,
-	// dimension lines, the draggable angled-cut corner handle) on native
-	// <canvas>, replacing the plain Canvas 2D redraw-from-scratch approach
-	// so the corner handle can be dragged interactively.
+
 	wp_enqueue_script(
 		'cutlist-konva',
 		cutlist_proto_asset_url('js/konva.min.js'),
@@ -375,9 +387,7 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/konva.min.js')),
 		true
 	);
-	// Vendored locally (assets/js/xlsx.min.js, SheetJS Community Edition
-	// 0.18.5, Apache-2.0) — same self-hosted pattern as Konva above. Reads
-	// both .xlsx and .csv uploads for the "Upload cutting list" button.
+
 	wp_enqueue_script(
 		'cutlist-xlsx',
 		cutlist_proto_asset_url('js/xlsx.min.js'),
@@ -385,6 +395,7 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/xlsx.min.js')),
 		true
 	);
+
 	wp_enqueue_script(
 		'cutlist-main',
 		cutlist_proto_asset_url('js/cutlist-main.js'),
@@ -392,6 +403,7 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/cutlist-main.js')),
 		true
 	);
+
 	wp_localize_script(
 		'cutlist-main',
 		'cutlistWcVars',
@@ -399,6 +411,8 @@ add_shortcode('cutlist_table', function () {
 			'ajax_url' => admin_url('admin-ajax.php'),
 			'cart_url' => function_exists('wc_get_cart_url') ? wc_get_cart_url() : '',
 			'checkout_url' => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : '',
+			'cutlist_url' => cutlist_get_cutlist_page_url(),
+			'cnc_url' => cutlist_get_cnc_page_url(),
 			'nonce' => wp_create_nonce('cutlist_cart_nonce'),
 			'rest_url' => esc_url_raw(rest_url('cutlist/v1/')),
 			'rest_nonce' => wp_create_nonce('wp_rest'),
@@ -430,6 +444,41 @@ add_shortcode('cutlist_table', function () {
 		filemtime(cutlist_proto_asset_path('js/trade-gate.js')),
 		true
 	);
+}
 
-	return $body;
+add_shortcode('cutlist_table', function () {
+	$boards = cutlist_proto_get_boards();
+	$spray_finishes = cutlist_proto_get_spray_finishes();
+
+	cutlist_enqueue_frontend_assets($boards, $spray_finishes);
+
+	ob_start();
+	include CUTLIST_CATALOGUE_PATH . 'templates/cutlist-table.php';
+	return ob_get_clean();
 });
+
+add_shortcode('cnc_machining_table', function () {
+	$boards = cutlist_proto_get_boards();
+	$spray_finishes = cutlist_proto_get_spray_finishes();
+
+	cutlist_enqueue_frontend_assets($boards, $spray_finishes);
+
+	ob_start();
+	if (file_exists(CUTLIST_CATALOGUE_PATH . 'templates/cnc-table.php')) {
+		include CUTLIST_CATALOGUE_PATH . 'templates/cnc-table.php';
+	} else {
+		include CUTLIST_CATALOGUE_PATH . 'templates/cutlist-table.php';
+	}
+	return ob_get_clean();
+});
+
+// Shortcode aliases
+add_shortcode('cnc_machining', function () {
+	return do_shortcode('[cnc_machining_table]');
+});
+
+add_shortcode('cnc_table', function () {
+	return do_shortcode('[cnc_machining_table]');
+});
+
+

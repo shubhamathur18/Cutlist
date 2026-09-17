@@ -16,344 +16,6 @@
             color: #000;
             overflow-x: hidden;
         }
-
-        /* TOP SECTION TABS — horizontal white bar with icons, numbers, and basket CTA */
-        .header {
-            background: #f4f5f7;
-            padding: 12px 24px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-
-        .tabs {
-            display: flex;
-            align-items: stretch;
-            gap: 0;
-            width: 100%;
-            max-width: 100%;
-            margin: 0 auto;
-            box-sizing: border-box;
-        }
-
-        .tab {
-            flex: 1 1 0;
-            min-width: 0;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 10px;
-            padding: 18px 14px;
-            border: 1.5px solid #e0e3e7;
-            border-right: none;
-            background: #fff;
-            color: #555;
-            font-size: 13px;
-            line-height: 1.25;
-            text-align: left;
-            text-decoration: none;
-            cursor: pointer;
-            transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .tab:first-child {
-            border-radius: 8px 0 0 8px;
-        }
-
-        .tab:nth-of-type(5),
-        .tabs>.tab:last-of-type {
-            border-right: 1.5px solid #e0e3e7;
-            border-radius: 0;
-        }
-
-        .tab-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            color: #999;
-            background-color: #eee;
-            border-radius: 50%;
-            width: 36px;
-            height: 36px;
-            min-width: 36px;
-        }
-
-        .tab-content {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-            min-width: 0;
-            flex: 1 1 auto;
-            overflow: hidden;
-        }
-
-        .tab-number {
-            font-size: 10px;
-            font-weight: 500;
-            color: #aaa;
-            line-height: 1;
-        }
-
-        .tab-label {
-            font-size: 14px;
-            font-weight: 600;
-            color: #333;
-            line-height: 1.25;
-            white-space: normal;
-            word-break: normal;
-            overflow-wrap: break-word;
-        }
-
-        .tab-price {
-            font-size: 12px;
-            font-weight: 600;
-            color: #888;
-            line-height: 1;
-            white-space: nowrap;
-        }
-
-        .tab:hover {
-            background: #f9faf9;
-            border-color: #c5c9ce;
-        }
-
-        .tab:hover .tab-icon {
-            color: var(--primary-color);
-        }
-
-        .tab:focus-visible {
-            outline: 2px solid var(--primary-color);
-            outline-offset: -2px;
-        }
-
-        .tab.active {
-            border: 2px solid var(--primary-color);
-            border-right: 2px solid var(--primary-color);
-            background: #fff;
-            cursor: default;
-            z-index: 2;
-            position: relative;
-        }
-
-        .tab.active+.tab {
-            border-left: none;
-        }
-
-        .tab.active .tab-icon {
-            color: var(--primary-color);
-        }
-
-        .tab.active .tab-label {
-            color: var(--primary-color);
-        }
-
-        .tab.active .tab-number {
-            color: var(--primary-color);
-        }
-
-        .tab.active .tab-price {
-            color: var(--primary-color);
-        }
-
-        .tab.disabled {
-            background: #fff;
-            color: #aaa;
-            cursor: default;
-            pointer-events: none;
-        }
-
-        .tab.disabled .tab-icon {
-            color: #6a6a6a;
-        }
-
-        .tab.disabled .tab-label {
-            color: #888;
-        }
-
-        .tab.disabled .tab-number {
-            color: #bbb;
-        }
-
-        .tab.disabled .tab-price {
-            color: #aaa;
-        }
-
-        /* View Basket button — dark green CTA pinned to the right of the tab bar */
-        .tab-basket-btn {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            padding: 12px 18px;
-            background: var(--primary-color);
-            color: #fff;
-            border-radius: 0 8px 8px 0;
-            text-decoration: none;
-            cursor: pointer;
-            white-space: nowrap;
-            flex-shrink: 0;
-            transition: background 0.18s ease;
-            box-sizing: border-box;
-        }
-
-        .tab-basket-btn:hover {
-            background: #15301f;
-        }
-
-        .tab-basket-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            color: #fff;
-        }
-
-        .tab-basket-text {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .tab-basket-label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #fff;
-            line-height: 1.2;
-        }
-
-        .tab-basket-price {
-            font-size: 14px;
-            font-weight: 700;
-            color: #fff;
-            line-height: 1.2;
-        }
-
-        .tab-basket-arrow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            color: #fff;
-            margin-left: 2px;
-        }
-
-        @media (max-width: 1200px) {
-            .tab {
-                padding: 14px 10px;
-                gap: 8px;
-            }
-
-            .tab-icon {
-                width: 32px;
-                height: 32px;
-                min-width: 32px;
-            }
-
-            .tab-label {
-                font-size: 13px;
-            }
-        }
-
-        @media (max-width: 980px) {
-            .header {
-                padding: 10px 14px;
-            }
-
-            .tabs {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
-            }
-
-            .tabs::-webkit-scrollbar {
-                display: none;
-            }
-
-            .tab {
-                min-width: 155px;
-                flex: 0 0 auto;
-                padding: 14px 12px;
-            }
-
-            .tab-basket-btn {
-                flex-shrink: 0;
-                padding: 10px 14px;
-                gap: 10px;
-            }
-        }
-
-        @media (max-width: 600px) {
-            .tab {
-                min-width: 140px;
-                padding: 12px 10px;
-            }
-
-            .tab-label {
-                font-size: 12px;
-            }
-
-            .tab-price {
-                font-size: 11px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-
-            .tab,
-            .tab-basket-btn {
-                transition: none;
-            }
-        }
-
-        /* Persistent "View basket / Checkout" bar — only shown once something's in the basket */
-        .cb-topbar {
-            background: #fff;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 24px;
-            border-bottom: 1px solid #e5e8ec;
-            position: sticky;
-            top: 0;
-            z-index: 500;
-        }
-
-        .cb-topbar-btn {
-            height: 36px;
-            padding: 0 20px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            text-decoration: none;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-        .cb-topbar-view {
-            background: #fff;
-            border: 1px solid var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .cb-topbar-view:hover {
-            background: #f3faf1;
-        }
-
-        .cb-topbar-checkout {
-            background: var(--primary-color);
-            border: 1px solid var(--primary-color);
-            color: #fff;
-        }
-
-        .cb-topbar-checkout:hover {
-            opacity: 0.92;
-        }
-
         /* CONTENT */
         .container {
             padding: 0 88px 0 33px;
@@ -655,7 +317,7 @@
         }
 
         .small select {
-            width: 72px;
+            width: 60px;
         }
 
         select:disabled {
@@ -664,7 +326,7 @@
         }
 
         .small input {
-            width: 54px;
+            width: 64px;
         }
 
         .qty input {
@@ -2878,6 +2540,14 @@
             margin-bottom: 12px;
         }
 
+        .panel-modal__product-description p {
+            margin: 0 0 10px 0;
+        }
+
+        .panel-modal__product-description p:last-child {
+            margin-bottom: 0;
+        }
+
         .pm-thickness-label {
             font-size: 13px;
             color: #555;
@@ -3081,16 +2751,88 @@
             position: absolute;
             width: 925px;
             background: #fff;
-            box-shadow: 0px 2px 8px #999;
-            padding: 10px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px 14px;
             z-index: 9999;
+        }
+
+        .decor-popup-search-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 0 12px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .decor-popup-search-wrap:focus-within {
+            border-color: var(--primary-color, #0f766e);
+            background: #fff;
+            box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+        }
+
+        .decor-popup-search-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        .decor-popup-search-input {
+            flex: 1;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            outline: none !important;
+            padding: 8px 0 !important;
+            font-size: 13.5px !important;
+            font-family: inherit !important;
+            color: #1e293b !important;
+            line-height: 1.4 !important;
+            height: auto !important;
+        }
+
+        .decor-popup-search-input::placeholder {
+            color: #94a3b8;
+            font-size: 13px;
+        }
+
+        .decor-popup-search-clear {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: #e2e8f0;
+            color: #64748b;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+            margin-left: 6px;
+            flex-shrink: 0;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+
+        .decor-popup-search-clear:hover {
+            background: #cbd5e1;
+            color: #0f172a;
         }
 
         .supplier-tabs {
             display: flex;
             flex-wrap: wrap;
             gap: 5px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .supplier-tab {
@@ -5076,6 +4818,16 @@
             cursor: not-allowed;
         }
 
+        .machining-corner-radio-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .machining-corner-radio-row input[type="radio"] {
+            margin: 3px;
+        }
+
         .machining-offset-row {
             display: flex;
             gap: 10px;
@@ -5378,20 +5130,15 @@
             line-height: 1.3;
         }
 
-        /* Machining overlay's face box shows a real 3D flip between FRONT
-           and BACK instead of a plain text swap, so it reads as "you're now
-           looking at the other side of the board" rather than just a label
-           changing — kept scoped to #machiningFaceBox (by id) since the
-           Spray/Panel Summary face boxes reuse .machining-face-box's plain
-           text-swap markup and shouldn't be affected. rotateX (not rotateY)
-           to match the A/B view swap, which moves L1/L2 top<->bottom, not
-           left<->right — the box should flip upside-down, not mirror
-           sideways. */
-        #machiningFaceBox {
+        /* Machining overlay and Panel Summary overlay face boxes show a real 3D flip between FRONT and BACK */
+        #machiningFaceBox,
+        #panelSummaryFaceBox {
             perspective: 400px;
+            user-select: none;
         }
 
-        #machiningFaceBox .machining-face-inner {
+        #machiningFaceBox .machining-face-inner,
+        #panelSummaryFaceBox .machining-face-inner {
             position: relative;
             width: 90px;
             height: 90px;
@@ -5399,11 +5146,13 @@
             transform-style: preserve-3d;
         }
 
-        #machiningFaceBox.flipped .machining-face-inner {
+        #machiningFaceBox.flipped .machining-face-inner,
+        #panelSummaryFaceBox.flipped .machining-face-inner {
             transform: rotateX(180deg);
         }
 
-        #machiningFaceBox .machining-face-side {
+        #machiningFaceBox .machining-face-side,
+        #panelSummaryFaceBox .machining-face-side {
             position: absolute;
             inset: 0;
             display: flex;
@@ -5413,7 +5162,8 @@
             backface-visibility: hidden;
         }
 
-        #machiningFaceBox .machining-face-side.back {
+        #machiningFaceBox .machining-face-side.back,
+        #panelSummaryFaceBox .machining-face-side.back {
             transform: rotateX(180deg);
         }
 
@@ -8889,16 +8639,18 @@
             left: 50%;
             transform: translateX(-50%);
             margin-bottom: 8px;
-            background: #fbe1e1;
-            border: 1px solid #e8a3a3;
-            color: #7a2020;
-            font-size: 12px;
+            background: #fef2f2;
+            border: 1px solid #f87171;
+            color: #991b1b;
+            font-size: 11.5px;
+            font-weight: 500;
             line-height: 1.4;
             padding: 5px 10px;
-            border-radius: 3px;
+            border-radius: 6px;
             white-space: nowrap;
-            z-index: 20;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
         }
 
         .cutlist-max-tooltip::after {
@@ -8907,8 +8659,8 @@
             top: 100%;
             left: 50%;
             transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: #fbe1e1;
+            border: 5px solid transparent;
+            border-top-color: #f87171;
         }
 
         /* SPRAY FINISHING MINIMUM ORDER SIZE MODAL */
@@ -9083,4 +8835,465 @@
         .summary-cart-actions .btn-wc-checkout svg {
             margin-left: 8px;
             flex-shrink: 0;
+        }
+
+        /* ── CUTLIST DRAFT RESTORED TOAST ───────────────────────────── */
+        .cutlist-draft-toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 999999;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.35), 0 8px 10px -6px rgba(0, 0, 0, 0.25);
+            border-left: 4px solid #10b981;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-size: 13px;
+            line-height: 1.4;
+            animation: cutlistToastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .cutlist-draft-toast.fade-out {
+            opacity: 0;
+            transform: translateY(12px);
+        }
+
+        @keyframes cutlistToastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cutlist-draft-toast__icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            flex-shrink: 0;
+        }
+
+        .cutlist-draft-toast__content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .cutlist-draft-toast__content strong {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f8fafc;
+        }
+
+        .cutlist-draft-toast__content span {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .cutlist-draft-toast__close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 0 0 8px;
+            margin-left: 4px;
+            display: flex;
+            align-items: center;
+            transition: color 0.15s;
+        }
+
+        .cutlist-draft-toast__close:hover {
+            color: #ffffff;
+        }
+
+        @media (max-width: 640px) {
+            .cutlist-draft-toast {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+            }
+        }
+
+        /* ==========================================================================
+           CNC MACHINING JOB SECTION
+           ========================================================================== */
+        .cnc-job-card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 28px 32px;
+            margin-top: 35px;
+            margin-bottom: 40px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            box-sizing: border-box;
+        }
+
+        .cnc-job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .cnc-job-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .cnc-job-title-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e8f7ee;
+            color: var(--primary-color, #15803d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .cnc-job-title {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+            color: #111827;
+            letter-spacing: -0.2px;
+            line-height: 1.25;
+        }
+
+        .cnc-job-collapse-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: none;
+            color: var(--primary-color, #15803d);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: opacity 0.15s ease, background 0.15s ease;
+        }
+
+        .cnc-job-collapse-btn:hover {
+            opacity: 0.85;
+            background: #f0fdf4;
+        }
+
+        .cnc-job-collapse-icon {
+            transition: transform 0.25s ease;
+        }
+
+        .cnc-job-card.is-collapsed .cnc-job-collapse-icon {
+            transform: rotate(180deg);
+        }
+
+        .cnc-job-body {
+            transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+            overflow: visible;
+        }
+
+        .cnc-job-card.is-collapsed .cnc-job-body {
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .cnc-job-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 36px;
+            align-items: start;
+        }
+
+        .cnc-col-header {
+            margin-bottom: 14px;
+        }
+
+        .cnc-col-title {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+            line-height: 1.3;
+        }
+
+        .cnc-col-subtitle {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 400;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        /* Dropzone */
+        .cnc-dropzone-box {
+            border: 1.5px dashed #86efac;
+            background: #fbfdfb;
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .cnc-dropzone-box:hover,
+        .cnc-dropzone-box.is-dragover {
+            border-color: var(--primary-color, #15803d);
+            background: #f2faf4;
+        }
+
+        .cnc-upload-cloud-badge {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: #dcfce7;
+            color: var(--primary-color, #15803d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .cnc-dropzone-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #111827;
+            margin: 0 0 4px;
+        }
+
+        .cnc-dropzone-or {
+            font-size: 13px;
+            color: #9ca3af;
+            margin: 0 0 10px;
+        }
+
+        .cnc-choose-files-btn {
+            background: #ffffff;
+            border: 1.5px solid #22c55e;
+            color: var(--primary-color, #15803d);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 6px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.15s ease;
+        }
+
+        .cnc-choose-files-btn:hover {
+            background: #f0fdf4;
+            border-color: #16a34a;
+        }
+
+        /* File List */
+        .cnc-uploaded-files-list {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .cnc-file-chip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            color: #166534;
+        }
+
+        .cnc-file-chip-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 80%;
+            font-weight: 500;
+        }
+
+        .cnc-file-chip-remove {
+            background: transparent;
+            border: none;
+            color: #ef4444;
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0 4px;
+        }
+
+        /* Metadata Badges below Dropzone */
+        .cnc-file-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 14px;
+            padding-top: 4px;
+        }
+
+        .cnc-meta-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            font-size: 12.5px;
+            color: #6b7280;
+            line-height: 1.35;
+        }
+
+        .cnc-meta-item svg {
+            flex-shrink: 0;
+            color: #6b7280;
+            margin-top: 1px;
+        }
+
+        .cnc-meta-text {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cnc-meta-label {
+            color: #6b7280;
+        }
+
+        .cnc-meta-val {
+            font-weight: 700;
+            color: #111827;
+        }
+
+        /* Right Column - Textarea */
+        .cnc-textarea-wrap {
+            position: relative;
+            width: 100%;
+        }
+
+        .cnc-details-textarea {
+            width: 100%;
+            height: 186px;
+            min-height: 186px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 14px;
+            color: #374151;
+            font-family: inherit;
+            resize: vertical;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            background: #ffffff;
+            line-height: 1.5;
+        }
+
+        .cnc-details-textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        .cnc-details-textarea:focus {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+        }
+
+        .cnc-char-count {
+            text-align: right;
+            color: #6b7280;
+            font-size: 12.5px;
+            margin-top: 6px;
+        }
+
+        /* Submit Button */
+        .cnc-submit-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 32px;
+            width: 100%;
+        }
+
+        .cnc-submit-btn {
+            background: var(--primary-color, #1e874b);
+            color: #ffffff;
+            border: none;
+            padding: 12px 42px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease;
+            box-shadow: 0 2px 4px rgba(21, 128, 61, 0.2);
+            text-decoration: none;
+        }
+
+        .cnc-submit-btn:hover {
+            background: #146c36;
+            box-shadow: 0 4px 6px rgba(21, 128, 61, 0.25);
+        }
+
+        .cnc-submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .cnc-feedback-toast {
+            margin-top: 14px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            text-align: center;
+        }
+
+        .cnc-feedback-toast.is-success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .cnc-feedback-toast.is-error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 860px) {
+            .cnc-job-grid {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+
+            .cnc-job-card {
+                padding: 20px 16px;
+            }
         }
