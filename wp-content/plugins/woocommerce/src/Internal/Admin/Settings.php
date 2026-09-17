@@ -144,7 +144,7 @@ class Settings {
 
 		//phpcs:ignore
 		$preload_data_endpoints = apply_filters( 'woocommerce_component_settings_preload_endpoints', array() );
-		$preload_data_endpoints['jetpackStatus'] = '/jetpack/v4/connection';
+
 		if ( ! empty( $preload_data_endpoints ) ) {
 			$preload_data = array_reduce(
 				array_values( $preload_data_endpoints ),
@@ -211,7 +211,7 @@ class Settings {
 		// 'WooCommerce' to wcSettings.
 		$settings['woocommerceTranslation'] = __( 'WooCommerce', 'woocommerce' );
 
-		if ( PageController::is_admin_page() && Features::is_enabled( 'analytics' ) ) {
+		if ( PageController::is_admin_page() && FeaturesUtil::feature_is_enabled( 'analytics' ) ) {
 			// We may have synced orders with a now-unregistered status.
 			// E.g. an extension that added statuses is now inactive or removed.
 			$settings['unregisteredOrderStatuses'] = $this->get_unregistered_order_statuses();
@@ -223,10 +223,17 @@ class Settings {
 		$settings['variationTitleAttributesSeparator'] = apply_filters( 'woocommerce_product_variation_title_attributes_separator', ' - ', new \WC_Product() );
 
 		$settings = $this->add_settings_ui_schema( $settings );
+
+		// Performance note: refer back to https://github.com/woocommerce/woocommerce/pull/41092: unconditionally loading /jetpack/v4/connection.
+		// As automattic/jetpack-connection package is a direct dependency, we can return the Jetpack connection status via its public API.
+		$settings['dataEndpoints'] = $settings['dataEndpoints'] ?? array();
+		try {
+			$settings['dataEndpoints']['jetpackStatus'] = \Automattic\Jetpack\Connection\REST_Connector::connection_status( false );
+		} catch ( \Throwable $e ) {
+			$settings['dataEndpoints']['jetpackStatus'] = array();
+		}
+
 		if ( ! empty( $preload_data_endpoints ) ) {
-			$settings['dataEndpoints'] = isset( $settings['dataEndpoints'] )
-				? $settings['dataEndpoints']
-				: array();
 			foreach ( $preload_data_endpoints as $key => $endpoint ) {
 				// Handle error case: rest_do_request() doesn't guarantee success.
 				if ( empty( $preload_data[ $endpoint ] ) ) {
@@ -345,6 +352,7 @@ class Settings {
 			'option_key'  => 'woocommerce_date_type',
 			'label'       => __( 'Date Type', 'woocommerce' ),
 			'description' => __( 'Database date field considered for Revenue and Orders reports', 'woocommerce' ),
+			'default'     => 'date_paid',
 			'type'        => 'select',
 			'options'     => array(
 				'date_created'   => 'date_created',
@@ -353,32 +361,31 @@ class Settings {
 			),
 		);
 
-		if ( Features::is_enabled( 'analytics-scheduled-import' ) ) {
-			$settings[] = array(
-				'id'          => 'woocommerce_analytics_scheduled_import',
-				'option_key'  => 'woocommerce_analytics_scheduled_import',
-				'label'       => __( 'Updates', 'woocommerce' ),
-				'description' => __( 'Controls how analytics data is imported from orders.', 'woocommerce' ),
-				'type'        => 'radio',
-				'default'     => null, // Default to null so we can know if it's a new site or an existing site. New sites will have the option set.
-				'options'     => array(
-					'yes' => __( 'Scheduled (recommended)', 'woocommerce' ),
-					'no'  => __( 'Immediately', 'woocommerce' ),
-				),
-			);
+		$settings[] = array(
+			'id'          => 'woocommerce_analytics_scheduled_import',
+			'option_key'  => 'woocommerce_analytics_scheduled_import',
+			'label'       => __( 'Updates', 'woocommerce' ),
+			'description' => __( 'Controls how analytics data is imported from orders.', 'woocommerce' ),
+			'type'        => 'radio',
+			// Default to null so we can know if it's a new site or an existing site. New sites will have the option set.
+			'default'     => null,
+			'options'     => array(
+				'yes' => __( 'Scheduled (recommended)', 'woocommerce' ),
+				'no'  => __( 'Immediately', 'woocommerce' ),
+			),
+		);
 
-			// Add hidden setting for the import interval to display in the client side.
-			$import_interval = \Automattic\WooCommerce\Internal\Admin\Schedulers\OrdersScheduler::get_import_interval();
-			$import_interval = absint( $import_interval );
-			// Format the import interval to a human-readable string.
-			$import_interval_string = human_time_diff( 0, $import_interval );
-			$settings[]             = array(
-				'id'         => 'woocommerce_analytics_import_interval',
-				'option_key' => 'woocommerce_analytics_import_interval',
-				'type'       => 'hidden',
-				'default'    => $import_interval_string,
-			);
-		}
+		// Add hidden setting for the import interval to display in the client side.
+		$import_interval = \Automattic\WooCommerce\Internal\Admin\Schedulers\OrdersScheduler::get_import_interval();
+		$import_interval = absint( $import_interval );
+		// Format the import interval to a human-readable string.
+		$import_interval_string = human_time_diff( 0, $import_interval );
+		$settings[]             = array(
+			'id'         => 'woocommerce_analytics_import_interval',
+			'option_key' => 'woocommerce_analytics_import_interval',
+			'type'       => 'hidden',
+			'default'    => $import_interval_string,
+		);
 
 		return $settings;
 	}

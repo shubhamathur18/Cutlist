@@ -406,6 +406,7 @@ add_shortcode('cutlist_table', function () {
 			'grain_match_code' => get_option('cutlist_grain_match_code', 'GRN-MTCH'),
 			'grain_match_name' => get_option('cutlist_grain_match_name', 'Grain-matching of panels in clusters'),
 			'grain_match_desc' => get_option('cutlist_grain_match_desc', 'Grain-matching of panels based on customer requirements – charged per panel'),
+			'currency_symbol' => function_exists('get_woocommerce_currency_symbol') ? html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8') : '£',
 		]
 	);
 

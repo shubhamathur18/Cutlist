@@ -19,6 +19,10 @@ function cutlist_get_or_create_wc_product()
 
 	$product_id = get_option('cutlist_wc_product_id', 0);
 	if ($product_id && get_post_status($product_id) === 'publish') {
+		if (get_post_meta($product_id, '_tax_status', true) !== 'taxable') {
+			update_post_meta($product_id, '_tax_status', 'taxable');
+			update_post_meta($product_id, '_tax_class', '');
+		}
 		return (int) $product_id;
 	}
 
@@ -34,6 +38,8 @@ function cutlist_get_or_create_wc_product()
 
 	if (!empty($existing)) {
 		$product_id = (int) $existing[0];
+		update_post_meta($product_id, '_tax_status', 'taxable');
+		update_post_meta($product_id, '_tax_class', '');
 		update_option('cutlist_wc_product_id', $product_id);
 		return $product_id;
 	}
@@ -55,6 +61,8 @@ function cutlist_get_or_create_wc_product()
 	update_post_meta($post_id, 'total_sales', '0');
 	update_post_meta($post_id, '_downloadable', 'no');
 	update_post_meta($post_id, '_virtual', 'yes');
+	update_post_meta($post_id, '_tax_status', 'taxable');
+	update_post_meta($post_id, '_tax_class', '');
 	update_post_meta($post_id, '_regular_price', '0');
 	update_post_meta($post_id, '_sale_price', '');
 	update_post_meta($post_id, '_price', '0');
@@ -245,8 +253,92 @@ function cutlist_handle_grain_files_upload()
 			}
 		}
 	}
-
 	return $uploaded_files;
+}
+
+/**
+ * Helper: Formats raw machining items into the 3 popup summary categories:
+ * - Panel shaping summary (e.g., Angled cut on L1-W1: 200mm L1 and 769mm W1)
+ * - Surface shaping summary (e.g., J handle cutting on A side along L1 edge<br>35mm wide and 1000mm long)
+ * - Drilling summary (e.g., Hinge hole drilling on A side<br>2 holes at 100mm, 900mm)
+ */
+function cutlist_format_machining_categories($machining_items, $panel_len = 0, $panel_width = 0)
+{
+	$panel_shaping = array();
+	$surface_shaping = array();
+	$drilling = array();
+
+	if (empty($machining_items) || !is_array($machining_items)) {
+		return array('panel' => '', 'surface' => '', 'drilling' => '');
+	}
+
+	foreach ($machining_items as $m) {
+		if (!is_array($m))
+			continue;
+		$beh = $m['behaviour'] ?? $m['option'] ?? '';
+		$type = $m['type'] ?? $m['kind'] ?? '';
+		$side = $m['side'] ?? '';
+		$detail = $m['detail'] ?? '';
+
+		if ($beh === 'angled-cut') {
+			$corner = $m['corner'] ?? $side ?: 'L1-W1';
+			$corner = str_replace('on ', '', $corner);
+			$parts = explode('-', $corner);
+			$e1 = $parts[0] ?? 'L1';
+			$e2 = $parts[1] ?? 'W1';
+			$offH = $m['offsetH'] ?? '100';
+			$offV = $m['offsetV'] ?? '100';
+			if (empty($detail)) {
+				$detail = $offH . 'mm ' . $e1 . ' and ' . $offV . 'mm ' . $e2;
+			}
+			$panel_shaping[] = '<div class="panel-summary-machining-item">Angled cut on ' . esc_html($corner) . ': ' . esc_html($detail) . '</div>';
+		} elseif ($beh === 'j-handle') {
+			$edge = $m['edge'] ?? 'L1';
+			$view = ($m['view'] ?? 'A') === 'B' ? 'B side' : 'A side';
+			$label = $m['label'] ?? 'J handle';
+			if (empty($detail)) {
+				$w = round((float) ($m['width'] ?? 35));
+				$len = round((float) ($m['length'] ?? ($panel_len ?: 1000)));
+				$detail = $w . 'mm wide and ' . $len . 'mm long';
+			}
+			$surface_shaping[] = '<div class="panel-summary-machining-item">' . esc_html($label) . ' cutting on ' . esc_html($view . ' along ' . $edge . ' edge') . '<br>' . esc_html($detail) . '</div>';
+		} elseif ($beh === 'groove') {
+			$view = ($m['view'] ?? 'A') === 'B' ? 'B side' : 'A side';
+			if (empty($detail)) {
+				$w = $m['width'] ?? '8';
+				$d = $m['depth'] ?? '10';
+				$len = $m['length'] ?? ($panel_len ? round((float) $panel_len) . 'mm' : '2100mm');
+				$detail = $w . 'mm wide, ' . $d . 'mm deep and ' . $len . ' long';
+			}
+			$surface_shaping[] = '<div class="panel-summary-machining-item">Groove cutting on ' . esc_html($view) . '<br>' . esc_html($detail) . '</div>';
+		} elseif ($beh === 'hinge-holes') {
+			$view = ($m['view'] ?? 'A') === 'B' ? 'B side' : 'A side';
+			if (empty($detail)) {
+				$holes = $m['holes'] ?? (isset($m['positions']) && is_array($m['positions']) ? count($m['positions']) : 2);
+				$posStr = isset($m['positions']) && is_array($m['positions']) ? ' at ' . implode(', ', array_map('round', $m['positions'])) . 'mm' : '';
+				$detail = $holes . ' hole' . ($holes == 1 ? '' : 's') . $posStr;
+			}
+			$drilling[] = '<div class="panel-summary-machining-item">Hinge hole drilling on ' . esc_html($view) . '<br>' . esc_html($detail) . '</div>';
+		} elseif ($beh === 'shelf-holes') {
+			$view = ($m['view'] ?? 'A') === 'A' ? 'A side' : (($m['view'] ?? 'A') === 'AB' ? 'A & B side' : 'B side');
+			if (empty($detail)) {
+				$clusters = $m['clusters'] ?? 2;
+				$positions = $m['positions'] ?? 4;
+				$detail = '7.5mm Ø diameter hole x ' . $clusters . ' cluster' . ($clusters == 1 ? '' : 's') . ' with ' . $positions . ' position' . ($positions == 1 ? '' : 's');
+			}
+			$drilling[] = '<div class="panel-summary-machining-item">Adjustable shelf hole drilling on ' . esc_html($view) . '<br>' . esc_html($detail) . '</div>';
+		} elseif (!empty($type) || !empty($m['option'])) {
+			$optName = $type ?: ($m['option'] ?? 'Machining');
+			$optSide = $side ? ' on ' . $side : '';
+			$surface_shaping[] = '<div class="panel-summary-machining-item">' . esc_html($optName . $optSide) . ($detail ? '<br>' . esc_html($detail) : '') . '</div>';
+		}
+	}
+
+	return array(
+		'panel' => implode('', $panel_shaping),
+		'surface' => implode('', $surface_shaping),
+		'drilling' => implode('', $drilling)
+	);
 }
 
 /**
@@ -354,6 +446,19 @@ function cutlist_ajax_add_to_cart()
 				$machining_summary = sanitize_text_field($item['machining_summary']);
 			}
 
+			// Extract 3 shaping categories
+			$panel_shaping = !empty($item['panelShaping']) ? wp_kses_post($item['panelShaping']) : '';
+			$surface_shaping = !empty($item['surfaceShaping']) ? wp_kses_post($item['surfaceShaping']) : '';
+			$drilling = !empty($item['drilling']) ? wp_kses_post($item['drilling']) : '';
+
+			// Fallback: If formatted strings are empty but machining array exists, build them dynamically
+			if (empty($panel_shaping) && empty($surface_shaping) && empty($drilling) && !empty($item['machining']) && is_array($item['machining'])) {
+				$formatted_m = cutlist_format_machining_categories($item['machining'], (float) $length, (float) $width);
+				$panel_shaping = $formatted_m['panel'];
+				$surface_shaping = $formatted_m['surface'];
+				$drilling = $formatted_m['drilling'];
+			}
+
 			// Build spray summary
 			$spray_summary = '';
 			if (!empty($item['spray']) && is_array($item['spray'])) {
@@ -394,9 +499,19 @@ function cutlist_ajax_add_to_cart()
 			// Extra cuts summary
 			$extra_cuts_summary = !empty($item['extraCutSummary']) ? sanitize_text_field($item['extraCutSummary']) : '';
 
+			// Selected offcuts summary (attached to main cut panel)
+			$selected_offcuts_summary = !empty($item['selectedOffcuts']) ? sanitize_text_field($item['selectedOffcuts']) : '';
+
+			$section = !empty($item['section']) ? sanitize_text_field($item['section']) : '';
+
+			$title = !empty($section)
+				? sprintf(__('Cut Panel [%s]: %s (%s)', 'cutlist-catalogue'), $section, $decor, $thick ? $thick . 'mm' : 'Custom')
+				: sprintf(__('Cut Panel: %s (%s)', 'cutlist-catalogue'), $decor, $thick ? $thick . 'mm' : 'Custom');
+
 			$cart_item_data = array(
 				'cutlist_type' => __('Cut Panel', 'cutlist-catalogue'),
-				'cutlist_title' => sprintf(__('Cut Panel: %s (%s)', 'cutlist-catalogue'), $decor, $thick ? $thick . 'mm' : 'Custom'),
+				'cutlist_title' => $title,
+				'cutlist_section' => $section,
 				'cutlist_decor' => $decor,
 				'cutlist_thick' => $thick ? $thick . 'mm' : '',
 				'cutlist_length' => $length,
@@ -404,15 +519,19 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_description' => $desc,
 				'cutlist_edges' => $edge_summary,
 				'cutlist_machining' => $machining_summary,
+				'cutlist_panel_shaping' => $panel_shaping,
+				'cutlist_surface_shaping' => $surface_shaping,
+				'cutlist_drilling' => $drilling,
 				'cutlist_spray' => $spray_summary,
 				'cutlist_grain' => $grain_summary,
 				'cutlist_grain_files' => $panel_grain_files,
 				'cutlist_grain_info' => $panel_grain_info,
 				'cutlist_extra_cuts' => $extra_cuts_summary,
+				'cutlist_selected_offcuts' => $selected_offcuts_summary,
 				'cutlist_unit_price' => $price,
 				'cutlist_image_id' => $decor_img['id'],
 				'cutlist_image_url' => $image_url,
-				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $edge_summary . $machining_summary . $spray_summary . $grain_summary . json_encode($panel_grain_files) . $panel_grain_info . $extra_cuts_summary . $price . $idx . microtime(true)),
+				'cutlist_unique_key' => 'cut_' . md5($decor . $thick . $length . $width . $desc . $section . $edge_summary . $machining_summary . $panel_shaping . $surface_shaping . $drilling . $spray_summary . $grain_summary . json_encode($panel_grain_files) . $panel_grain_info . $extra_cuts_summary . $selected_offcuts_summary . $price . $idx . microtime(true)),
 			);
 
 			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
@@ -455,7 +574,7 @@ function cutlist_ajax_add_to_cart()
 	// 3. Edging Tapes
 	if (!empty($data['edgingTapeItems']) && is_array($data['edgingTapeItems'])) {
 		foreach ($data['edgingTapeItems'] as $idx => $item) {
-			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
+			$qty = isset($item['qty']) ? max(5, (int) $item['qty']) : 5;
 			$code = !empty($item['code']) ? sanitize_text_field($item['code']) : '';
 			$name = !empty($item['name']) ? sanitize_text_field($item['name']) : __('Edging Tape', 'cutlist-catalogue');
 			$size = !empty($item['size']) ? sanitize_text_field($item['size']) : '';
@@ -472,6 +591,7 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_name' => $name,
 				'cutlist_dimensions' => $size,
 				'cutlist_unit_price' => $price,
+				'cutlist_min_qty' => 5,
 				'cutlist_image_id' => $tape_img['id'],
 				'cutlist_image_url' => $image_url,
 				'cutlist_unique_key' => 'et_' . md5($code . $name . $size . $price . $idx . microtime(true)),
@@ -482,24 +602,51 @@ function cutlist_ajax_add_to_cart()
 		}
 	}
 
-	// 5. Selected Offcuts
-	if (!empty($data['selectedOffcuts']) && is_array($data['selectedOffcuts'])) {
-		foreach ($data['selectedOffcuts'] as $idx => $offcut) {
-			$qty = isset($offcut['qty']) ? max(1, (int) $offcut['qty']) : 1;
-			$dims = is_string($offcut) ? sanitize_text_field($offcut) : sanitize_text_field($offcut['dimensions'] ?? $offcut['label'] ?? 'Offcut');
-			$price = is_array($offcut) && isset($offcut['unitPrice']) ? (float) $offcut['unitPrice'] : 0;
+	// 4. Standalone Service Surcharges (e.g. Spray Finishing Minimum Order Charge SPRAY-MIN)
+	$spray_min_added = false;
+	if (!empty($data['machiningItems']) && is_array($data['machiningItems'])) {
+		foreach ($data['machiningItems'] as $idx => $m_item) {
+			$code = !empty($m_item['code']) ? sanitize_text_field($m_item['code']) : '';
+			$label = !empty($m_item['label']) ? sanitize_text_field($m_item['label']) : '';
+			if ($code === 'SPRAY-MIN' || (!empty($m_item['slug']) && $m_item['slug'] === 'spray_min_charge') || stripos($label, 'Spray finishing minimum') !== false) {
+				$qty = isset($m_item['qty']) ? max(1, (int) $m_item['qty']) : 1;
+				$desc = !empty($m_item['description']) ? sanitize_text_field($m_item['description']) : __('Charge added to reach minimum order value of £330.00 for spray finishing', 'cutlist-catalogue');
+				$price = isset($m_item['unitPrice']) ? max(0, (float) $m_item['unitPrice']) : 0;
 
-			$cart_item_data = array(
-				'cutlist_type' => __('Selected Offcut', 'cutlist-catalogue'),
-				'cutlist_title' => sprintf(__('Selected Offcut: %s', 'cutlist-catalogue'), $dims),
-				'cutlist_dimensions' => $dims,
-				'cutlist_unit_price' => $price,
-				'cutlist_unique_key' => 'off_' . md5($dims . $price . $idx . microtime(true)),
-			);
+				if ($price > 0) {
+					$cart_item_data = array(
+						'cutlist_type' => __('Additional Service', 'cutlist-catalogue'),
+						'cutlist_title' => sprintf(__('Service: %s (%s)', 'cutlist-catalogue'), $label ?: __('Spray finishing minimum order charge', 'cutlist-catalogue'), 'SPRAY-MIN'),
+						'cutlist_code' => 'SPRAY-MIN',
+						'cutlist_name' => $label ?: __('Spray finishing minimum order charge', 'cutlist-catalogue'),
+						'cutlist_description' => $desc,
+						'cutlist_unit_price' => $price,
+						'cutlist_unique_key' => 'srv_spray_min_' . md5($price . microtime(true)),
+					);
 
-			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
-			$added_count++;
+					WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
+					$added_count++;
+					$spray_min_added = true;
+				}
+			}
 		}
+	}
+
+	// Fallback: If sprayMinSurcharge is passed directly and not yet added
+	if (!$spray_min_added && !empty($data['sprayMinSurcharge']) && (float) $data['sprayMinSurcharge'] > 0) {
+		$price = (float) $data['sprayMinSurcharge'];
+		$cart_item_data = array(
+			'cutlist_type' => __('Additional Service', 'cutlist-catalogue'),
+			'cutlist_title' => __('Service: Spray finishing minimum order charge (SPRAY-MIN)', 'cutlist-catalogue'),
+			'cutlist_code' => 'SPRAY-MIN',
+			'cutlist_name' => __('Spray finishing minimum order charge', 'cutlist-catalogue'),
+			'cutlist_description' => __('Charge added to reach minimum order value of £330.00 for spray finishing', 'cutlist-catalogue'),
+			'cutlist_unit_price' => $price,
+			'cutlist_unique_key' => 'srv_spray_min_' . md5($price . microtime(true)),
+		);
+
+		WC()->cart->add_to_cart($product_id, 1, 0, array(), $cart_item_data);
+		$added_count++;
 	}
 
 	WC()->cart->calculate_totals();
@@ -681,6 +828,14 @@ add_filter('woocommerce_cart_item_name', 'cutlist_custom_cart_item_title', 10, 3
  */
 function cutlist_render_cart_item_data($item_data, $cart_item)
 {
+	if (!empty($cart_item['cutlist_section'])) {
+		$item_data[] = array(
+			'key' => __('Section / Room', 'cutlist-catalogue'),
+			'name' => __('Section / Room', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_section']),
+			'display' => '<span class="cutlist-section-badge" style="background:#f0fdf4; color:#166534; font-weight:600; padding:2px 8px; border-radius:4px; font-size:12px; border:1px solid #bbf7d0; display:inline-block;">' . esc_html($cart_item['cutlist_section']) . '</span>',
+		);
+	}
 	if (!empty($cart_item['cutlist_type'])) {
 		$item_data[] = array(
 			'name' => __('Item Type', 'cutlist-catalogue'),
@@ -722,7 +877,28 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 			'value' => esc_html($cart_item['cutlist_edges']),
 		);
 	}
-	if (!empty($cart_item['cutlist_machining'])) {
+	if (!empty($cart_item['cutlist_panel_shaping'])) {
+		$item_data[] = array(
+			'name' => __('Panel shaping summary', 'cutlist-catalogue'),
+			'value' => $cart_item['cutlist_panel_shaping'],
+			'display' => '<div class="cutlist-meta-machining" style="margin-top:2px; line-height:1.45;">' . wp_kses_post($cart_item['cutlist_panel_shaping']) . '</div>',
+		);
+	}
+	if (!empty($cart_item['cutlist_surface_shaping'])) {
+		$item_data[] = array(
+			'name' => __('Surface shaping summary', 'cutlist-catalogue'),
+			'value' => $cart_item['cutlist_surface_shaping'],
+			'display' => '<div class="cutlist-meta-machining" style="margin-top:2px; line-height:1.45;">' . wp_kses_post($cart_item['cutlist_surface_shaping']) . '</div>',
+		);
+	}
+	if (!empty($cart_item['cutlist_drilling'])) {
+		$item_data[] = array(
+			'name' => __('Drilling summary', 'cutlist-catalogue'),
+			'value' => $cart_item['cutlist_drilling'],
+			'display' => '<div class="cutlist-meta-machining" style="margin-top:2px; line-height:1.45;">' . wp_kses_post($cart_item['cutlist_drilling']) . '</div>',
+		);
+	}
+	if (empty($cart_item['cutlist_panel_shaping']) && empty($cart_item['cutlist_surface_shaping']) && empty($cart_item['cutlist_drilling']) && !empty($cart_item['cutlist_machining'])) {
 		$item_data[] = array(
 			'name' => __('Machining Operations', 'cutlist-catalogue'),
 			'value' => esc_html($cart_item['cutlist_machining']),
@@ -783,6 +959,13 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 			'value' => esc_html($cart_item['cutlist_extra_cuts']),
 		);
 	}
+	if (!empty($cart_item['cutlist_selected_offcuts'])) {
+		$item_data[] = array(
+			'name' => __('Selected Offcuts', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_selected_offcuts']),
+			'display' => '<span style="font-weight:600; color:#0369a1;">' . esc_html($cart_item['cutlist_selected_offcuts']) . ' (' . __('Free', 'cutlist-catalogue') . ')</span>',
+		);
+	}
 
 	return $item_data;
 }
@@ -796,6 +979,9 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 {
 	if (!empty($values['cutlist_title'])) {
 		$item->set_name($values['cutlist_title']);
+	}
+	if (!empty($values['cutlist_section'])) {
+		$item->add_meta_data(__('Section / Room', 'cutlist-catalogue'), $values['cutlist_section']);
 	}
 	if (!empty($values['cutlist_type'])) {
 		$item->add_meta_data(__('Item Type', 'cutlist-catalogue'), $values['cutlist_type']);
@@ -817,7 +1003,16 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 	if (!empty($values['cutlist_edges'])) {
 		$item->add_meta_data(__('Edging Tape', 'cutlist-catalogue'), $values['cutlist_edges']);
 	}
-	if (!empty($values['cutlist_machining'])) {
+	if (!empty($values['cutlist_panel_shaping'])) {
+		$item->add_meta_data(__('Panel shaping summary', 'cutlist-catalogue'), $values['cutlist_panel_shaping']);
+	}
+	if (!empty($values['cutlist_surface_shaping'])) {
+		$item->add_meta_data(__('Surface shaping summary', 'cutlist-catalogue'), $values['cutlist_surface_shaping']);
+	}
+	if (!empty($values['cutlist_drilling'])) {
+		$item->add_meta_data(__('Drilling summary', 'cutlist-catalogue'), $values['cutlist_drilling']);
+	}
+	if (empty($values['cutlist_panel_shaping']) && empty($values['cutlist_surface_shaping']) && empty($values['cutlist_drilling']) && !empty($values['cutlist_machining'])) {
 		$item->add_meta_data(__('Machining Operations', 'cutlist-catalogue'), $values['cutlist_machining']);
 	}
 	if (!empty($values['cutlist_spray'])) {
@@ -839,6 +1034,9 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 	}
 	if (!empty($values['cutlist_extra_cuts'])) {
 		$item->add_meta_data(__('Additional Cuts', 'cutlist-catalogue'), $values['cutlist_extra_cuts']);
+	}
+	if (!empty($values['cutlist_selected_offcuts'])) {
+		$item->add_meta_data(__('Selected Offcuts', 'cutlist-catalogue'), $values['cutlist_selected_offcuts'] . ' (Free)');
 	}
 	if (!empty($values['cutlist_image_id'])) {
 		$item->add_meta_data('_cutlist_image_id', (int) $values['cutlist_image_id'], true);
@@ -875,11 +1073,230 @@ function cutlist_attach_order_level_meta($order, $data)
 add_action('woocommerce_checkout_create_order', 'cutlist_attach_order_level_meta', 10, 2);
 
 /**
+ * Helper: Checks if a cart item is an Edging Tape item subject to minimum quantity.
+ */
+function cutlist_is_edge_tape_cart_item($cart_item)
+{
+	if (empty($cart_item) || !is_array($cart_item)) {
+		return false;
+	}
+	if (!empty($cart_item['cutlist_min_qty']) && (int) $cart_item['cutlist_min_qty'] >= 5) {
+		return true;
+	}
+	if (!empty($cart_item['cutlist_type']) && (
+		$cart_item['cutlist_type'] === 'Edging Tape' ||
+		$cart_item['cutlist_type'] === __('Edging Tape', 'cutlist-catalogue')
+	)) {
+		return true;
+	}
+	if (!empty($cart_item['cutlist_unique_key']) && strpos($cart_item['cutlist_unique_key'], 'et_') === 0) {
+		return true;
+	}
+	if (!empty($cart_item['cutlist_title']) && stripos($cart_item['cutlist_title'], 'Edging Tape') !== false) {
+		return true;
+	}
+	return false;
+}
+
+/**
+ * Helper: Gets minimum quantity required for a cutlist cart item.
+ */
+function cutlist_get_cart_item_min_qty($cart_item)
+{
+	if (cutlist_is_edge_tape_cart_item($cart_item)) {
+		return !empty($cart_item['cutlist_min_qty']) ? (int) $cart_item['cutlist_min_qty'] : 5;
+	}
+	return 1;
+}
+
+/**
+ * Sets min_value to 5 for Edging Tape cart items in WooCommerce Cart quantity inputs.
+ */
+function cutlist_cart_item_quantity_input_args($args, $product)
+{
+	if (!empty($args['input_name']) && preg_match('/cart\[([a-f0-9]+)\]\[qty\]/', $args['input_name'], $matches)) {
+		$cart_item_key = $matches[1];
+		if (function_exists('WC') && WC()->cart) {
+			$cart_item = WC()->cart->get_cart_item($cart_item_key);
+			if ($cart_item && cutlist_is_edge_tape_cart_item($cart_item)) {
+				$min_qty = cutlist_get_cart_item_min_qty($cart_item);
+				$args['min_value'] = $min_qty;
+			}
+		}
+	}
+	return $args;
+}
+add_filter('woocommerce_quantity_input_args', 'cutlist_cart_item_quantity_input_args', 20, 2);
+
+/**
+ * Ensures the cart item quantity input HTML enforces minimum 5 for Edging Tape items.
+ */
+function cutlist_cart_item_quantity_html($product_quantity, $cart_item_key, $cart_item)
+{
+	if (cutlist_is_edge_tape_cart_item($cart_item)) {
+		$min_qty = cutlist_get_cart_item_min_qty($cart_item);
+		$_product = $cart_item['data'] ?? null;
+		if ($_product) {
+			return woocommerce_quantity_input(
+				array(
+					'input_name'   => "cart[{$cart_item_key}][qty]",
+					'input_value'  => max($min_qty, (int) $cart_item['quantity']),
+					'max_value'    => $_product->get_max_purchase_quantity(),
+					'min_value'    => $min_qty,
+					'product_name' => $cart_item['cutlist_title'] ?? $_product->get_name(),
+				),
+				$_product,
+				false
+			);
+		}
+	}
+	return $product_quantity;
+}
+add_filter('woocommerce_cart_item_quantity', 'cutlist_cart_item_quantity_html', 20, 3);
+
+/**
+ * Validates cart item quantity updates: blocks reducing Edging Tape below 5 meters.
+ */
+function cutlist_validate_cart_item_quantity_update($passed, $cart_item_key, $values, $quantity)
+{
+	if (cutlist_is_edge_tape_cart_item($values)) {
+		$min_qty = cutlist_get_cart_item_min_qty($values);
+		// Note: $quantity == 0 means removing the item from cart, which is permitted.
+		if ($quantity > 0 && $quantity < $min_qty) {
+			$title = $values['cutlist_title'] ?? __('Edging Tape', 'cutlist-catalogue');
+			wc_add_notice(
+				sprintf(
+					__('The minimum order quantity for %s is %d meters.', 'cutlist-catalogue'),
+					esc_html($title),
+					$min_qty
+				),
+				'error'
+			);
+			return false;
+		}
+	}
+	return $passed;
+}
+add_filter('woocommerce_update_cart_validation', 'cutlist_validate_cart_item_quantity_update', 20, 4);
+
+/**
+ * Validates cart items on cart review / checkout to ensure minimum quantities are respected.
+ */
+function cutlist_validate_cart_items_minimum_quantities()
+{
+	if (!function_exists('WC') || !WC()->cart) {
+		return;
+	}
+	foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+		if (cutlist_is_edge_tape_cart_item($cart_item)) {
+			$min_qty = cutlist_get_cart_item_min_qty($cart_item);
+			if ($cart_item['quantity'] < $min_qty) {
+				$title = $cart_item['cutlist_title'] ?? __('Edging Tape', 'cutlist-catalogue');
+				wc_add_notice(
+					sprintf(
+						__('The minimum order quantity for %s is %d meters. Please update your quantity before checkout.', 'cutlist-catalogue'),
+						esc_html($title),
+						$min_qty
+					),
+					'error'
+				);
+			}
+		}
+	}
+}
+add_action('woocommerce_check_cart_items', 'cutlist_validate_cart_items_minimum_quantities', 20);
+add_action('woocommerce_review_order_before_cart_contents', 'cutlist_validate_cart_items_minimum_quantities', 20);
+
+/**
+ * Redirects user from Checkout page back to Cart if any Edging Tape quantity is below minimum (5m).
+ */
+function cutlist_prevent_checkout_with_invalid_quantities()
+{
+	if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('order-received'))) {
+		return;
+	}
+
+	if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) {
+		return;
+	}
+
+	$has_invalid_qty = false;
+	$invalid_titles = array();
+
+	foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+		if (cutlist_is_edge_tape_cart_item($cart_item)) {
+			$min_qty = cutlist_get_cart_item_min_qty($cart_item);
+			if ($cart_item['quantity'] < $min_qty) {
+				$has_invalid_qty = true;
+				$invalid_titles[] = sprintf(
+					__('%s (minimum %d meters)', 'cutlist-catalogue'),
+					esc_html($cart_item['cutlist_title'] ?? __('Edging Tape', 'cutlist-catalogue')),
+					$min_qty
+				);
+			}
+		}
+	}
+
+	if ($has_invalid_qty) {
+		$msg = sprintf(
+			__('Please update your cart before proceeding to checkout: %s', 'cutlist-catalogue'),
+			implode(', ', $invalid_titles)
+		);
+		if (!wc_has_notice($msg, 'error')) {
+			wc_add_notice($msg, 'error');
+		}
+		wp_safe_redirect(wc_get_cart_url());
+		exit;
+	}
+}
+add_action('template_redirect', 'cutlist_prevent_checkout_with_invalid_quantities', 10);
+
+/**
+ * Blocks checkout submission via AJAX if any Edging Tape is below minimum quantity.
+ */
+function cutlist_checkout_process_quantity_validation()
+{
+	if (!function_exists('WC') || !WC()->cart) {
+		return;
+	}
+
+	foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+		if (cutlist_is_edge_tape_cart_item($cart_item)) {
+			$min_qty = cutlist_get_cart_item_min_qty($cart_item);
+			if ($cart_item['quantity'] < $min_qty) {
+				wc_add_notice(
+					sprintf(
+						__('The minimum order quantity for %s is %d meters. Please update your cart before checkout.', 'cutlist-catalogue'),
+						esc_html($cart_item['cutlist_title'] ?? __('Edging Tape', 'cutlist-catalogue')),
+						$min_qty
+					),
+					'error'
+				);
+			}
+		}
+	}
+}
+add_action('woocommerce_checkout_process', 'cutlist_checkout_process_quantity_validation', 10);
+
+/**
  * Allows HTML links to render safely in WooCommerce Order Item Meta (emails, order view).
  */
 function cutlist_display_order_item_meta_value($display_value, $meta, $item)
 {
-	if (in_array($meta->key, array(__('Grain Matching Drawing', 'cutlist-catalogue'), 'Grain Matching Drawing'), true)) {
+	if (
+		in_array($meta->key, array(
+			__('Grain Matching Drawing', 'cutlist-catalogue'),
+			'Grain Matching Drawing',
+			__('Panel shaping summary', 'cutlist-catalogue'),
+			'Panel shaping summary',
+			__('Surface shaping summary', 'cutlist-catalogue'),
+			'Surface shaping summary',
+			__('Drilling summary', 'cutlist-catalogue'),
+			'Drilling summary',
+			__('Selected Offcuts', 'cutlist-catalogue'),
+			'Selected Offcuts'
+		), true)
+	) {
 		return wp_kses_post($display_value);
 	}
 	return $display_value;
@@ -1000,6 +1417,11 @@ function cutlist_render_admin_order_grain_metabox($post_or_order_object)
  */
 function cutlist_cart_item_details_custom_styles()
 {
+	static $printed = false;
+	if ($printed) {
+		return;
+	}
+	$printed = true;
 	?>
 	<style id="cutlist-cart-item-details-styles">
 		/* Ensure cart and checkout item attributes display cleanly on separate stacked lines */
@@ -1050,6 +1472,8 @@ function cutlist_cart_item_details_custom_styles()
 		.woocommerce dl.variation dd::after,
 		dl.variation dt::after,
 		dl.variation dd::after,
+		.wc-block-components-product-details *::after,
+		.wc-block-components-product-metadata *::after,
 		.wc-block-components-product-details__item::after,
 		.wc-block-components-product-details__value::after,
 		.wc-block-components-product-metadata__item::after {
@@ -1062,30 +1486,40 @@ function cutlist_cart_item_details_custom_styles()
 		.wc-block-components-product-metadata {
 			display: flex !important;
 			flex-direction: column !important;
-			gap: 4px !important;
+			gap: 3px !important;
 			margin: 6px 0 !important;
 		}
 
+		.wc-block-components-product-details>span,
+		.wc-block-components-product-metadata>span,
 		.wc-block-components-product-details .wc-block-components-product-details__item,
 		.wc-block-components-product-metadata .wc-block-components-product-metadata__item {
-			display: flex !important;
-			flex-wrap: wrap !important;
-			align-items: baseline !important;
-			gap: 4px !important;
+			display: block !important;
+			margin: 1px 0 !important;
+			line-height: 1.4 !important;
 		}
 
 		.wc-block-components-product-details .wc-block-components-product-details__name,
 		.wc-block-components-product-metadata .wc-block-components-product-metadata__name {
 			font-weight: 600 !important;
 			color: #333 !important;
+			margin-right: 4px !important;
+			display: inline !important;
 		}
 
 		.wc-block-components-product-details .wc-block-components-product-details__value,
 		.wc-block-components-product-metadata .wc-block-components-product-metadata__value {
 			color: #444 !important;
+			display: inline !important;
 		}
 
-		/* Hide the separator span ("/") rendered by WooCommerce Block Cart */
+		/* Hide the separator span ("/") rendered by WooCommerce Block Cart & Checkout */
+		.wc-block-components-product-details span[aria-hidden="true"],
+		.wc-block-components-product-details span[aria-hidden],
+		.wc-block-components-product-metadata span[aria-hidden="true"],
+		.wc-block-components-product-metadata span[aria-hidden],
+		.wc-block-components-product-details>span>span[aria-hidden="true"],
+		.wc-block-components-product-details>span>span:last-child:not(.wc-block-components-product-details__value),
 		.wc-block-components-product-details__separator,
 		.wc-block-components-product-metadata__separator,
 		[class*="product-details__separator"],
@@ -1095,12 +1529,106 @@ function cutlist_cart_item_details_custom_styles()
 			display: none !important;
 			visibility: hidden !important;
 			font-size: 0 !important;
+			line-height: 0 !important;
 			width: 0 !important;
 			height: 0 !important;
 			opacity: 0 !important;
 			pointer-events: none !important;
 		}
 	</style>
+	<script>
+	(function () {
+		function enforceEdgeTapeMinQty() {
+			var hasInvalidEdgeTape = false;
+			var cartRows = document.querySelectorAll(
+				'.woocommerce-cart-form__cart-item, .wc-block-cart-items__row, .wc-block-cart-item, tr.cart_item, .cart_item'
+			);
+			cartRows.forEach(function (row) {
+				var text = row.innerText || '';
+				if (text.indexOf('Edging Tape') !== -1 || text.indexOf('Item Type: Edging Tape') !== -1) {
+					var qtyInput = row.querySelector('input.qty, input[type="number"], .wc-block-components-quantity-selector__input');
+					if (qtyInput) {
+						qtyInput.setAttribute('min', '5');
+						var val = parseInt(qtyInput.value, 10);
+						if (!isNaN(val) && val < 5 && val > 0) {
+							hasInvalidEdgeTape = true;
+							qtyInput.classList.add('invalid');
+							qtyInput.style.borderColor = '#dc2626';
+						} else {
+							qtyInput.classList.remove('invalid');
+							qtyInput.style.borderColor = '';
+						}
+						var minusBtn = row.querySelector('.wc-block-components-quantity-selector__button--minus, .minus, [data-action="minus"], button.minus');
+						if (minusBtn) {
+							if (val <= 5) {
+								minusBtn.setAttribute('disabled', 'disabled');
+								minusBtn.style.opacity = '0.4';
+								minusBtn.style.pointerEvents = 'none';
+							} else {
+								minusBtn.removeAttribute('disabled');
+								minusBtn.style.opacity = '';
+								minusBtn.style.pointerEvents = '';
+							}
+						}
+					}
+				}
+			});
+
+			var checkoutBtns = document.querySelectorAll('.checkout-button, .wc-block-cart__submit-button, a[href*="checkout"], .btn-wc-checkout');
+			checkoutBtns.forEach(function (btn) {
+				if (hasInvalidEdgeTape) {
+					btn.classList.add('disabled');
+					btn.style.opacity = '0.5';
+					btn.style.cursor = 'not-allowed';
+				} else {
+					btn.classList.remove('disabled');
+					btn.style.opacity = '';
+					btn.style.cursor = '';
+				}
+			});
+		}
+
+		var isAlerting = false;
+		document.addEventListener('click', function (e) {
+			var btn = e.target.closest('.checkout-button, .wc-block-cart__submit-button, a[href*="checkout"], .btn-wc-checkout');
+			if (btn) {
+				var invalid = false;
+				document.querySelectorAll('input.qty, input[type="number"], .wc-block-components-quantity-selector__input').forEach(function (inp) {
+					var row = inp.closest('.woocommerce-cart-form__cart-item, .wc-block-cart-items__row, .wc-block-cart-item, tr.cart_item, .cart_item');
+					if (row && (row.innerText || '').indexOf('Edging Tape') !== -1) {
+						var v = parseInt(inp.value, 10);
+						if (!isNaN(v) && v < 5 && v > 0) {
+							invalid = true;
+						}
+					}
+				});
+				if (invalid) {
+					e.preventDefault();
+					e.stopPropagation();
+					if (!isAlerting) {
+						isAlerting = true;
+						alert('The minimum order quantity for Edging Tape is 5 meters. Please change the quantity to at least 5 before proceeding to checkout.');
+						setTimeout(function () { isAlerting = false; }, 500);
+					}
+					return false;
+				}
+			}
+		}, true);
+
+		document.addEventListener('DOMContentLoaded', enforceEdgeTapeMinQty);
+		window.addEventListener('load', enforceEdgeTapeMinQty);
+		document.addEventListener('input', enforceEdgeTapeMinQty);
+		document.addEventListener('change', enforceEdgeTapeMinQty);
+		if (window.jQuery) {
+			jQuery(document).ajaxComplete(function () { setTimeout(enforceEdgeTapeMinQty, 100); });
+			jQuery(document.body).on('updated_cart_totals updated_wc_div', function () { setTimeout(enforceEdgeTapeMinQty, 100); });
+		}
+		var target = document.querySelector('.woocommerce, .wc-block-cart, .entry-content, form.woocommerce-cart-form');
+		if (target && window.MutationObserver) {
+			new MutationObserver(function () { enforceEdgeTapeMinQty(); }).observe(target, { childList: true, subtree: true });
+		}
+	})();
+	</script>
 	<?php
 }
 add_action('wp_head', 'cutlist_cart_item_details_custom_styles', 99);
@@ -1112,15 +1640,15 @@ add_action('wp_footer', 'cutlist_cart_item_details_custom_styles', 99);
 function cutlist_woocommerce_locate_template($template, $template_name, $template_path)
 {
 	$custom_templates = array(
-		'checkout/thankyou.php'             => 'templates/thankyou.php',
-		'myaccount/my-account.php'          => 'templates/myaccount/my-account.php',
-		'myaccount/navigation.php'          => 'templates/myaccount/navigation.php',
-		'myaccount/dashboard.php'           => 'templates/myaccount/dashboard.php',
-		'myaccount/orders.php'              => 'templates/myaccount/orders.php',
-		'myaccount/view-order.php'          => 'templates/myaccount/view-order.php',
-		'myaccount/my-address.php'          => 'templates/myaccount/my-address.php',
-		'myaccount/form-edit-address.php'   => 'templates/myaccount/form-edit-address.php',
-		'order/order-details.php'           => 'templates/order/order-details.php',
+		'checkout/thankyou.php' => 'templates/thankyou.php',
+		'myaccount/my-account.php' => 'templates/myaccount/my-account.php',
+		'myaccount/navigation.php' => 'templates/myaccount/navigation.php',
+		'myaccount/dashboard.php' => 'templates/myaccount/dashboard.php',
+		'myaccount/orders.php' => 'templates/myaccount/orders.php',
+		'myaccount/view-order.php' => 'templates/myaccount/view-order.php',
+		'myaccount/my-address.php' => 'templates/myaccount/my-address.php',
+		'myaccount/form-edit-address.php' => 'templates/myaccount/form-edit-address.php',
+		'order/order-details.php' => 'templates/order/order-details.php',
 	);
 
 	if (isset($custom_templates[$template_name])) {
@@ -1135,15 +1663,15 @@ function cutlist_woocommerce_locate_template($template, $template_name, $templat
 add_filter('woocommerce_locate_template', 'cutlist_woocommerce_locate_template', 999, 3);
 add_filter('wc_get_template', function ($template, $template_name, $args, $template_path, $default_path) {
 	$custom_templates = array(
-		'checkout/thankyou.php'             => 'templates/thankyou.php',
-		'myaccount/my-account.php'          => 'templates/myaccount/my-account.php',
-		'myaccount/navigation.php'          => 'templates/myaccount/navigation.php',
-		'myaccount/dashboard.php'           => 'templates/myaccount/dashboard.php',
-		'myaccount/orders.php'              => 'templates/myaccount/orders.php',
-		'myaccount/view-order.php'          => 'templates/myaccount/view-order.php',
-		'myaccount/my-address.php'          => 'templates/myaccount/my-address.php',
-		'myaccount/form-edit-address.php'   => 'templates/myaccount/form-edit-address.php',
-		'order/order-details.php'           => 'templates/order/order-details.php',
+		'checkout/thankyou.php' => 'templates/thankyou.php',
+		'myaccount/my-account.php' => 'templates/myaccount/my-account.php',
+		'myaccount/navigation.php' => 'templates/myaccount/navigation.php',
+		'myaccount/dashboard.php' => 'templates/myaccount/dashboard.php',
+		'myaccount/orders.php' => 'templates/myaccount/orders.php',
+		'myaccount/view-order.php' => 'templates/myaccount/view-order.php',
+		'myaccount/my-address.php' => 'templates/myaccount/my-address.php',
+		'myaccount/form-edit-address.php' => 'templates/myaccount/form-edit-address.php',
+		'order/order-details.php' => 'templates/order/order-details.php',
 	);
 
 	if (isset($custom_templates[$template_name])) {
@@ -1264,21 +1792,42 @@ function cutlist_my_account_custom_styles()
 			gap: 32px;
 			align-items: flex-start;
 			max-width: 1240px;
+			width: 100%;
+			box-sizing: border-box;
+			padding: 0 16px;
 			margin: 20px auto 60px auto;
 			font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 			color: #111827;
+			overflow: visible;
 		}
 
 		/* Left Sidebar Column */
 		.cl-account-sidebar-col {
 			width: 240px;
 			flex-shrink: 0;
+			box-sizing: border-box;
+		}
+
+		.cl-account-main-col {
+			flex: 1;
+			min-width: 0;
+			max-width: 100%;
+			box-sizing: border-box;
 		}
 
 		.woocommerce-account .woocommerce-MyAccount-navigation {
 			width: 100% !important;
 			float: none !important;
 			margin: 0 !important;
+			box-sizing: border-box !important;
+		}
+
+		.woocommerce-account .woocommerce-MyAccount-content {
+			width: 100% !important;
+			max-width: 100% !important;
+			float: none !important;
+			margin: 0 !important;
+			box-sizing: border-box !important;
 		}
 
 		.cl-nav-list {
@@ -1918,6 +2467,10 @@ function cutlist_my_account_custom_styles()
 			border-radius: 12px;
 			padding: 24px;
 			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+			width: 100%;
+			max-width: 100%;
+			box-sizing: border-box;
+			overflow: hidden;
 		}
 
 		.cl-edit-address-header {
@@ -1949,21 +2502,97 @@ function cutlist_my_account_custom_styles()
 			margin: 0;
 		}
 
+		.cl-address-form,
+		.woocommerce-address-fields,
+		.woocommerce-address-fields__field-wrapper {
+			width: 100% !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+			float: none !important;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+
 		.cl-address-fields-grid {
-			display: grid;
-			grid-template-columns: repeat(2, 1fr);
-			gap: 14px;
+			display: grid !important;
+			grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+			gap: 16px !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+		}
+
+		/* Reset WooCommerce and theme float / clear / width on form-row */
+		.cl-address-fields-grid .form-row {
+			float: none !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			min-width: 0 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			box-sizing: border-box !important;
+			clear: none !important;
+		}
+
+		.cl-address-fields-grid .form-row::before,
+		.cl-address-fields-grid .form-row::after {
+			display: none !important;
+			content: none !important;
 		}
 
 		.cl-address-fields-grid .form-row-wide,
-		.cl-address-fields-grid .form-row:first-child:last-child {
-			grid-column: 1 / -1;
+		.cl-address-fields-grid .form-row:first-child:last-child,
+		.cl-address-fields-grid #billing_company_field,
+		.cl-address-fields-grid #billing_country_field,
+		.cl-address-fields-grid #billing_address_1_field,
+		.cl-address-fields-grid #billing_address_2_field,
+		.cl-address-fields-grid #shipping_company_field,
+		.cl-address-fields-grid #shipping_country_field,
+		.cl-address-fields-grid #shipping_address_1_field,
+		.cl-address-fields-grid #shipping_address_2_field {
+			grid-column: 1 / -1 !important;
+		}
+
+		.cl-address-fields-grid #billing_first_name_field,
+		.cl-address-fields-grid #shipping_first_name_field {
+			grid-column: 1 !important;
+		}
+
+		.cl-address-fields-grid #billing_last_name_field,
+		.cl-address-fields-grid #shipping_last_name_field {
+			grid-column: 2 !important;
+		}
+
+		.cl-address-fields-grid #billing_city_field,
+		.cl-address-fields-grid #shipping_city_field {
+			grid-column: 1 !important;
+		}
+
+		.cl-address-fields-grid #billing_state_field,
+		.cl-address-fields-grid #shipping_state_field {
+			grid-column: 2 !important;
+		}
+
+		.cl-address-fields-grid #billing_postcode_field,
+		.cl-address-fields-grid #shipping_postcode_field {
+			grid-column: 1 !important;
+		}
+
+		.cl-address-fields-grid #billing_phone_field {
+			grid-column: 1 !important;
+		}
+
+		.cl-address-fields-grid #billing_email_field {
+			grid-column: 2 !important;
 		}
 
 		.cl-form-submit-row {
 			margin-top: 24px;
 			padding-top: 18px;
 			border-top: 1px solid #f3f4f6;
+			width: 100% !important;
+			box-sizing: border-box !important;
+			clear: both !important;
 		}
 
 		.cl-btn-primary,
@@ -1995,16 +2624,26 @@ function cutlist_my_account_custom_styles()
 			display: block !important;
 		}
 
+		.woocommerce-account form .form-row .woocommerce-input-wrapper {
+			display: block !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+		}
+
 		.woocommerce-account form .form-row input.input-text,
 		.woocommerce-account form .form-row select,
 		.woocommerce-account form .form-row textarea {
 			border: 1px solid #d1d5db !important;
 			border-radius: 6px !important;
-			padding: 8px 12px !important;
+			padding: 9px 12px !important;
 			font-size: 14px !important;
 			width: 100% !important;
+			max-width: 100% !important;
 			background: #ffffff !important;
 			box-sizing: border-box !important;
+			line-height: 1.4 !important;
+			margin: 0 !important;
 		}
 
 		.woocommerce-account form .form-row input.input-text:focus,
@@ -2012,6 +2651,43 @@ function cutlist_my_account_custom_styles()
 		.woocommerce-account form .form-row textarea:focus {
 			border-color: #16a34a !important;
 			outline: 2px solid #dcfce7 !important;
+		}
+
+		/* Select2 Container & Dropdown in WooCommerce My Account Forms */
+		.woocommerce-account .select2-container,
+		.woocommerce-account .select2-container--default,
+		.woocommerce-account span.select2 {
+			width: 100% !important;
+			max-width: 100% !important;
+			box-sizing: border-box !important;
+			display: block !important;
+		}
+
+		.woocommerce-account .select2-container .select2-selection--single {
+			height: 42px !important;
+			border: 1px solid #d1d5db !important;
+			border-radius: 6px !important;
+			padding: 6px 12px !important;
+			display: flex !important;
+			align-items: center !important;
+			box-sizing: border-box !important;
+			width: 100% !important;
+			max-width: 100% !important;
+			background: #ffffff !important;
+		}
+
+		.woocommerce-account .select2-container--default .select2-selection--single .select2-selection__rendered {
+			color: #111827 !important;
+			line-height: normal !important;
+			padding-left: 0 !important;
+			padding-right: 20px !important;
+			font-size: 14px !important;
+		}
+
+		.woocommerce-account .select2-container--default .select2-selection--single .select2-selection__arrow {
+			height: 40px !important;
+			right: 10px !important;
+			top: 1px !important;
 		}
 
 		/* 6. VIEW ORDER PAGE STYLES (MATCHING MOCKUP) */
@@ -2149,7 +2825,7 @@ function cutlist_my_account_custom_styles()
 			display: flex;
 			align-items: center;
 			gap: 14px;
-			box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 		}
 
 		.cl-vo-metric-icon {
@@ -2222,7 +2898,7 @@ function cutlist_my_account_custom_styles()
 			display: flex;
 			gap: 22px;
 			align-items: flex-start;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 			transition: all 0.15s ease;
 		}
 
@@ -2332,7 +3008,7 @@ function cutlist_my_account_custom_styles()
 			border-radius: 12px;
 			overflow: hidden;
 			margin-top: 8px;
-			box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
 		}
 
 		.cl-vo-totals-row {
@@ -2390,7 +3066,7 @@ function cutlist_my_account_custom_styles()
 			border: 1px solid #e5e7eb;
 			border-radius: 12px;
 			padding: 24px;
-			box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+			box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 		}
 
 		.cl-vo-address-top {
@@ -2466,25 +3142,27 @@ function cutlist_my_account_custom_styles()
 
 		@media (max-width: 768px) {
 			.cl-account-layout-wrap {
-				flex-direction: column;
+				flex-direction: column !important;
+				gap: 20px !important;
+				padding: 0 12px !important;
 			}
 
 			.cl-account-sidebar-col {
-				width: 100%;
+				width: 100% !important;
 			}
 
 			.cl-nav-list {
-				flex-direction: row;
-				flex-wrap: wrap;
-				gap: 8px;
+				flex-direction: row !important;
+				flex-wrap: wrap !important;
+				gap: 8px !important;
 			}
 
 			.cl-need-help-card {
-				display: none;
+				display: none !important;
 			}
 
 			.cl-quick-grid {
-				grid-template-columns: 1fr;
+				grid-template-columns: 1fr !important;
 			}
 
 			.cl-addresses-grid {
@@ -2492,21 +3170,42 @@ function cutlist_my_account_custom_styles()
 			}
 
 			.cl-address-fields-grid {
-				grid-template-columns: 1fr;
+				grid-template-columns: 1fr !important;
+				gap: 12px !important;
+			}
+
+			.cl-address-fields-grid .form-row,
+			.cl-address-fields-grid #billing_first_name_field,
+			.cl-address-fields-grid #billing_last_name_field,
+			.cl-address-fields-grid #billing_city_field,
+			.cl-address-fields-grid #billing_state_field,
+			.cl-address-fields-grid #billing_postcode_field,
+			.cl-address-fields-grid #billing_phone_field,
+			.cl-address-fields-grid #billing_email_field,
+			.cl-address-fields-grid #shipping_first_name_field,
+			.cl-address-fields-grid #shipping_last_name_field,
+			.cl-address-fields-grid #shipping_city_field,
+			.cl-address-fields-grid #shipping_state_field,
+			.cl-address-fields-grid #shipping_postcode_field {
+				grid-column: 1 / -1 !important;
+			}
+
+			.cl-edit-address-card {
+				padding: 16px !important;
 			}
 
 			.cl-vo-header-row {
-				flex-direction: column;
-				align-items: flex-start;
+				flex-direction: column !important;
+				align-items: flex-start !important;
 			}
 
 			.cl-vo-item-card {
-				flex-direction: column;
+				flex-direction: column !important;
 			}
 
 			.cl-vo-item-pricing-box {
-				width: 100%;
-				justify-content: space-between;
+				width: 100% !important;
+				justify-content: space-between !important;
 			}
 		}
 	</style>

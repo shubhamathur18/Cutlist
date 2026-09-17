@@ -83,6 +83,36 @@ table.addEventListener("input", function (e) {
         PANEL_INFO_MAX_LENGTH - textarea.value.length;
 });
 
+// Enforce numeric-only input for Length, Width, and Qty fields
+document.addEventListener("keydown", function (e) {
+    var input = e.target.closest(
+        ".table-area td.small:not(.thick):not(.edging-input) input, .table-area td.qty input, .offcuts-table td.small input, .offcuts-table td.qty input, input.fs-length, input.fs-width"
+    );
+    if (!input) return;
+
+    // Allow navigation and shortcut keys (Ctrl/Cmd + A, C, V, X, Z)
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (["Backspace", "Delete", "Tab", "Enter", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].indexOf(e.key) !== -1) {
+        return;
+    }
+
+    // Block non-numeric characters (including 'e', 'E', '+', '-', '.')
+    if (!/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+    }
+});
+
+document.addEventListener("input", function (e) {
+    var input = e.target.closest(
+        ".table-area td.small:not(.thick):not(.edging-input) input, .table-area td.qty input, .offcuts-table td.small input, .offcuts-table td.qty input, input.fs-length, input.fs-width"
+    );
+    if (!input) return;
+
+    if (input.value && /\D/.test(input.value)) {
+        input.value = input.value.replace(/\D/g, "");
+    }
+});
+
 const edgePopup = document.getElementById("edgePopup");
 const edgeDimTop = document.getElementById("edgeDimTop");
 const edgeDimLeft = document.getElementById("edgeDimLeft");
@@ -899,6 +929,17 @@ function clShowOverlay(tr) {
     clOverlay.style.height = rowRect.height + 'px';
     clOverlay.style.left = cellRect.left + 'px';
     clOverlay.style.width = cellRect.width + 'px';
+
+    var topSectionStrip = clOverlay.querySelector('.cl-insert-strip.top');
+    if (topSectionStrip) {
+        var prev = tr.previousElementSibling;
+        if (prev && prev.classList.contains('section-row')) {
+            topSectionStrip.style.display = 'none';
+        } else {
+            topSectionStrip.style.display = 'flex';
+        }
+    }
+
     clOverlay.style.display = 'block';
 }
 
@@ -938,7 +979,10 @@ clOverlay.addEventListener('click', function (e) {
     if (!strip || !clTargetRow || !clTargetRow.parentNode) return;
     var parent = clTargetRow.parentNode;
     if (strip.dataset.action === 'section') {
-        parent.insertBefore(createSectionRow(), clTargetRow);
+        var newSection = createSectionRow();
+        parent.insertBefore(newSection, clTargetRow);
+        var input = newSection.querySelector('.section-name-input');
+        if (input) input.focus();
     } else {
         parent.insertBefore(createRow(), clTargetRow.nextSibling);
     }
@@ -977,9 +1021,12 @@ function createFsRow() {
     var row = template.cloneNode(true);
     row.classList.remove("unlocked");
     clearDecorCard(row);
+    delete row.dataset.image;
+    delete row.dataset.priceSheet;
     row.querySelectorAll("input,select").forEach(f => {
         f.value = "";
-        f.disabled = true;
+        f.disabled = !f.closest(".decor");
+        f.classList.remove("invalid");
     });
     row.querySelector(".fs-brand").textContent = "–";
     return row;
@@ -1000,11 +1047,19 @@ fsTable.addEventListener("click", function (e) {
 
     const decorCell = e.target.closest(".decor");
     if (decorCell) {
-        activeDecorInput = decorCell.querySelector("input");
-        const pos = decorCell.getBoundingClientRect();
-        popup.style.left = pos.left + "px";
-        popup.style.top = (pos.bottom + window.scrollY) + "px";
-        popup.style.display = "block";
+        let row = decorCell.closest("tr");
+        if (typeof openDecorPopupForRow === "function") {
+            openDecorPopupForRow(row);
+        } else {
+            activeDecorInput = decorCell.querySelector(".decor-real-input") || decorCell.querySelector("input");
+            const pos = decorCell.getBoundingClientRect();
+            popup.style.left = pos.left + "px";
+            popup.style.top = (pos.bottom + window.scrollY) + "px";
+            popup.style.display = "block";
+            if (typeof ensureActiveBrandLoaded === "function") {
+                ensureActiveBrandLoaded();
+            }
+        }
         return;
     }
 
@@ -1211,8 +1266,20 @@ const summarySection = document.getElementById("summarySection");
 function collectCuttingListItems() {
 
     var items = [];
+    var currentSection = "";
 
-    table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+    var allRows = (typeof table !== "undefined" && table) ? table.querySelectorAll("tr") : document.querySelectorAll(".table-area table tr");
+    allRows.forEach(function (row) {
+
+        if (row.classList.contains("section-row")) {
+            var secInput = row.querySelector(".section-name-input");
+            currentSection = (secInput && secInput.value && secInput.value.trim()) ? secInput.value.trim() : "";
+            return;
+        }
+
+        if (row.classList.contains("header-row")) {
+            return;
+        }
 
         var decorInput = row.querySelector(".decor input");
         if (!decorInput) return;
@@ -1241,6 +1308,24 @@ function collectCuttingListItems() {
             if (rawM) machiningApplied = JSON.parse(rawM);
         } catch (e) { }
 
+        var mergedMachining = (typeof getPanelSummaryMachining === "function") ? getPanelSummaryMachining(row) : machiningApplied;
+        var finalMachining = (mergedMachining && mergedMachining.length) ? mergedMachining : machiningApplied;
+
+        var dummyData = {
+            machining: finalMachining,
+            length: length,
+            width: width,
+            thickness: thick
+        };
+
+        var panelShapingRaw = (typeof buildPanelSummaryMachiningText === "function") ? buildPanelSummaryMachiningText(dummyData, 'panel') : '';
+        var surfaceShapingRaw = (typeof buildPanelSummaryMachiningText === "function") ? buildPanelSummaryMachiningText(dummyData, 'surface') : '';
+        var drillingRaw = (typeof buildPanelSummaryMachiningText === "function") ? buildPanelSummaryMachiningText(dummyData, 'drilling') : '';
+
+        var panelShapingText = (panelShapingRaw && panelShapingRaw !== 'No panel shaping applied' && panelShapingRaw !== 'None') ? panelShapingRaw : '';
+        var surfaceShapingText = (surfaceShapingRaw && surfaceShapingRaw !== 'No surface shaping applied' && surfaceShapingRaw !== 'None') ? surfaceShapingRaw : '';
+        var drillingText = (drillingRaw && drillingRaw !== 'No drilling applied' && drillingRaw !== 'None') ? drillingRaw : '';
+
         // Spray finishing details
         var sprayInfo = null;
         if (typeof sprayStateByRow !== "undefined" && sprayStateByRow && sprayStateByRow.has(row)) {
@@ -1249,9 +1334,12 @@ function collectCuttingListItems() {
                 sprayInfo = {
                     option: spraySt.option,
                     option_name: spraySt.option_name || spraySt.option,
+                    finish: spraySt.finish,
+                    bOnly: spraySt.bOnly,
                     aSide: !!(spraySt.sides && spraySt.sides.A),
                     bSide: !!(spraySt.sides && spraySt.sides.B),
                     bSideSprayType: (spraySt.sides && spraySt.sides.B) ? (spraySt.bSideSprayType || "full") : "",
+                    bSideReturnEdges: (spraySt.sides && spraySt.sides.B) ? (spraySt.bSideReturnEdges || {}) : {},
                     paintBrand: spraySt.paintBrand || "",
                     paintColour: spraySt.paintColour || ""
                 };
@@ -1276,11 +1364,15 @@ function collectCuttingListItems() {
             width: width,
             qty: parseInt(qty, 10) || 1,
             description: desc,
+            section: currentSection,
             edgeL1: edges.L1 || "",
             edgeL2: edges.L2 || "",
             edgeW1: edges.W1 || "",
             edgeW2: edges.W2 || "",
-            machining: machiningApplied,
+            machining: finalMachining,
+            panelShaping: panelShapingText,
+            surfaceShaping: surfaceShapingText,
+            drilling: drillingText,
             spray: sprayInfo,
             grainMatch: grainMatch,
             unitPrice: 0
@@ -1292,29 +1384,102 @@ function collectCuttingListItems() {
 
 }
 
-function collectSelectedOffcuts() {
-    var offcuts = [];
-    if (typeof planOffcutSelection === "undefined" || !planOffcutSelection) return offcuts;
+function getSelectedOffcutsByGroup(sheetGroups) {
+    var result = {};
+    if (typeof planOffcutSelection === "undefined" || !planOffcutSelection || !sheetGroups || !sheetGroups.groups) {
+        return result;
+    }
 
-    Object.keys(planOffcutSelection).forEach(function (key) {
-        if (!planOffcutSelection[key]) return;
-        offcuts.push({
-            id: key,
-            dimensions: key,
-            qty: 1,
-            unitPrice: 0
+    Object.keys(sheetGroups.groups).forEach(function (groupKey) {
+        var g = sheetGroups.groups[groupKey];
+        var sheetsList = g.sheetsList || [];
+        var offcutList = [];
+
+        sheetsList.forEach(function (sheetLayout, sIdx) {
+            var sheetNum = sIdx + 1;
+            var sheetPlanKey = groupKey + "_s" + sheetNum;
+            var pockets = sheetLayout.pockets || [];
+
+            pockets.forEach(function (p, pIdx) {
+                if (!isPocketOffcut(p.w, p.h)) return;
+
+                var offcutKey = sheetPlanKey + "|" + pIdx;
+                var splittable = (typeof isOffcutSplittable === "function") ? isOffcutSplittable(p.w, p.h) : false;
+                var split = splittable && (typeof planOffcutSplits !== "undefined" && planOffcutSplits) ? planOffcutSplits[offcutKey] : null;
+
+                if (split) {
+                    var axis = split.axis || ((p.w >= 1220 && p.h < 1220) ? 'v' : 'h');
+                    var maxDim = (axis === 'h' ? p.h : p.w);
+                    var pos = Math.max(100, Math.min(maxDim - 100, split.pos || Math.round(maxDim / 2)));
+
+                    var sub0 = (axis === 'h') ? { w: p.w, h: pos } : { w: pos, h: p.h };
+                    var sub1 = (axis === 'h') ? { w: p.w, h: p.h - pos } : { w: p.w - pos, h: p.h };
+
+                    var subKey0 = offcutKey + "_sub0";
+                    var subKey1 = offcutKey + "_sub1";
+
+                    if (planOffcutSelection[subKey0]) {
+                        offcutList.push(Math.round(sub0.w) + " x " + Math.round(sub0.h) + " mm");
+                    }
+                    if (planOffcutSelection[subKey1]) {
+                        offcutList.push(Math.round(sub1.w) + " x " + Math.round(sub1.h) + " mm");
+                    }
+                } else {
+                    if (planOffcutSelection[offcutKey] || planOffcutSelection[groupKey + "|" + pIdx]) {
+                        offcutList.push(Math.round(p.w) + " x " + Math.round(p.h) + " mm");
+                    }
+                }
+            });
         });
+
+        if (offcutList.length > 0) {
+            var counts = {};
+            offcutList.forEach(function (dim) {
+                counts[dim] = (counts[dim] || 0) + 1;
+            });
+            var formatted = Object.keys(counts).map(function (dim) {
+                return counts[dim] > 1 ? dim + " (x" + counts[dim] + ")" : dim;
+            });
+            result[groupKey] = formatted.join(", ");
+        }
     });
 
-    return offcuts;
+    return result;
+}
+
+function collectSelectedOffcuts() {
+    return [];
 }
 
 function computeCutItemPrices(cutItems) {
     var sheetGroups = computeCutSheetGroups(cutItems);
+    var offcutsByGroup = getSelectedOffcutsByGroup(sheetGroups);
+    var assignedOffcutGroups = {};
+
+    var totalSprayPanelsCount = 0;
     cutItems.forEach(function (item) {
-        var g = sheetGroups.groups[item.decor + "|" + item.thick];
+        if (item.spray && item.spray.option) {
+            var q = Math.max(1, parseInt(item.qty, 10) || 1);
+            totalSprayPanelsCount += q;
+        }
+    });
+
+    var totalSprayVal = calculateTotalSprayJobValue();
+    var hasSpraySurcharge = window.sprayChargeAccepted && window.sprayMinSurchargeAmount > 0 && totalSprayVal > 0 && totalSprayPanelsCount > 0;
+    var surchargePerSprayPanel = hasSpraySurcharge ? (window.sprayMinSurchargeAmount / totalSprayPanelsCount) : 0;
+
+    cutItems.forEach(function (item) {
+        var groupKey = item.decor + "|" + item.thick;
+        var g = sheetGroups.groups[groupKey];
         var baseUnitPrice = g ? g.unitPrice : 0;
         var extraUnitPrice = 0;
+
+        if (offcutsByGroup[groupKey] && !assignedOffcutGroups[groupKey]) {
+            item.selectedOffcuts = offcutsByGroup[groupKey];
+            assignedOffcutGroups[groupKey] = true;
+        } else {
+            item.selectedOffcuts = "";
+        }
 
         if (Array.isArray(item.machining) && item.machining.length) {
             item.machining.forEach(function (mItem) {
@@ -1330,16 +1495,40 @@ function computeCutItemPrices(cutItems) {
             });
         }
 
+        var sprayExtraPerUnit = 0;
         if (item.spray && item.spray.option) {
             var sCfg = (typeof SPRAY_OPTIONS !== "undefined" && SPRAY_OPTIONS[item.spray.option]) ? SPRAY_OPTIONS[item.spray.option] : null;
-            if (sCfg && sCfg.finishes) {
-                var area = ((parseFloat(item.length) || 0) * (parseFloat(item.width) || 0)) / 1000000;
+            if (sCfg) {
+                var l = parseFloat(item.length) || 0;
+                var w = parseFloat(item.width) || 0;
+                var netArea = (typeof calculateNetPanelAreaSqM === "function") ? calculateNetPanelAreaSqM(l, w, item.machining) : ((l * w) / 1000000);
                 var spraySidesCount = (item.spray.aSide ? 1 : 0) + (item.spray.bSide ? 1 : 0);
-                if (area > 0 && spraySidesCount > 0) {
-                    var finishPrice = (sCfg.finishes[0] && isFinite(parseFloat(sCfg.finishes[0].price))) ? parseFloat(sCfg.finishes[0].price) : 0;
-                    extraUnitPrice += area * finishPrice * spraySidesCount;
+                var totalAreaForSides = parseFloat((netArea * spraySidesCount).toFixed(2));
+
+                if (totalAreaForSides > 0) {
+                    var finishIdx = (typeof item.spray.finish !== "undefined" && sCfg.finishes && sCfg.finishes[item.spray.finish]) ? item.spray.finish : (sCfg.finishes ? Object.keys(sCfg.finishes)[0] : 0);
+                    var finishPrice = (sCfg.finishes && sCfg.finishes[finishIdx] && isFinite(parseFloat(sCfg.finishes[finishIdx].price))) ? parseFloat(sCfg.finishes[finishIdx].price) : 0;
+                    sprayExtraPerUnit = totalAreaForSides * finishPrice;
+                    if (sCfg.bOption && item.spray.bOnly) {
+                        sprayExtraPerUnit += totalAreaForSides * sCfg.bOption.price;
+                    }
+                    extraUnitPrice += sprayExtraPerUnit;
                 }
             }
+
+            if (hasSpraySurcharge) {
+                var itemQty = Math.max(1, parseInt(item.qty, 10) || 1);
+                var totalItemSurcharge = surchargePerSprayPanel * itemQty;
+                item.spraySurcharge = totalItemSurcharge;
+                item.spraySurchargeSummary = "Charge added to reach minimum order value of £330.00 for spray finishing (" + summaryMoney(totalItemSurcharge) + ")";
+                extraUnitPrice += surchargePerSprayPanel;
+            } else {
+                item.spraySurcharge = 0;
+                item.spraySurchargeSummary = "";
+            }
+        } else {
+            item.spraySurcharge = 0;
+            item.spraySurchargeSummary = "";
         }
 
         if (item.grainMatch) {
@@ -1488,8 +1677,13 @@ function sendCutlistToWcCart(options) {
     formData.append("action", "cutlist_add_to_cart");
     formData.append("nonce", cutlistWcVars.nonce);
 
-    var grainInfoEl = document.getElementById("grainInfoText");
-    var grainInfoVal = grainInfoEl ? grainInfoEl.value.trim() : "";
+    var totalSprayForCart = calculateTotalSprayJobValue();
+    var sprayMinAmount = (window.sprayChargeAccepted && window.sprayMinSurchargeAmount > 0 && totalSprayForCart > 0)
+        ? window.sprayMinSurchargeAmount
+        : 0;
+
+    var grainInfoInput = document.getElementById("grainMatchingText") || document.getElementById("grainNotes") || document.getElementById("grainInfo") || document.querySelector("textarea[name='grain_notes']") || document.querySelector("textarea[name='grainInfo']");
+    var grainInfoVal = grainInfoInput ? grainInfoInput.value.trim() : (typeof window.cutlistGrainInfo !== "undefined" ? window.cutlistGrainInfo : "");
 
     formData.append("data", JSON.stringify({
         clear_cart: true,
@@ -1498,7 +1692,8 @@ function sendCutlistToWcCart(options) {
         edgingTapeItems: etItems,
         machiningItems: mcItems,
         selectedOffcuts: selectedOffcuts,
-        grainInfo: grainInfoVal
+        grainInfo: grainInfoVal,
+        sprayMinSurcharge: sprayMinAmount
     }));
 
     // Attach grain matching uploaded file objects to FormData
@@ -2042,7 +2237,8 @@ var SUMMARY_KERF = 0; // zero gap between boards or offcuts, only border margin 
 var SUMMARY_EDGE_TRIM = 15; // clearance kept clear of all 4 raw-sheet edges for the cut, in mm
 
 function summaryMoney(n) {
-    return "£" + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var sym = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.currency_symbol) ? cutlistWcVars.currency_symbol : "£";
+    return sym + Number(n || 0).toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function isPocketOffcut(w, h) {
@@ -2144,42 +2340,282 @@ function sheetLayoutRectStyle(layout, xMm, yMm, wMm, hMm) {
         "width:" + sheetLayoutPct(wMm, layout.sheetLength) + "%;height:" + sheetLayoutPct(hMm, layout.sheetWidth) + "%";
 }
 
-// Renders the small "Sheets to be cut" preview box + its hover summary card.
-function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, planKey, description) {
+// Merges touching / adjacent rectangular pockets along matching x or y axes
+function mergeAdjacentRectangles(rects) {
+    var merged = (rects || []).map(function (r) {
+        return { x: r.x, y: r.y, w: r.w, h: r.h };
+    });
+    var changed = true;
+    while (changed) {
+        changed = false;
+        for (var i = 0; i < merged.length; i++) {
+            for (var j = i + 1; j < merged.length; j++) {
+                var a = merged[i];
+                var b = merged[j];
+                // Vertical merge: same x, same w, touching along y
+                if (Math.abs(a.x - b.x) < 0.5 && Math.abs(a.w - b.w) < 0.5) {
+                    if (Math.abs(a.y + a.h - b.y) < 0.5) {
+                        merged[i] = { x: a.x, y: a.y, w: a.w, h: a.h + b.h };
+                        merged.splice(j, 1);
+                        changed = true;
+                        break;
+                    }
+                    if (Math.abs(b.y + b.h - a.y) < 0.5) {
+                        merged[i] = { x: b.x, y: b.y, w: b.w, h: a.h + b.h };
+                        merged.splice(j, 1);
+                        changed = true;
+                        break;
+                    }
+                }
+                // Horizontal merge: same y, same h, touching along x
+                if (Math.abs(a.y - b.y) < 0.5 && Math.abs(a.h - b.h) < 0.5) {
+                    if (Math.abs(a.x + a.w - b.x) < 0.5) {
+                        merged[i] = { x: a.x, y: a.y, w: a.w + b.w, h: a.h };
+                        merged.splice(j, 1);
+                        changed = true;
+                        break;
+                    }
+                    if (Math.abs(b.x + b.w - a.x) < 0.5) {
+                        merged[i] = { x: b.x, y: b.y, w: b.w + b.w, h: a.h };
+                        merged.splice(j, 1);
+                        changed = true;
+                        break;
+                    }
+                }
+            }
+            if (changed) break;
+        }
+    }
+    return merged;
+}
 
-    var L = computeSheetLayout(panelLength, panelWidth, qty, sheetLength, sheetWidth);
+// 2D Guillotine Bin-Packing Algorithm: packs multiple distinct panel sizes
+// into minimal sheets, accounting for grain orientation and edge trim.
+function packPanelsIntoSheets(items, sheetLength, sheetWidth, TRIM, KERF) {
+    sheetLength = sheetLength || SHEET_LENGTH;
+    sheetWidth = sheetWidth || SHEET_WIDTH;
+    TRIM = (typeof TRIM === "number") ? TRIM : SUMMARY_EDGE_TRIM;
+    KERF = (typeof KERF === "number") ? KERF : SUMMARY_KERF;
+
+    var usableLength = Math.max(0, sheetLength - 2 * TRIM);
+    var usableWidth = Math.max(0, sheetWidth - 2 * TRIM);
+
+    // 1. Expand all items into individual unit pieces
+    var pieces = [];
+    (items || []).forEach(function (item, itemIndex) {
+        var rawL = parseFloat(item.length) || 0;
+        var rawW = parseFloat(item.width) || 0;
+        var q = Math.max(1, parseInt(item.qty, 10) || 1);
+        var desc = item.description || "";
+        var grain = !!item.grainMatch;
+
+        if (rawL <= 0 || rawW <= 0) return;
+
+        // Clamp piece size to usable board area if slightly oversized
+        var l = Math.min(rawL, usableLength);
+        var w = Math.min(rawW, usableWidth);
+
+        for (var i = 0; i < q; i++) {
+            pieces.push({
+                length: l,
+                width: w,
+                rawL: rawL,
+                rawW: rawW,
+                description: desc,
+                grainMatch: grain,
+                itemIndex: itemIndex,
+                id: itemIndex + "_" + i
+            });
+        }
+    });
+
+    if (!pieces.length) return [];
+
+    // 2. Sort pieces by descending max dimension, then area (Best Fit Decreasing)
+    pieces.sort(function (a, b) {
+        var maxA = Math.max(a.length, a.width);
+        var maxB = Math.max(b.length, b.width);
+        if (maxB !== maxA) return maxB - maxA;
+        return (b.length * b.width) - (a.length * a.width);
+    });
+
+    var sheets = [];
+    var unplaced = pieces.slice();
+
+    while (unplaced.length > 0) {
+        var sheetIndex = sheets.length;
+        var freeRects = [
+            { x: TRIM, y: TRIM, w: usableLength, h: usableWidth }
+        ];
+        var placedPanels = [];
+
+        while (true) {
+            var bestFit = null;
+
+            for (var pIdx = 0; pIdx < unplaced.length; pIdx++) {
+                var piece = unplaced[pIdx];
+
+                for (var rIdx = 0; rIdx < freeRects.length; rIdx++) {
+                    var r = freeRects[rIdx];
+
+                    // Option A: Normal orientation (Length along sheet length, Width along sheet width)
+                    if (piece.length <= r.w && piece.width <= r.h) {
+                        var leftoverShort = Math.min(r.w - piece.length, r.h - piece.width);
+                        var leftoverArea = (r.w * r.h) - (piece.length * piece.width);
+
+                        if (!bestFit || leftoverShort < bestFit.leftoverShort || (leftoverShort === bestFit.leftoverShort && leftoverArea < bestFit.leftoverArea)) {
+                            bestFit = {
+                                pieceIndex: pIdx,
+                                rectIndex: rIdx,
+                                pw: piece.length,
+                                ph: piece.width,
+                                rotated: false,
+                                leftoverShort: leftoverShort,
+                                leftoverArea: leftoverArea
+                            };
+                        }
+                    }
+
+                    // Option B: Rotated 90° (only if grain matching is not enabled)
+                    if (!piece.grainMatch && piece.width <= r.w && piece.length <= r.h) {
+                        var leftoverShortRot = Math.min(r.w - piece.width, r.h - piece.length);
+                        var leftoverAreaRot = (r.w * r.h) - (piece.width * piece.length);
+
+                        if (!bestFit || leftoverShortRot < bestFit.leftoverShort || (leftoverShortRot === bestFit.leftoverShort && leftoverAreaRot < bestFit.leftoverArea)) {
+                            bestFit = {
+                                pieceIndex: pIdx,
+                                rectIndex: rIdx,
+                                pw: piece.width,
+                                ph: piece.length,
+                                rotated: true,
+                                leftoverShort: leftoverShortRot,
+                                leftoverArea: leftoverAreaRot
+                            };
+                        }
+                    }
+                }
+            }
+
+            if (!bestFit) {
+                // If a piece cannot fit in remaining free rects, break to finish current sheet
+                if (placedPanels.length === 0 && unplaced.length > 0) {
+                    var oversized = unplaced.shift();
+                    placedPanels.push({
+                        x: TRIM,
+                        y: TRIM,
+                        w: Math.min(oversized.length, usableLength),
+                        h: Math.min(oversized.width, usableWidth),
+                        panelL: oversized.rawL,
+                        panelW: oversized.rawW,
+                        rotated: false,
+                        description: oversized.description
+                    });
+                    freeRects = [];
+                }
+                break;
+            }
+
+            var chosenPiece = unplaced.splice(bestFit.pieceIndex, 1)[0];
+            var chosenRect = freeRects.splice(bestFit.rectIndex, 1)[0];
+
+            var panelX = chosenRect.x;
+            var panelY = chosenRect.y;
+            var panelW = bestFit.pw;
+            var panelH = bestFit.ph;
+
+            placedPanels.push({
+                x: panelX,
+                y: panelY,
+                w: panelW,
+                h: panelH,
+                panelL: chosenPiece.rawL,
+                panelW: chosenPiece.rawW,
+                rotated: bestFit.rotated,
+                description: chosenPiece.description
+            });
+
+            var remW = chosenRect.w - panelW - KERF;
+            var remH = chosenRect.h - panelH - KERF;
+
+            if (remW > 0 && remH > 0) {
+                if (remW > remH) {
+                    freeRects.push({ x: panelX + panelW + KERF, y: panelY, w: remW, h: chosenRect.h });
+                    freeRects.push({ x: panelX, y: panelY + panelH + KERF, w: panelW, h: remH });
+                } else {
+                    freeRects.push({ x: panelX, y: panelY + panelH + KERF, w: chosenRect.w, h: remH });
+                    freeRects.push({ x: panelX + panelW + KERF, y: panelY, w: remW, h: panelH });
+                }
+            } else if (remW > 0) {
+                freeRects.push({ x: panelX + panelW + KERF, y: panelY, w: remW, h: chosenRect.h });
+            } else if (remH > 0) {
+                freeRects.push({ x: panelX, y: panelY + panelH + KERF, w: chosenRect.w, h: remH });
+            }
+
+            freeRects.sort(function (a, b) {
+                return (a.w * a.h) - (b.w * b.h);
+            });
+        }
+
+        var rawPockets = freeRects.filter(function (r) {
+            return r.w > 0 && r.h > 0;
+        });
+        var mergedPockets = mergeAdjacentRectangles(rawPockets);
+
+        sheets.push({
+            sheetIndex: sheetIndex + 1,
+            sheetLength: sheetLength,
+            sheetWidth: sheetWidth,
+            TRIM: TRIM,
+            KERF: KERF,
+            usableLength: usableLength,
+            usableWidth: usableWidth,
+            panels: placedPanels,
+            pockets: mergedPockets,
+            count: placedPanels.length
+        });
+    }
+
+    return sheets;
+}
+
+// Renders the small "Sheets to be cut" preview box + its hover summary card.
+function cutPlanBoxHTML(layoutOrLength, planKeyOrWidth, groupOrQty, sheetLength, sheetWidth, optPlanKey, optDesc) {
+    var L;
+    var planKey;
+    var group;
+
+    if (typeof layoutOrLength === "object" && layoutOrLength !== null) {
+        L = layoutOrLength;
+        planKey = planKeyOrWidth;
+        group = groupOrQty;
+    } else {
+        var pL = parseFloat(layoutOrLength) || 1000;
+        var pW = parseFloat(planKeyOrWidth) || 1000;
+        var pQ = parseFloat(groupOrQty) || 1;
+        L = computeSheetLayout(pL, pW, pQ, sheetLength, sheetWidth);
+        planKey = optPlanKey || "";
+    }
 
     function rect(xMm, yMm, wMm, hMm) { return sheetLayoutRectStyle(L, xMm, yMm, wMm, hMm); }
-    // Cut lines run edge-to-edge across the usable rectangle only — the trim
-    // margin around it is scrap, never crossed by an internal cut line.
-    function vLine(xMm) {
-        return "<div class=\"cut-line cut-line-v\" style=\"left:" + sheetLayoutPct(xMm, L.sheetLength) + "%;" +
-            "top:" + sheetLayoutPct(L.TRIM, L.sheetWidth) + "%;height:" + sheetLayoutPct(L.usableWidth, L.sheetWidth) + "%\"></div>";
-    }
-    function hLine(yMm) {
-        return "<div class=\"cut-line cut-line-h\" style=\"top:" + sheetLayoutPct(yMm, L.sheetWidth) + "%;" +
-            "left:" + sheetLayoutPct(L.TRIM, L.sheetLength) + "%;width:" + sheetLayoutPct(L.usableLength, L.sheetLength) + "%\"></div>";
-    }
 
     var html = "<div class=\"box\" data-plan-key=\"" + planKey + "\" style=\"aspect-ratio:" + L.sheetLength + "/" + L.sheetWidth + "\">";
 
-    var hoverText = Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm" + (description ? " " + description : "");
-
-    L.panels.forEach(function (p, i) {
+    (L.panels || []).forEach(function (p, i) {
+        var hoverText = Math.round(p.panelL || p.w) + " x " + Math.round(p.panelW || p.h) + "mm" + (p.description ? " " + p.description : "");
         html += "<div class=\"panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\" title=\"" + panelSummaryEscape(hoverText) + "\">" +
-            (i === 0 ? "<span class=\"panel-dim-chip\">" + Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm</span>" : "") +
+            (i === 0 ? "<span class=\"panel-dim-chip\">" + Math.round(p.panelL || p.w) + " x " + Math.round(p.panelW || p.h) + "mm</span>" : "") +
             "<div class=\"panel-hover-chip\">" + panelSummaryEscape(hoverText) + "</div>" +
             "</div>";
     });
 
     var offcutCount = 0;
-    L.pockets.forEach(function (p, idx) {
+    (L.pockets || []).forEach(function (p, idx) {
         if (isPocketOffcut(p.w, p.h)) {
             html += "<div class=\"offcut\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\">" +
                 "Offcut<br>" + Math.round(p.w) + " x " + Math.round(p.h) +
                 "</div>";
 
-            var offcutKey = planKey + "|" + idx;
+            var offcutKey = planKey + "_s1|" + idx;
             var splittable = (typeof isOffcutSplittable === "function") ? isOffcutSplittable(p.w, p.h) : false;
             var split = (typeof planOffcutSplits !== "undefined" && planOffcutSplits) ? planOffcutSplits[offcutKey] : null;
             if (split) {
@@ -2194,32 +2630,42 @@ function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, p
         }
     });
 
-    var sheetsNeeded = Math.ceil(qty / (L.maxPerSheet || L.count || 1));
-    if (!(sheetsNeeded > 0)) sheetsNeeded = 1;
+    var sheetsNeeded = group ? group.sheets : 1;
+    var totalPanelsCut = group ? group.qty : (L.panels ? L.panels.length : 1);
+    var totalAvailableOffcuts = 0;
+    if (group && group.sheetsList) {
+        group.sheetsList.forEach(function (sh) {
+            (sh.pockets || []).forEach(function (pkt) {
+                if (isPocketOffcut(pkt.w, pkt.h)) totalAvailableOffcuts++;
+            });
+        });
+    } else {
+        totalAvailableOffcuts = offcutCount * sheetsNeeded;
+    }
 
     var selectedCount = 0;
     if (typeof planOffcutSelection !== "undefined" && planOffcutSelection) {
         Object.keys(planOffcutSelection).forEach(function (k) {
-            if (k.indexOf(planKey + "|") === 0 && planOffcutSelection[k]) {
+            if (k.indexOf(planKey + "_s") === 0 && planOffcutSelection[k]) {
                 selectedCount++;
             }
         });
     }
 
-    var totalPanelsCut = L.count * sheetsNeeded;
-    var totalAvailableOffcuts = offcutCount * sheetsNeeded;
-    var totalSelectedOffcuts = selectedCount * sheetsNeeded;
+    var totalArea = group ? group.area : ((L.panels || []).reduce(function (sum, p) { return sum + (p.w * p.h); }, 0));
+    var yieldPct = Math.round((totalArea) / (sheetsNeeded * L.sheetLength * L.sheetWidth) * 100);
+    if (isNaN(yieldPct) || yieldPct < 0) yieldPct = 0;
+    if (yieldPct > 100) yieldPct = 100;
 
-    var yieldPct = Math.round((L.count * L.panelL * L.panelW) / (L.sheetLength * L.sheetWidth) * 100);
     html += "" +
         "<div class=\"plan-overlay\">" +
         "<div class=\"plan-overlay-top\">" +
         "<div class=\"plan-overlay-title\">Cutting plan summary</div>" +
         "<div class=\"plan-overlay-desc\">" +
         "<span class=\"param-name\">Sheet yield excluding offcuts:</span> " + yieldPct + "%<br>" +
-        "<span class=\"param-name\">Panels cut:</span> " + L.count + " per sheet / " + totalPanelsCut + " per plan<br>" +
-        "<span class=\"param-name\">Available offcuts:</span> " + offcutCount + " per sheet / " + totalAvailableOffcuts + " per plan<br>" +
-        "<span class=\"param-name\">Selected offcuts:</span> " + selectedCount + " per sheet / " + totalSelectedOffcuts + " per plan" +
+        "<span class=\"param-name\">Panels cut:</span> " + (group ? group.qty : (L.panels ? L.panels.length : 1)) + " per plan<br>" +
+        "<span class=\"param-name\">Available offcuts:</span> " + totalAvailableOffcuts + " per plan<br>" +
+        "<span class=\"param-name\">Selected offcuts:</span> " + selectedCount + " per plan" +
         "</div>" +
         "</div>" +
         "<div class=\"plan-overlay-footer\">" +
@@ -2236,7 +2682,6 @@ function cutPlanBoxHTML(panelLength, panelWidth, qty, sheetLength, sheetWidth, p
     html += "</div>";
 
     return html;
-
 }
 
 function summaryCardIconHTML(title) {
@@ -2293,44 +2738,61 @@ function findBoardObject(decorStr) {
     return null;
 }
 
-// Groups cut-list panels by decor + thickness and estimates sheets/price per
-// group. Single source of truth for both the summary display and the
-// per-item unitPrice written into the shared basket, so the two can't drift
-// apart the way "Cut, edge & spray summary" total vs. the basket badge did.
+// Groups cut-list panels by decor + thickness and packs all pieces into sheets
+// using 2D Guillotine multi-panel nesting. Single source of truth for summary and cart.
 function computeCutSheetGroups(cutItems) {
 
     var groups = {};
 
     cutItems.forEach(function (item) {
         var key = item.decor + "|" + item.thick;
-        if (!groups[key]) groups[key] = { decor: item.decor, thick: item.thick, area: 0, qty: 0, bestItem: null, bestArea: 0, items: [] };
+        if (!groups[key]) {
+            groups[key] = {
+                decor: item.decor,
+                thick: item.thick,
+                area: 0,
+                qty: 0,
+                items: []
+            };
+        }
         var l = parseFloat(item.length) || 0;
         var w = parseFloat(item.width) || 0;
-        groups[key].area += l * w * item.qty;
-        groups[key].qty += item.qty;
-        groups[key].items.push({ length: l, width: w, qty: item.qty, description: item.description || "" });
-        // Track the single largest panel in the group to draw the cutting plan to scale
-        if (l * w > groups[key].bestArea) {
-            groups[key].bestArea = l * w;
-            groups[key].bestItem = { length: l, width: w, qty: item.qty, description: item.description || "" };
-        }
+        var q = Math.max(1, parseInt(item.qty, 10) || 1);
+        groups[key].area += l * w * q;
+        groups[key].qty += q;
+        groups[key].items.push({
+            length: l,
+            width: w,
+            qty: q,
+            description: item.description || "",
+            grainMatch: !!item.grainMatch
+        });
     });
 
     var totalSheets = 0;
     var totalSheetsPriceSum = 0;
+
     Object.keys(groups).forEach(function (key) {
         var g = groups[key];
-        if (g.bestItem) {
-            var layoutOne = computeSheetLayout(g.bestItem.length, g.bestItem.width, 9999, SHEET_LENGTH, SHEET_WIDTH);
-            var maxPerSheet = Math.max(1, layoutOne.maxPerSheet || 1);
-            g.maxPerSheet = maxPerSheet;
-            g.sheets = Math.ceil(g.qty / maxPerSheet);
-        } else {
-            g.maxPerSheet = 1;
-            g.sheets = 1;
+        var boardOpt = findBoardObject(g.decor);
+
+        var sheetLength = SHEET_LENGTH;
+        var sheetWidth = SHEET_WIDTH;
+        if (boardOpt) {
+            if (isFinite(parseFloat(boardOpt.sheet_length)) && parseFloat(boardOpt.sheet_length) > 0) {
+                sheetLength = parseFloat(boardOpt.sheet_length);
+            }
+            if (isFinite(parseFloat(boardOpt.sheet_width)) && parseFloat(boardOpt.sheet_width) > 0) {
+                sheetWidth = parseFloat(boardOpt.sheet_width);
+            }
         }
 
-        var boardOpt = findBoardObject(g.decor);
+        // Pack all panels of this group into sheets using 2D Guillotine bin-packing
+        var sheetsList = packPanelsIntoSheets(g.items, sheetLength, sheetWidth, SUMMARY_EDGE_TRIM, SUMMARY_KERF);
+        g.sheetsList = sheetsList;
+        g.sheets = Math.max(1, sheetsList.length);
+        g.sheetLength = sheetLength;
+        g.sheetWidth = sheetWidth;
 
         var sheetPrice = 0;
         if (boardOpt) {
@@ -2347,15 +2809,14 @@ function computeCutSheetGroups(cutItems) {
         g.sheetPrice = sheetPrice;
         g.basePrice = g.sheets * sheetPrice;
 
+        // Extra cut charges when cuts exceed 20 pieces per sheet
         var extraCuts = 0;
-        var remainingQty = g.qty;
-        for (var sIdx = 0; sIdx < g.sheets; sIdx++) {
-            var panelsOnThisSheet = Math.min(remainingQty, g.maxPerSheet);
+        sheetsList.forEach(function (sheetLayout) {
+            var panelsOnThisSheet = sheetLayout.panels.length;
             if (panelsOnThisSheet > 20) {
                 extraCuts += (panelsOnThisSheet - 20);
             }
-            remainingQty = Math.max(0, remainingQty - panelsOnThisSheet);
-        }
+        });
 
         var extraCutUnitPrice = (boardOpt && isFinite(parseFloat(boardOpt.additional_cut_price)) && parseFloat(boardOpt.additional_cut_price) > 0)
             ? parseFloat(boardOpt.additional_cut_price) : 3.46;
@@ -2395,14 +2856,14 @@ function buildSummaryHTML(cutItems, fsItems, etItems, mcItems, spItems, ebItems)
         var plansHTML = Object.keys(groups).map(function (key) {
             var g = groups[key];
             planNo++;
-            var boxHTML = g.bestItem
-                ? cutPlanBoxHTML(g.bestItem.length, g.bestItem.width, g.bestItem.qty, SHEET_LENGTH, SHEET_WIDTH, key)
+            var boxHTML = (g.sheetsList && g.sheetsList.length)
+                ? cutPlanBoxHTML(g.sheetsList[0], key, g)
                 : "<div class=\"box\" style=\"aspect-ratio:" + SHEET_LENGTH + "/" + SHEET_WIDTH + "\"></div>";
             return "" +
                 "<div class=\"plan\">" +
                 "<div>Plan " + planNo + "</div>" +
                 boxHTML +
-                "<p>" + g.decor + (g.thick ? "<br>" + SHEET_LENGTH + " &times; " + SHEET_WIDTH + " &times; " + g.thick + "mm" : "") + "</p>" +
+                "<p>" + g.decor + (g.thick ? "<br>" + (g.sheetLength || SHEET_LENGTH) + " &times; " + (g.sheetWidth || SHEET_WIDTH) + " &times; " + g.thick + "mm" : "") + "</p>" +
                 "<div class=\"sheet\"><strong>x" + g.sheets + "</strong><span>sheets</span></div>" +
                 "</div>";
         }).join("");
@@ -2600,9 +3061,13 @@ function buildSummaryHTML(cutItems, fsItems, etItems, mcItems, spItems, ebItems)
             "<div class=\"vat\">With VAT: " + summaryMoney(grandTotal * 1.2) + "</div>" +
             "</div>" +
             "</div>" +
-            "<div class=\"summary-cart-actions\" style=\"margin-top: 18px; display: flex; gap: 12px; justify-content: flex-end; flex-wrap: wrap;\">" +
-            "<a href=\"" + cartUrl + "\" class=\"btn-wc-cart\" id=\"btnWcCart\" style=\"background:#2563eb; color:#fff; padding:12px 24px; border-radius:8px; font-weight:600; text-decoration:none; display:inline-block;\">View Shopping Cart</a>" +
-            "<a href=\"" + checkoutUrl + "\" class=\"btn-wc-checkout\" id=\"btnWcCheckout\" style=\"background:#16a34a; color:#fff; padding:12px 24px; border-radius:8px; font-weight:600; text-decoration:none; display:inline-block;\">Proceed to Checkout &rarr;</a>" +
+            "<div class=\"summary-cart-actions\">" +
+            "<a href=\"" + cartUrl + "\" class=\"btn-wc-cart\" id=\"btnWcCart\">" +
+            "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"9\" cy=\"21\" r=\"1\"></circle><circle cx=\"20\" cy=\"21\" r=\"1\"></circle><path d=\"M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6\"></path></svg>" +
+            "<span>View Shopping Cart</span></a>" +
+            "<a href=\"" + checkoutUrl + "\" class=\"btn-wc-checkout\" id=\"btnWcCheckout\">" +
+            "<span>Proceed to Checkout</span>" +
+            "<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"></line><polyline points=\"12 5 19 12 12 19\"></polyline></svg></a>" +
             "</div>";
     }
 
@@ -2649,8 +3114,11 @@ function cutPlanModalDiagramHTML(L, planKey, description) {
 
     var html = "<div class=\"cutplan-box\" style=\"aspect-ratio:" + L.sheetLength + "/" + L.sheetWidth + "\">";
 
-    var hoverText = Math.round(L.panelL) + " x " + Math.round(L.panelW) + "mm" + (description ? " " + description : "");
-    L.panels.forEach(function (p) {
+    (L.panels || []).forEach(function (p) {
+        var pL = p.panelL || p.w || (L && L.panelL);
+        var pW = p.panelW || p.h || (L && L.panelW);
+        var pDesc = p.description || description || "";
+        var hoverText = Math.round(pL) + " x " + Math.round(pW) + "mm" + (pDesc ? " " + pDesc : "");
         html += "<div class=\"cutplan-panel\" style=\"" + rect(p.x, p.y, p.w, p.h) + "\" title=\"" + panelSummaryEscape(hoverText) + "\">" +
             "<div class=\"cutplan-panel-tooltip\">" +
             "<div class=\"cutplan-tip-size\">" + panelSummaryEscape(hoverText) + "</div>" +
@@ -2963,11 +3431,12 @@ function renderCutPlanModal() {
 
     var g = sheetObj.group;
     var key = sheetObj.key;
+    var layout = sheetObj.layout;
 
     overlay.querySelector(".cutplan-index").textContent = state.index + 1;
     overlay.querySelector(".cutplan-count").textContent = state.allSheets.length;
     overlay.querySelector(".cutplan-decor").textContent = (g.decor || "") + (sheetObj.totalSheetsInGroup > 1 ? " (Sheet " + sheetObj.sheetNumber + " of " + sheetObj.totalSheetsInGroup + ")" : "");
-    overlay.querySelector(".cutplan-size").textContent = SHEET_LENGTH + " x " + SHEET_WIDTH + (g.thick ? " x " + g.thick + "mm" : "");
+    overlay.querySelector(".cutplan-size").textContent = ((layout && layout.sheetLength) || g.sheetLength || SHEET_LENGTH) + " x " + ((layout && layout.sheetWidth) || g.sheetWidth || SHEET_WIDTH) + (g.thick ? " x " + g.thick + "mm" : "");
     overlay.querySelector(".cutplan-sheets").textContent = g.sheets + (g.sheets === 1 ? " sheet total" : " sheets total") + " • " + sheetObj.qtyOnThisSheet + (sheetObj.qtyOnThisSheet === 1 ? " unit on this sheet" : " units on this sheet");
 
     overlay.querySelector(".cutplan-panel-list").innerHTML = g.items.map(function (item) {
@@ -2984,15 +3453,14 @@ function renderCutPlanModal() {
     var wrap = overlay.querySelector(".cutplan-diagram-wrap");
     var selectedBox = overlay.querySelector(".cutplan-selected-offcuts");
 
-    if (!g.bestItem) {
+    if (!layout || !layout.panels || !layout.panels.length) {
         wrap.innerHTML = "";
         selectedBox.innerHTML = "<div class=\"cutplan-empty-note\">No panels</div>";
         return;
     }
 
     var sheetPlanKey = key + "_s" + sheetObj.sheetNumber;
-    var layout = computeSheetLayout(g.bestItem.length, g.bestItem.width, sheetObj.qtyOnThisSheet, SHEET_LENGTH, SHEET_WIDTH);
-    var rendered = cutPlanModalDiagramHTML(layout, sheetPlanKey, g.bestItem.description);
+    var rendered = cutPlanModalDiagramHTML(layout, sheetPlanKey);
     wrap.innerHTML = rendered.html;
 
     selectedBox.innerHTML = rendered.selectedList.length
@@ -3005,6 +3473,18 @@ function closeCutPlanModal() {
     var overlay = document.getElementById("cutPlanModalOverlay");
     if (overlay) overlay.classList.remove("open");
     cutPlanModalState = null;
+
+    var summarySection = document.getElementById("summarySection");
+    if (summarySection && summarySection.style.display !== "none") {
+        var cutItems = collectCuttingListItems();
+        var fsItems = collectFullSheetItems();
+        var etItems = collectEdgingTapeItems();
+        var ebItems = collectEdgebandingItems();
+        var mcItems = collectMachiningItems();
+        var spItems = collectSprayItems();
+        computeCutItemPrices(cutItems);
+        summarySection.innerHTML = buildSummaryHTML(cutItems, fsItems, etItems, mcItems, spItems, ebItems);
+    }
 }
 
 function stepCutPlanModal(dir) {
@@ -3024,19 +3504,28 @@ function openCutPlanModal(planKey) {
     var allSheets = [];
     keys.forEach(function (k) {
         var g = sheetGroups.groups[k];
-        var totalSheets = g.sheets || 1;
-        var maxPerSheet = g.maxPerSheet || 1;
-        var remainingQty = g.qty;
+        var sheetsList = g.sheetsList || [];
+        var totalSheetsInGroup = sheetsList.length || 1;
 
-        for (var s = 0; s < totalSheets; s++) {
-            var qtyOnThisSheet = Math.min(remainingQty, maxPerSheet);
-            remainingQty = Math.max(0, remainingQty - qtyOnThisSheet);
+        if (sheetsList.length) {
+            sheetsList.forEach(function (sheetLayout, sIdx) {
+                allSheets.push({
+                    key: k,
+                    group: g,
+                    sheetNumber: sIdx + 1,
+                    totalSheetsInGroup: totalSheetsInGroup,
+                    layout: sheetLayout,
+                    qtyOnThisSheet: sheetLayout.panels ? sheetLayout.panels.length : 0
+                });
+            });
+        } else {
             allSheets.push({
                 key: k,
                 group: g,
-                sheetNumber: s + 1,
-                totalSheetsInGroup: totalSheets,
-                qtyOnThisSheet: qtyOnThisSheet
+                sheetNumber: 1,
+                totalSheetsInGroup: 1,
+                layout: null,
+                qtyOnThisSheet: 0
             });
         }
     });
@@ -3438,7 +3927,16 @@ table.addEventListener("click", function (e) {
 
 
 
-// TABLE INPUT DELEGATION (edging + required-field validation)
+// TABLE INPUT DELEGATION (edging + required-field validation + numeric restriction)
+
+table.addEventListener("keydown", function (e) {
+    if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
+        // Disallow 'e', 'E', '+', '-', '.'
+        if (["e", "E", "+", "-", "."].includes(e.key)) {
+            e.preventDefault();
+        }
+    }
+});
 
 table.addEventListener("input", function (e) {
 
@@ -3446,6 +3944,11 @@ table.addEventListener("input", function (e) {
 
     if (!row || row.classList.contains("header-row")) return;
 
+    if (e.target.matches("td.small:not(.edging-input) input, .qty input, .fs-length input, .fs-width input")) {
+        if (e.target.value && /\D/.test(e.target.value)) {
+            e.target.value = e.target.value.replace(/\D/g, "");
+        }
+    }
 
     if (e.target.matches("td.small:not(.edging-input) input")) {
 
@@ -3542,7 +4045,7 @@ function loadBrandBoards(brandSlug, page, append) {
     }
 
     var url = (typeof cutlistWcVars !== "undefined" && cutlistWcVars.rest_url) ? (cutlistWcVars.rest_url + "boards") : "/wp-json/cutlist/v1/boards";
-    var queryParams = "?brand=" + encodeURIComponent(brandSlug) + "&page=" + (append ? (bState.page + 1) : 1) + "&per_page=3";
+    var queryParams = "?brand=" + encodeURIComponent(brandSlug) + "&page=" + (append ? (bState.page + 1) : 1) + "&per_page=6";
 
     return fetch(url + queryParams)
         .then(function (r) { return r.json(); })
@@ -4955,16 +5458,78 @@ var SURFACE_SHAPING_BEHAVIOURS = ['groove', 'j-handle'];
 var DRILLING_BEHAVIOURS = ['hinge-holes', 'shelf-holes'];
 
 function panelSummaryMachiningItemHTML(item) {
-    var type = panelSummaryEscape(item.type || item.kind || 'Machining');
-    var side = item.side ? ' on ' + panelSummaryEscape(item.side) : '';
+    var beh = item.behaviour || item.option;
+    var opt = (typeof machiningOptionBySlug === 'function') ? machiningOptionBySlug(item.option || beh) : null;
 
-    if (item.behaviour === 'angled-cut') {
-        var detailStr = item.detail ? ': ' + panelSummaryEscape(item.detail) : '';
-        return '<div class="panel-summary-machining-item">' + type + side + detailStr + '</div>';
+    var type = item.type || item.kind;
+    var side = item.side;
+    var detail = item.detail;
+
+    if (!type || !detail) {
+        if (beh === 'angled-cut') {
+            type = type || 'Angled cut';
+            side = side || item.corner || 'L1-W1';
+            if (side.indexOf('on ') === 0) side = side.replace('on ', '');
+            if (!detail) {
+                var cEdges = (item.corner || side || 'L1-W1').split('-');
+                var e1 = cEdges[0] || 'L1';
+                var e2 = cEdges[1] || 'W1';
+                detail = (item.offsetH || '100') + 'mm ' + e1 + ' and ' + (item.offsetV || '100') + 'mm ' + e2;
+            }
+        } else if (beh === 'j-handle') {
+            var jOptLabel = (opt && (opt.label || opt.title)) || item.label || 'J handle';
+            type = type || (jOptLabel + ' cutting');
+            side = side || ((item.view === 'B' ? 'B side' : 'A side') + ' along ' + (item.edge || 'L1') + ' edge');
+            if (side.indexOf('on ') === 0) side = side.replace('on ', '');
+            if (!detail) {
+                var jW = item.width || item.w || 35;
+                var jL = item.length || item.run || 1000;
+                detail = Math.round(Number(jW) || 35) + 'mm wide and ' + Math.round(Number(jL) || 1000) + 'mm long';
+            }
+        } else if (beh === 'groove') {
+            type = type || 'Groove cutting';
+            side = side || (item.view === 'B' ? 'B side' : 'A side');
+            if (side.indexOf('on ') === 0) side = side.replace('on ', '');
+            if (!detail) {
+                var gW = item.width || item.w || 8;
+                var gD = item.depth || item.h || 10;
+                var gL = item.length || '2100mm';
+                if (typeof gL === 'number' || !isNaN(Number(gL))) gL = Math.round(Number(gL)) + 'mm';
+                detail = gW + 'mm wide, ' + gD + 'mm deep and ' + gL + ' long';
+            }
+        } else if (beh === 'hinge-holes') {
+            type = type || 'Hinge hole drilling';
+            side = side || (item.view === 'B' ? 'B side' : 'A side');
+            if (side.indexOf('on ') === 0) side = side.replace('on ', '');
+            if (!detail) {
+                var holes = item.holes || (item.positions ? item.positions.length : 2);
+                var posStr = item.positions && Array.isArray(item.positions) ? ' at ' + item.positions.map(function (p) { return Math.round(Number(p)); }).join(', ') + 'mm' : '';
+                detail = holes + ' hole' + (holes == 1 ? '' : 's') + posStr;
+            }
+        } else if (beh === 'shelf-holes') {
+            type = type || 'Adjustable shelf hole drilling';
+            side = side || (item.view === 'A' ? 'A side' : item.view === 'AB' ? 'A & B side' : 'B side');
+            if (side.indexOf('on ') === 0) side = side.replace('on ', '');
+            if (!detail) {
+                var clusters = item.clusters || 2;
+                var positions = item.positions || 4;
+                detail = '7.5mm Ø diameter hole x ' + clusters + ' cluster' + (clusters == 1 ? '' : 's') + ' with ' + positions + ' position' + (positions == 1 ? '' : 's');
+            }
+        } else {
+            type = type || (opt && (opt.label || opt.title)) || item.label || item.option || 'Machining';
+        }
     }
 
-    if (item.detail) {
-        return '<div class="panel-summary-machining-item">' + type + side + '<br>' + panelSummaryEscape(item.detail) + '</div>';
+    var escType = panelSummaryEscape(type || 'Machining');
+    var escSide = side ? ' on ' + panelSummaryEscape(side) : '';
+
+    if (beh === 'angled-cut') {
+        var detailStr = detail ? ': ' + panelSummaryEscape(detail) : '';
+        return '<div class="panel-summary-machining-item">' + escType + escSide + detailStr + '</div>';
+    }
+
+    if (detail) {
+        return '<div class="panel-summary-machining-item">' + escType + escSide + '<br>' + panelSummaryEscape(detail) + '</div>';
     }
 
     var dims = [];
@@ -4972,7 +5537,7 @@ function panelSummaryMachiningItemHTML(item) {
     if (item.h) dims.push(panelSummaryEscape(item.h) + 'mm deep');
     if (item.length) dims.push(panelSummaryEscape(item.length) + 'mm long');
     var dimsText = dims.length ? '<br>' + dims.join(', ') : '';
-    return '<div class="panel-summary-machining-item">' + type + side + dimsText + '</div>';
+    return '<div class="panel-summary-machining-item">' + escType + escSide + dimsText + '</div>';
 }
 
 function buildPanelSummaryMachiningText(data, category) {
@@ -5526,10 +6091,10 @@ function machiningOptionBlockedReason(opt, row, currentItem) {
     });
 
     if (behaviour === "angled-cut") {
-        if (hasSpray) {
+        if (!currentItem && hasSpray) {
             return "Once spray finishing is added, it is no longer possible to add an angled cut to the panel";
         }
-        if (hasOtherMachining) {
+        if (!currentItem && hasOtherMachining) {
             return "Once other machining options are added, it is no longer possible to shape the panel";
         }
         var angledCount = applied.filter(function (i) {
@@ -8935,7 +9500,7 @@ function buildJHandleDetailHTML(item, index, label) {
 
     function field(name, fieldLabel, value, min, max) {
         return '<div class="machining-offset-field"><label>' + fieldLabel + "</label>" +
-            '<input type="text" class="machining-offset-input" data-field="' + name + '"' +
+            '<input type="number" class="machining-offset-input" data-field="' + name + '"' +
             ' data-min="' + min + '" data-max="' + max + '" value="' + value + '"></div>';
     }
 
@@ -9031,7 +9596,7 @@ function buildShelfHolesDetailHTML(item, index, label) {
 
     function field(fieldName, fieldLabel, value, min, max) {
         return '<div class="machining-offset-field"><label>' + fieldLabel + "</label>" +
-            '<input type="text" class="machining-offset-input" data-field="' + fieldName + '"' +
+            '<input type="number" class="machining-offset-input" data-field="' + fieldName + '"' +
             ' data-min="' + min + '" data-max="' + max + '" value="' + value + '"></div>';
     }
 
@@ -9174,23 +9739,23 @@ function buildGrooveDetailHTML(item, index) {
         '<div class="machining-detail-label">Size:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>Width</label>' +
-        '<input type="text" class="machining-offset-input" data-field="width" data-min="1" data-max="' + MACHINING_GROOVE_MAX_WIDTH_MM + '" value="' + machiningFieldValue(item.width) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="width" data-min="1" data-max="' + MACHINING_GROOVE_MAX_WIDTH_MM + '" value="' + machiningFieldValue(item.width) + '"></div>' +
         '<div class="machining-offset-field"><label>Depth</label>' +
-        '<input type="text" class="machining-offset-input" data-field="depth" data-min="1" data-max="' + maxDepth + '" value="' + machiningFieldValue(item.depth) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="depth" data-min="1" data-max="' + maxDepth + '" value="' + machiningFieldValue(item.depth) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">End points:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>' + labels.end1 + '</label>' +
-        '<input type="text" class="machining-offset-input" data-field="end1" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end1) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="end1" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end1) + '"></div>' +
         '<div class="machining-offset-field"><label>' + labels.end2 + '</label>' +
-        '<input type="text" class="machining-offset-input" data-field="end2" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end2) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="end2" data-min="0" data-max="' + runMax + '" value="' + machiningFieldValue(item.end2) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">Distance:</div>' +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>Specify edge</label>' +
         '<select class="machining-select machining-groove-distance-edge">' + distEdgeOptionsHTML + "</select></div>" +
         '<div class="machining-offset-field"><label>Edge to groove</label>' +
-        '<input type="text" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + machiningFieldValue(item.distance) + '"></div>' +
+        '<input type="number" class="machining-offset-input" data-field="distance" data-min="0" data-max="' + distMax + '" value="' + machiningFieldValue(item.distance) + '"></div>' +
         "</div>" +
         '<div class="machining-detail-label">Groove cut on:</div>' +
         '<div class="machining-toggle-row" data-role="view">' +
@@ -9299,9 +9864,9 @@ function buildMachiningAppliedItemHTML(item, index) {
         '<div class="machining-corner-picker">' + cornerOptionsHTML + "</div>" +
         '<div class="machining-offset-row">' +
         '<div class="machining-offset-field"><label>' + labels.h + "</label>" +
-        '<div class="machining-input-wrap"><input type="text" class="machining-offset-input" data-field="offsetH" data-min="0" data-max="' + maxH + '" value="' + (item.offsetH || "") + '"><span class="machining-input-unit">mm</span></div></div>' +
+        '<div class="machining-input-wrap"><input type="number" class="machining-offset-input" data-field="offsetH" data-min="0" data-max="' + maxH + '" value="' + (item.offsetH || "") + '"><span class="machining-input-unit">mm</span></div></div>' +
         '<div class="machining-offset-field"><label>' + labels.v + "</label>" +
-        '<div class="machining-input-wrap"><input type="text" class="machining-offset-input" data-field="offsetV" data-min="0" data-max="' + maxV + '" value="' + (item.offsetV || "") + '"><span class="machining-input-unit">mm</span></div></div>' +
+        '<div class="machining-input-wrap"><input type="number" class="machining-offset-input" data-field="offsetV" data-min="0" data-max="' + maxV + '" value="' + (item.offsetV || "") + '"><span class="machining-input-unit">mm</span></div></div>' +
         "</div>" +
         '<div class="machining-detail-label">Edging (optional)' + SVG_INFO_ICON + '</div>' +
         '<div class="Select2' + (item.edgeTapeCode ? "" : " isEmpty") + ' Select2--has-arrow machining-edging-select">' +

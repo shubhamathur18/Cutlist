@@ -6338,9 +6338,9 @@
                             <option value="38">38</option>
                         </select>
                     </td>
-                    <td class="small"><input></td>
-                    <td class="small"><input></td>
-                    <td class="qty"><input></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="qty"><input type="number" min="1"></td>
                     <td class="desc"><input></td>
                     <td class="small edging-input" data-edge="L1">
                         <input disabled readonly>
@@ -6402,9 +6402,9 @@
                             <option value="38">38</option>
                         </select>
                     </td>
-                    <td class="small"><input></td>
-                    <td class="small"><input></td>
-                    <td class="qty"><input></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="qty"><input type="number" min="1"></td>
                     <td class="desc"><input></td>
                     <td class="small edging-input" data-edge="L1">
                         <input disabled readonly>
@@ -6466,9 +6466,9 @@
                             <option value="38">38</option>
                         </select>
                     </td>
-                    <td class="small"><input></td>
-                    <td class="small"><input></td>
-                    <td class="qty"><input></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="small"><input type="number" min="1"></td>
+                    <td class="qty"><input type="number" min="1"></td>
                     <td class="desc"><input></td>
                     <td class="small edging-input" data-edge="L1">
                         <input disabled readonly>
@@ -6613,10 +6613,10 @@
                                 <option value="38">38</option>
                             </select>
                         </td>
-                        <td class="small fs-length"><input disabled placeholder="0"></td>
-                        <td class="small fs-width"><input disabled placeholder="0"></td>
+                        <td class="small fs-length"><input type="number" min="1" disabled placeholder="0"></td>
+                        <td class="small fs-width"><input type="number" min="1" disabled placeholder="0"></td>
                         <td class="fs-brand">–</td>
-                        <td class="qty"><input disabled></td>
+                        <td class="qty"><input type="number" min="1" disabled></td>
                         <td class="actions">
                             <div class="actions-inner">
                                 <span class="delete" title="Delete row">×</span>
@@ -6637,10 +6637,10 @@
                                 <option value="38">38</option>
                             </select>
                         </td>
-                        <td class="small fs-length"><input disabled placeholder="0"></td>
-                        <td class="small fs-width"><input disabled placeholder="0"></td>
+                        <td class="small fs-length"><input type="number" min="1" disabled placeholder="0"></td>
+                        <td class="small fs-width"><input type="number" min="1" disabled placeholder="0"></td>
                         <td class="fs-brand">–</td>
-                        <td class="qty"><input disabled></td>
+                        <td class="qty"><input type="number" min="1" disabled></td>
                         <td class="actions">
                             <div class="actions-inner">
                                 <span class="delete" title="Delete row">×</span>
@@ -7743,6 +7743,17 @@ CUT, EDGE & SPRAY SUMMARY
             clOverlay.style.height = rowRect.height + 'px';
             clOverlay.style.left = cellRect.left + 'px';
             clOverlay.style.width = cellRect.width + 'px';
+
+            var topSectionStrip = clOverlay.querySelector('.cl-insert-strip.top');
+            if (topSectionStrip) {
+                var prev = tr.previousElementSibling;
+                if (prev && prev.classList.contains('section-row')) {
+                    topSectionStrip.style.display = 'none';
+                } else {
+                    topSectionStrip.style.display = 'flex';
+                }
+            }
+
             clOverlay.style.display = 'block';
         }
 
@@ -7782,7 +7793,10 @@ CUT, EDGE & SPRAY SUMMARY
             if (!strip || !clTargetRow || !clTargetRow.parentNode) return;
             var parent = clTargetRow.parentNode;
             if (strip.dataset.action === 'section') {
-                parent.insertBefore(createSectionRow(), clTargetRow);
+                var newSection = createSectionRow();
+                parent.insertBefore(newSection, clTargetRow);
+                var input = newSection.querySelector('.section-name-input');
+                if (input) input.focus();
             } else {
                 parent.insertBefore(createRow(), clTargetRow.nextSibling);
             }
@@ -8019,8 +8033,20 @@ CUT, EDGE & SPRAY SUMMARY
         function collectCuttingListItems() {
 
             var items = [];
+            var currentSection = "";
 
-            table.querySelectorAll("tr:not(.header-row):not(.section-row)").forEach(function (row) {
+            var allRows = (typeof table !== "undefined" && table) ? table.querySelectorAll("tr") : document.querySelectorAll(".table-area table tr");
+            allRows.forEach(function (row) {
+
+                if (row.classList.contains("section-row")) {
+                    var secInput = row.querySelector(".section-name-input");
+                    currentSection = (secInput && secInput.value && secInput.value.trim()) ? secInput.value.trim() : "";
+                    return;
+                }
+
+                if (row.classList.contains("header-row")) {
+                    return;
+                }
 
                 var decorInput = row.querySelector(".decor input");
                 if (!decorInput) return;
@@ -8051,6 +8077,7 @@ CUT, EDGE & SPRAY SUMMARY
                     width: width,
                     qty: parseInt(qty, 10) || 1,
                     description: desc,
+                    section: currentSection,
                     edgeL1: edges.L1 || "",
                     edgeL2: edges.L2 || "",
                     edgeW1: edges.W1 || "",

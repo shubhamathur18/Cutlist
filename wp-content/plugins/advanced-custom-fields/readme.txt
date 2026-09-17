@@ -2,9 +2,9 @@
 Contributors: deliciousbrains, wpengine, elliotcondon, mattshaw, lgladdy, antpb, johnstonphilip, dalewilliams, polevaultweb
 Tags: acf, fields, custom fields, meta, repeater
 Requires at least: 6.2
-Tested up to: 7.0.1
+Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 6.8.6
+Stable tag: 6.8.9
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -100,6 +100,31 @@ ACF includes an optional email signup to receive plugin updates and news. No dat
 
 
 == Changelog ==
+
+= 6.8.9 =
+*Release Date 27th August 2026*
+
+* [View Release Post](https://www.advancedcustomfields.com/blog/acf-6-8-9-released/)
+* Enhancement - ACF Blocks registered via `acf_register_block_type()` or `block.json` without an explicit version now default to v3 on WordPress 7.1 or later. Blocks that specify a version continue to use the version they declare, and the default can be customized via the `acf/blocks/default_block_version` filter
+* Enhancement - ACF Blocks v3 now supports a `renderPreview` option in `block.json`. Setting `"renderPreview": false` shows a placeholder with the block's icon, title, and an "Edit Block" button in the editor instead of rendering the block's template as a live preview. The block continues to render normally on the front-end, and legacy v2 blocks combining `"mode": "edit"` with `"supports": { "mode": false }` are automatically migrated when upgraded to v3
+* Fix - Inline editable fields in ACF Blocks V3 no longer require a second click before they can be edited
+* Fix - Radio buttons now appear correctly in ACF admin screens
+* Fix - Image and Gallery fields no longer reject SVG uploads when the Safe SVG plugin is active
+
+= 6.8.8 =
+*Release Date 19th August 2026*
+
+* Fix - Image and Gallery fields no longer reject SVG files
+
+= 6.8.7 =
+*Release Date 4th August 2026*
+
+* Security - ACF Image and Gallery fields now enforce server-side validation to accept only image files
+* Security - The `path` attribute of registered ACF Blocks is now protected from being overridden by client-supplied block data
+* Security - ACF's `acf_encrypt()` and `acf_decrypt()` helpers now authenticate encrypted values with an HMAC and no longer fall back to base64 encoding when OpenSSL is unavailable
+* Security - ACF's comment, user, and options page form save handlers now only save values for fields whose field groups are assigned to the current save context
+* Security - The Post Object, Page Link, and Relationship field AJAX search queries now enforce WordPress read permissions, preventing unauthenticated visitors from seeing non-public post statuses or post types
+* Security - The User field now returns only user IDs in REST API responses to requesters without the `list_users` capability, preventing unauthenticated visitors from seeing user email addresses
 
 = 6.8.6 =
 *Release Date 14th July 2026*

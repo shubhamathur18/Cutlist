@@ -70,17 +70,22 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
+
 <head>
 	<meta charset="<?php bloginfo('charset'); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title><?php printf(esc_html__('Order #%s - Cutlist Confirmation', 'cutlist-catalogue'), esc_html($order_number)); ?></title>
+	<title>
+		<?php printf(esc_html__('Order #%s - Cutlist Confirmation', 'cutlist-catalogue'), esc_html($order_number)); ?>
+	</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-	
+
 	<style>
 		/* Base & Reset */
-		*, *::before, *::after {
+		*,
+		*::before,
+		*::after {
 			box-sizing: border-box;
 			margin: 0;
 			padding: 0;
@@ -422,7 +427,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			color: #374151;
 		}
 
-		.cl-th-num, .cl-td-num {
+		.cl-th-num,
+		.cl-td-num {
 			width: 24px;
 			font-weight: 700;
 			color: #111827;
@@ -436,17 +442,20 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			width: 270px;
 		}
 
-		.cl-th-qty, .cl-td-qty {
+		.cl-th-qty,
+		.cl-td-qty {
 			width: 40px;
 			text-align: center;
 		}
 
-		.cl-th-unit, .cl-td-unit {
+		.cl-th-unit,
+		.cl-td-unit {
 			width: 75px;
 			text-align: right;
 		}
 
-		.cl-th-total, .cl-td-total {
+		.cl-th-total,
+		.cl-td-total {
 			width: 80px;
 			text-align: right;
 			color: #111827;
@@ -730,20 +739,23 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 		}
 	</style>
 </head>
+
 <body>
 
 	<!-- Action Toolbar (Visible on screen only) -->
 	<div class="cl-print-screen-toolbar">
 		<div class="cl-toolbar-left">
 			<button type="button" onclick="window.print();" class="cl-toolbar-btn-print">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+					stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="6 9 6 2 18 2 18 9"></polyline>
 					<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
 					<rect x="6" y="14" width="12" height="8"></rect>
 				</svg>
 				<span><?php esc_html_e('Print Order', 'cutlist-catalogue'); ?></span>
 			</button>
-			<span class="cl-toolbar-tip"><?php esc_html_e('Tip: Select "Save as PDF" destination in the print dialog to export a PDF copy.', 'cutlist-catalogue'); ?></span>
+			<span
+				class="cl-toolbar-tip"><?php esc_html_e('Tip: Select "Save as PDF" destination in the print dialog to export a PDF copy.', 'cutlist-catalogue'); ?></span>
 		</div>
 		<button type="button" onclick="window.close();" class="cl-toolbar-btn-close">
 			<span>&times; <?php esc_html_e('Close', 'cutlist-catalogue'); ?></span>
@@ -769,8 +781,9 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			</div>
 
 			<div class="cl-print-header-right">
-				<?php if ($wood_banner_url) : ?>
-					<img src="<?php echo esc_url($wood_banner_url); ?>" alt="Wood boards" class="cl-print-header-wood-img" />
+				<?php if ($wood_banner_url): ?>
+					<img src="<?php echo esc_url($wood_banner_url); ?>" alt="Wood boards"
+						class="cl-print-header-wood-img" />
 				<?php endif; ?>
 			</div>
 		</div>
@@ -785,7 +798,9 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			</div>
 			<div class="cl-print-hero-right">
 				<div class="cl-print-status-card">
-					<h3 class="cl-print-order-num"><?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?></h3>
+					<h3 class="cl-print-order-num">
+						<?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?>
+					</h3>
 					<div class="cl-print-status-line">
 						<span><?php esc_html_e('Order Date:', 'cutlist-catalogue'); ?></span>
 						<strong><?php echo esc_html($order_date); ?></strong>
@@ -804,7 +819,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-info-col">
 				<div class="cl-print-info-header">
 					<div class="cl-print-icon-circle">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
 							<circle cx="12" cy="7" r="4"></circle>
 						</svg>
@@ -822,19 +838,21 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-info-col">
 				<div class="cl-print-info-header">
 					<div class="cl-print-icon-circle">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
 							<circle cx="12" cy="10" r="3"></circle>
 						</svg>
 					</div>
-					<span class="cl-print-info-label"><?php esc_html_e('Billing Address', 'cutlist-catalogue'); ?></span>
+					<span
+						class="cl-print-info-label"><?php esc_html_e('Billing Address', 'cutlist-catalogue'); ?></span>
 				</div>
 				<div class="cl-print-info-body">
 					<strong><?php echo esc_html($billing_full_name); ?></strong><br>
-					<?php if ($billing_address_1) : ?><span><?php echo esc_html($billing_address_1); ?></span><br><?php endif; ?>
-					<?php if ($billing_city || $billing_postcode) : ?><span><?php echo esc_html(trim($billing_city . ' ' . $billing_postcode)); ?></span><br><?php endif; ?>
-					<?php if ($billing_state) : ?><span><?php echo esc_html($billing_state); ?>, </span><?php endif; ?>
-					<?php if ($billing_country) : ?><span><?php echo esc_html($billing_country); ?></span><?php endif; ?>
+					<?php if ($billing_address_1): ?><span><?php echo esc_html($billing_address_1); ?></span><br><?php endif; ?>
+					<?php if ($billing_city || $billing_postcode): ?><span><?php echo esc_html(trim($billing_city . ' ' . $billing_postcode)); ?></span><br><?php endif; ?>
+					<?php if ($billing_state): ?><span><?php echo esc_html($billing_state); ?>, </span><?php endif; ?>
+					<?php if ($billing_country): ?><span><?php echo esc_html($billing_country); ?></span><?php endif; ?>
 				</div>
 			</div>
 
@@ -842,7 +860,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-info-col">
 				<div class="cl-print-info-header">
 					<div class="cl-print-icon-circle">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
 							<line x1="1" y1="10" x2="23" y2="10"></line>
 						</svg>
@@ -858,7 +877,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-info-col">
 				<div class="cl-print-info-header">
 					<div class="cl-print-icon-circle">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
 							<line x1="16" y1="2" x2="16" y2="6"></line>
 							<line x1="8" y1="2" x2="8" y2="6"></line>
@@ -877,7 +897,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 		<div class="cl-print-table-section">
 			<div class="cl-print-table-header-bar">
 				<span class="cl-print-table-title"><?php esc_html_e('Order Details', 'cutlist-catalogue'); ?></span>
-				<span class="cl-print-table-count"><?php echo sprintf(_n('%d item', '%d items', $item_count, 'cutlist-catalogue'), $item_count); ?></span>
+				<span
+					class="cl-print-table-count"><?php echo sprintf(_n('%d item', '%d items', $item_count, 'cutlist-catalogue'), $item_count); ?></span>
 			</div>
 
 			<table class="cl-print-items-table">
@@ -894,8 +915,9 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 				<tbody>
 					<?php
 					$row_index = 1;
-					foreach ($order_items as $item_id => $item) :
-						if (!$item instanceof WC_Order_Item_Product) continue;
+					foreach ($order_items as $item_id => $item):
+						if (!$item instanceof WC_Order_Item_Product)
+							continue;
 
 						$product = $item->get_product();
 						$item_name = $item->get_name();
@@ -939,11 +961,12 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 						$grain = $item->get_meta(__('Grain Matching', 'cutlist-catalogue'), true);
 						$grain_notes = $item->get_meta(__('Grain Matching Notes', 'cutlist-catalogue'), true);
 						$extra_cuts = $item->get_meta(__('Additional Cuts', 'cutlist-catalogue'), true);
+						$selected_offcuts = $item->get_meta(__('Selected Offcuts', 'cutlist-catalogue'), true);
 						$grain_files = $item->get_meta('_cutlist_grain_files', true);
-					?>
+						?>
 						<tr class="cl-print-row">
 							<td class="cl-td-num"><?php echo esc_html($row_index++); ?></td>
-							
+
 							<td class="cl-td-prod">
 								<div class="cl-print-prod-cell">
 									<div class="cl-print-thumb-box">
@@ -955,38 +978,79 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 
 							<td class="cl-td-details">
 								<div class="cl-print-specs-list">
-									<?php if ($item_type) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Item Type:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($item_type); ?></span></div>
+									<?php if ($item_type): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Item Type:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($item_type); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($decor) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Decor:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($decor); ?></span></div>
+									<?php if ($decor): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Decor:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($decor); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($thickness) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Thickness:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($thickness); ?></span></div>
+									<?php if ($thickness): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Thickness:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($thickness); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($dimensions) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Dimensions:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($dimensions); ?></span></div>
+									<?php if ($dimensions): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Dimensions:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($dimensions); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($edging) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Edging Tape:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($edging); ?></span></div>
+									<?php if ($edging): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Edging Tape:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($edging); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($machining) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Machining:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($machining); ?></span></div>
+									<?php if ($machining): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Machining:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($machining); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($spray) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Spray Finishing:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($spray); ?></span></div>
+									<?php if ($spray): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Spray Finishing:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($spray); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($grain) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Grain Matching:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($grain); ?></span></div>
+									<?php if ($grain): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Grain Matching:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($grain); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if (!empty($grain_files) && is_array($grain_files)) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Grain Drawing:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html(implode(', ', array_column($grain_files, 'name'))); ?></span></div>
+									<?php if (!empty($grain_files) && is_array($grain_files)): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Grain Drawing:', 'cutlist-catalogue'); ?></span>
+											<span
+												class="cl-print-v"><?php echo esc_html(implode(', ', array_column($grain_files, 'name'))); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($grain_notes) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Grain Notes:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($grain_notes); ?></span></div>
+									<?php if ($grain_notes): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Grain Notes:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($grain_notes); ?></span>
+										</div>
 									<?php endif; ?>
-									<?php if ($extra_cuts) : ?>
-										<div class="cl-print-spec-item"><span class="cl-print-k"><?php esc_html_e('Additional Cuts:', 'cutlist-catalogue'); ?></span> <span class="cl-print-v"><?php echo esc_html($extra_cuts); ?></span></div>
+									<?php if ($extra_cuts): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Additional Cuts:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($extra_cuts); ?></span>
+										</div>
+									<?php endif; ?>
+									<?php if ($selected_offcuts): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Selected Offcuts:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"
+												style="color:#0369a1; font-weight:600;"><?php echo esc_html($selected_offcuts); ?></span>
+										</div>
 									<?php endif; ?>
 								</div>
 							</td>
@@ -1007,8 +1071,10 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 						<td class="cl-print-tot-val"><?php echo wp_kses_post($subtotal_formatted); ?></td>
 					</tr>
 					<tr class="cl-print-tot-grand-row">
-						<td class="cl-print-tot-label"><?php esc_html_e('Total (incl. VAT):', 'cutlist-catalogue'); ?></td>
-						<td class="cl-print-tot-val cl-print-tot-grand-val"><?php echo wp_kses_post($order_total); ?></td>
+						<td class="cl-print-tot-label"><?php esc_html_e('Total (incl. VAT):', 'cutlist-catalogue'); ?>
+						</td>
+						<td class="cl-print-tot-val cl-print-tot-grand-val"><?php echo wp_kses_post($order_total); ?>
+						</td>
 					</tr>
 					<tr>
 						<td class="cl-print-tot-label"><?php esc_html_e('Payment method:', 'cutlist-catalogue'); ?></td>
@@ -1024,7 +1090,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-bottom-card">
 				<div class="cl-print-card-header">
 					<div class="cl-print-card-icon">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
 							<polyline points="14 2 14 8 20 8"></polyline>
 							<line x1="16" y1="13" x2="8" y2="13"></line>
@@ -1036,9 +1103,12 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 				</div>
 				<ol class="cl-print-notes-list">
 					<li><?php esc_html_e('All dimensions are in millimeters (mm).', 'cutlist-catalogue'); ?></li>
-					<li><?php esc_html_e('Additional cuts are charged per cut as mentioned.', 'cutlist-catalogue'); ?></li>
-					<li><?php esc_html_e('This is an order confirmation and not a tax invoice.', 'cutlist-catalogue'); ?></li>
-					<li><?php esc_html_e('If you have any questions, please contact our support team.', 'cutlist-catalogue'); ?></li>
+					<li><?php esc_html_e('Additional cuts are charged per cut as mentioned.', 'cutlist-catalogue'); ?>
+					</li>
+					<li><?php esc_html_e('This is an order confirmation and not a tax invoice.', 'cutlist-catalogue'); ?>
+					</li>
+					<li><?php esc_html_e('If you have any questions, please contact our support team.', 'cutlist-catalogue'); ?>
+					</li>
 				</ol>
 			</div>
 
@@ -1046,7 +1116,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			<div class="cl-print-bottom-card">
 				<div class="cl-print-card-header">
 					<div class="cl-print-card-icon">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
 							<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
 						</svg>
 					</div>
@@ -1057,11 +1128,21 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 				</p>
 				<div class="cl-print-contact-lines">
 					<div class="cl-print-contact-item">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z">
+							</path>
+							<polyline points="22,6 12,13 2,6"></polyline>
+						</svg>
 						<strong>support@cutlist.com</strong>
 					</div>
 					<div class="cl-print-contact-item">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2"
+							stroke-linecap="round" stroke-linejoin="round">
+							<path
+								d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+							</path>
+						</svg>
 						<strong>+91 71234 56789</strong>
 					</div>
 				</div>
@@ -1079,9 +1160,11 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 			</div>
 
 			<div class="cl-print-footer-center">
-				<h4 class="cl-print-thanks"><?php esc_html_e('Thank you for choosing Cutlist!', 'cutlist-catalogue'); ?></h4>
+				<h4 class="cl-print-thanks"><?php esc_html_e('Thank you for choosing Cutlist!', 'cutlist-catalogue'); ?>
+				</h4>
 				<div class="cl-print-accent-line"></div>
-				<span class="cl-print-footer-sub"><?php esc_html_e('Quality materials. Precision cuts. Better spaces.', 'cutlist-catalogue'); ?></span>
+				<span
+					class="cl-print-footer-sub"><?php esc_html_e('Quality materials. Precision cuts. Better spaces.', 'cutlist-catalogue'); ?></span>
 			</div>
 
 			<div class="cl-print-footer-right">
@@ -1093,12 +1176,13 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 
 	<script>
 		// Auto-trigger print when loaded
-		window.addEventListener('DOMContentLoaded', function() {
+		window.addEventListener('DOMContentLoaded', function () {
 			// Slight delay to ensure fonts and images are parsed
-			setTimeout(function() {
+			setTimeout(function () {
 				window.print();
 			}, 300);
 		});
 	</script>
 </body>
+
 </html>

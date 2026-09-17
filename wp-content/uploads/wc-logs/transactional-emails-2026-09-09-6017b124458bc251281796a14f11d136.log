@@ -4,3 +4,9 @@
 2026-09-09T06:58:52+00:00 INFO Email "new_order" for order #175 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":175}
 2026-09-09T06:58:52+00:00 INFO Email "customer_processing_order" for order #175 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":175}
 2026-09-09T09:59:49+00:00 INFO Email "customer_reset_password" for user #1 sent CONTEXT: {"email_type":"customer_reset_password","status":"sent","recipient":"admin","user":1}
+2026-09-09T10:58:00+00:00 INFO Email "new_order" for order #176 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":176}
+2026-09-09T10:58:00+00:00 INFO Email "customer_processing_order" for order #176 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":176}
+2026-09-09T10:59:08+00:00 INFO Email "customer_completed_order" for order #176 sent CONTEXT: {"email_type":"customer_completed_order","status":"sent","recipient":"admin","order":176}
+2026-09-09T10:59:43+00:00 INFO Email "customer_refunded_order" for order #176 sent CONTEXT: {"email_type":"customer_refunded_order","status":"sent","recipient":"admin","order":176}
+2026-09-09T10:59:51+00:00 INFO Email "customer_failed_order" for order #176 sent CONTEXT: {"email_type":"customer_failed_order","status":"sent","recipient":"admin","order":176}
+2026-09-09T11:00:00+00:00 INFO Email "customer_processing_order" for order #176 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":176}

@@ -27,7 +27,8 @@ if (!isset($order) || empty($order) || is_numeric($order)) {
 
 if (!$order || !is_a($order, 'WC_Order')) {
 	?>
-	<div class="woocommerce-notice woocommerce-notice--error" style="padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
+	<div class="woocommerce-notice woocommerce-notice--error"
+		style="padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
 		<p style="margin: 0; font-size: 15px; color: #b91c1c; font-weight: 600;">
 			<?php esc_html_e('Invalid order or order not found.', 'woocommerce'); ?>
 		</p>
@@ -56,17 +57,21 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 	<nav class="cl-vo-breadcrumbs">
 		<a href="<?php echo esc_url(home_url('/')); ?>"><?php esc_html_e('Home', 'cutlist-catalogue'); ?></a>
 		<span class="cl-vo-crumb-sep">&rsaquo;</span>
-		<a href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>"><?php esc_html_e('My account', 'cutlist-catalogue'); ?></a>
+		<a
+			href="<?php echo esc_url(wc_get_page_permalink('myaccount')); ?>"><?php esc_html_e('My account', 'cutlist-catalogue'); ?></a>
 		<span class="cl-vo-crumb-sep">&rsaquo;</span>
-		<a href="<?php echo esc_url(wc_get_account_endpoint_url('orders')); ?>"><?php esc_html_e('Orders', 'cutlist-catalogue'); ?></a>
+		<a
+			href="<?php echo esc_url(wc_get_account_endpoint_url('orders')); ?>"><?php esc_html_e('Orders', 'cutlist-catalogue'); ?></a>
 		<span class="cl-vo-crumb-sep">&rsaquo;</span>
-		<span class="cl-vo-crumb-current"><?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?></span>
+		<span
+			class="cl-vo-crumb-current"><?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?></span>
 	</nav>
 
 	<!-- 1. TOP HEADER ROW -->
 	<div class="cl-vo-header-row">
 		<div class="cl-vo-header-left">
-			<h1 class="cl-vo-title"><?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?></h1>
+			<h1 class="cl-vo-title">
+				<?php printf(esc_html__('Order #%s', 'cutlist-catalogue'), esc_html($order_number)); ?></h1>
 			<p class="cl-vo-placement-text">
 				<?php
 				printf(
@@ -80,7 +85,8 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 		</div>
 		<div class="cl-vo-header-right">
 			<span class="cl-vo-status-badge cl-vo-status--<?php echo esc_attr($status_slug); ?>">
-				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+					stroke-linecap="round" stroke-linejoin="round">
 					<circle cx="12" cy="12" r="10"></circle>
 					<polyline points="12 6 12 12 16 14"></polyline>
 				</svg>
@@ -89,11 +95,14 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 			<?php
 			$print_url = add_query_arg(array(
 				'print_order' => $order_id,
-				'key'         => $order->get_order_key(),
+				'key' => $order->get_order_key(),
 			), home_url('/'));
 			?>
-			<button type="button" onclick="window.open('<?php echo esc_url($print_url); ?>', '_blank', 'width=950,height=1000,scrollbars=yes,resizable=yes');" class="cl-vo-btn-print">
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+			<button type="button"
+				onclick="window.open('<?php echo esc_url($print_url); ?>', '_blank', 'width=950,height=1000,scrollbars=yes,resizable=yes');"
+				class="cl-vo-btn-print">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+					stroke-linecap="round" stroke-linejoin="round">
 					<polyline points="6 9 6 2 18 2 18 9"></polyline>
 					<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
 					<rect x="6" y="14" width="12" height="8"></rect>
@@ -108,7 +117,8 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 		<!-- Order date -->
 		<div class="cl-vo-metric-tile">
 			<div class="cl-vo-metric-icon">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+					stroke-linecap="round" stroke-linejoin="round">
 					<rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
 					<line x1="16" y1="2" x2="16" y2="6"></line>
 					<line x1="8" y1="2" x2="8" y2="6"></line>
@@ -124,7 +134,8 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 		<!-- Order total -->
 		<div class="cl-vo-metric-tile">
 			<div class="cl-vo-metric-icon">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+					stroke-linecap="round" stroke-linejoin="round">
 					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
 					<polyline points="14 2 14 8 20 8"></polyline>
 					<line x1="16" y1="13" x2="8" y2="13"></line>
@@ -141,7 +152,8 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 		<!-- Payment method -->
 		<div class="cl-vo-metric-tile">
 			<div class="cl-vo-metric-icon">
-				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+					stroke-linecap="round" stroke-linejoin="round">
 					<rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
 					<line x1="1" y1="10" x2="23" y2="10"></line>
 				</svg>
@@ -157,14 +169,16 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 	<div class="cl-vo-details-section">
 		<div class="cl-vo-details-heading-row">
 			<h2 class="cl-vo-section-title"><?php esc_html_e('Order details', 'cutlist-catalogue'); ?></h2>
-			<span class="cl-vo-items-count"><?php echo sprintf(_n('%d item', '%d items', $item_count, 'cutlist-catalogue'), $item_count); ?></span>
+			<span
+				class="cl-vo-items-count"><?php echo sprintf(_n('%d item', '%d items', $item_count, 'cutlist-catalogue'), $item_count); ?></span>
 		</div>
 
 		<!-- Item Cards List -->
 		<div class="cl-vo-items-cards-list">
 			<?php
-			foreach ($order_items as $item_id => $item) :
-				if (!$item instanceof WC_Order_Item_Product) continue;
+			foreach ($order_items as $item_id => $item):
+				if (!$item instanceof WC_Order_Item_Product)
+					continue;
 
 				$product = $item->get_product();
 				$item_name = $item->get_name();
@@ -207,7 +221,7 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 				$grain_notes = $item->get_meta(__('Grain Matching Notes', 'cutlist-catalogue'), true);
 				$extra_cuts = $item->get_meta(__('Additional Cuts', 'cutlist-catalogue'), true);
 				$grain_files = $item->get_meta('_cutlist_grain_files', true);
-			?>
+				?>
 				<div class="cl-vo-item-card">
 					<div class="cl-vo-item-thumb-box">
 						<?php echo $item_thumb_html; ?>
@@ -215,71 +229,81 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 
 					<div class="cl-vo-item-details-box">
 						<h3 class="cl-vo-item-title"><?php echo esc_html($item_name); ?></h3>
-						
+
 						<div class="cl-vo-meta-grid">
-							<?php if ($item_type) : ?>
+							<?php if ($item_type): ?>
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Item Type:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($item_type); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($decor) : ?>
+							<?php if ($decor): ?>
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Decor:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($decor); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($thickness) : ?>
+							<?php if ($thickness): ?>
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Thickness:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($thickness); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($dimensions) : ?>
+							<?php if ($dimensions): ?>
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Dimensions:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($dimensions); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($edging) : ?>
+							<?php if ($edging): ?>
 								<div class="cl-vo-meta-row">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Edging Tape:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Edging Tape:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($edging); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($machining) : ?>
+							<?php if ($machining): ?>
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Machining:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($machining); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($spray) : ?>
+							<?php if ($spray): ?>
 								<div class="cl-vo-meta-row">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Spray Finishing:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Spray Finishing:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($spray); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($grain) : ?>
+							<?php if ($grain): ?>
 								<div class="cl-vo-meta-row">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Grain Matching:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Grain Matching:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($grain); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if (!empty($grain_files) && is_array($grain_files)) : ?>
+							<?php if (!empty($grain_files) && is_array($grain_files)): ?>
 								<div class="cl-vo-meta-row cl-vo-meta-row--files">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Grain Drawings:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Grain Drawings:', 'cutlist-catalogue'); ?></span>
 									<div class="cl-vo-drawing-files">
-										<?php foreach ($grain_files as $gfile) : ?>
-											<a href="<?php echo esc_url($gfile['url']); ?>" target="_blank" rel="noopener noreferrer" class="cl-drawing-chip">
-												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+										<?php foreach ($grain_files as $gfile): ?>
+											<a href="<?php echo esc_url($gfile['url']); ?>" target="_blank"
+												rel="noopener noreferrer" class="cl-drawing-chip">
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+													stroke-width="2">
+													<rect x="3" y="3" width="18" height="18" rx="2" />
+													<circle cx="8.5" cy="8.5" r="1.5" />
+													<polyline points="21 15 16 10 5 21" />
+												</svg>
 												<span><?php echo esc_html($gfile['name']); ?></span>
 											</a>
 										<?php endforeach; ?>
@@ -287,16 +311,18 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 								</div>
 							<?php endif; ?>
 
-							<?php if ($grain_notes) : ?>
+							<?php if ($grain_notes): ?>
 								<div class="cl-vo-meta-row">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Grain Notes:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Grain Notes:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($grain_notes); ?></span>
 								</div>
 							<?php endif; ?>
 
-							<?php if ($extra_cuts) : ?>
+							<?php if ($extra_cuts): ?>
 								<div class="cl-vo-meta-row">
-									<span class="cl-vo-meta-key"><?php esc_html_e('Additional Cuts:', 'cutlist-catalogue'); ?></span>
+									<span
+										class="cl-vo-meta-key"><?php esc_html_e('Additional Cuts:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($extra_cuts); ?></span>
 								</div>
 							<?php endif; ?>
@@ -332,11 +358,12 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 	<!-- 4. BILLING ADDRESS SECTION -->
 	<div class="cl-vo-address-section">
 		<h2 class="cl-vo-section-title"><?php esc_html_e('Billing address', 'cutlist-catalogue'); ?></h2>
-		
+
 		<div class="cl-vo-address-card">
 			<div class="cl-vo-address-top">
 				<div class="cl-vo-address-icon">
-					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"
+						stroke-linecap="round" stroke-linejoin="round">
 						<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
 						<circle cx="12" cy="10" r="3"></circle>
 					</svg>
@@ -349,23 +376,29 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 							echo wp_kses_post($formatted_address);
 						} else {
 							echo esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()) . '<br>';
-							if ($order->get_billing_address_1()) echo esc_html($order->get_billing_address_1()) . '<br>';
-							if ($order->get_billing_city()) echo esc_html($order->get_billing_city()) . ' ';
-							if ($order->get_billing_postcode()) echo esc_html($order->get_billing_postcode()) . '<br>';
-							if ($order->get_billing_country()) echo esc_html(WC()->countries->countries[$order->get_billing_country()] ?? $order->get_billing_country());
+							if ($order->get_billing_address_1())
+								echo esc_html($order->get_billing_address_1()) . '<br>';
+							if ($order->get_billing_city())
+								echo esc_html($order->get_billing_city()) . ' ';
+							if ($order->get_billing_postcode())
+								echo esc_html($order->get_billing_postcode()) . '<br>';
+							if ($order->get_billing_country())
+								echo esc_html(WC()->countries->countries[$order->get_billing_country()] ?? $order->get_billing_country());
 						}
 						?>
 					</address>
 				</div>
 			</div>
 
-			<?php if ($billing_email) : ?>
+			<?php if ($billing_email): ?>
 				<div class="cl-vo-address-email-row">
-					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"
+						stroke-linecap="round" stroke-linejoin="round">
 						<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
 						<polyline points="22,6 12,13 2,6"></polyline>
 					</svg>
-					<a href="mailto:<?php echo esc_attr($billing_email); ?>" class="cl-vo-email-link"><?php echo esc_html($billing_email); ?></a>
+					<a href="mailto:<?php echo esc_attr($billing_email); ?>"
+						class="cl-vo-email-link"><?php echo esc_html($billing_email); ?></a>
 				</div>
 			<?php endif; ?>
 		</div>

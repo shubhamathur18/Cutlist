@@ -184,9 +184,9 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input></td>
-                <td class="small"><input></td>
-                <td class="qty"><input></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
                     <input disabled readonly>
@@ -266,9 +266,9 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input></td>
-                <td class="small"><input></td>
-                <td class="qty"><input></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
                     <input disabled readonly>
@@ -347,9 +347,9 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                         <option value="38">38</option>
                     </select>
                 </td>
-                <td class="small"><input></td>
-                <td class="small"><input></td>
-                <td class="qty"><input></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="small"><input type="number" min="1"></td>
+                <td class="qty"><input type="number" min="1"></td>
                 <td class="desc"><input></td>
                 <td class="small edging-input" data-edge="L1">
                     <input disabled readonly>
@@ -627,10 +627,10 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                             <option value="38">38</option>
                         </select>
                     </td>
-                    <td class="small fs-length"><input disabled placeholder="0"></td>
-                    <td class="small fs-width"><input disabled placeholder="0"></td>
+                    <td class="small fs-length"><input type="number" min="1" disabled placeholder="0"></td>
+                    <td class="small fs-width"><input type="number" min="1" disabled placeholder="0"></td>
                     <td class="fs-brand">–</td>
-                    <td class="qty"><input disabled></td>
+                    <td class="qty"><input type="number" min="1" disabled></td>
                     <td class="actions">
                         <div class="actions-inner">
                             <span class="delete"
@@ -652,10 +652,10 @@ $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_to
                             <option value="38">38</option>
                         </select>
                     </td>
-                    <td class="small fs-length"><input disabled placeholder="0"></td>
-                    <td class="small fs-width"><input disabled placeholder="0"></td>
+                    <td class="small fs-length"><input type="number" min="1" disabled placeholder="0"></td>
+                    <td class="small fs-width"><input type="number" min="1" disabled placeholder="0"></td>
                     <td class="fs-brand">–</td>
-                    <td class="qty"><input disabled></td>
+                    <td class="qty"><input type="number" min="1" disabled></td>
                     <td class="actions">
                         <div class="actions-inner">
                             <span class="delete"
