@@ -1,0 +1,43 @@
+{
+    "key": "group_door_category_fields",
+    "title": "Door Style Category Settings",
+    "fields": [
+        {
+            "key": "field_door_category_subtitle",
+            "label": "Category Subtitle",
+            "name": "category_subtitle",
+            "type": "text",
+            "instructions": "Description text below the category header title.",
+            "default_value": "Choose a shaker style for your door. All options are made using moisture resistant MDF with a mortise and tenon structure.",
+            "placeholder": "Choose a shaker style for your door. All options are made using moisture resistant MDF with a mortise and tenon structure."
+        },
+        {
+            "key": "field_door_category_notice",
+            "label": "Bottom Info Notice Banner",
+            "name": "category_notice",
+            "type": "textarea",
+            "instructions": "Notice text in the green alert box below the category doors grid.",
+            "rows": 2,
+            "default_value": "All shaker doors are made using moisture resistant MDF with a mortise and tenon structure.",
+            "placeholder": "All shaker doors are made using moisture resistant MDF with a mortise and tenon structure."
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "taxonomy",
+                "operator": "==",
+                "value": "door_category"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "",
+    "show_in_rest": 1
+}

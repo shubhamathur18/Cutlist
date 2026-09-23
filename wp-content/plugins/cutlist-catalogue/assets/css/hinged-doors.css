@@ -1,0 +1,1046 @@
+/* ==========================================================================
+   HINGED DOORS CATALOGUE STYLES
+   ========================================================================== */
+
+#hingedDoorsContainer {
+    margin-top: 25px;
+    margin-bottom: 50px;
+}
+
+/* Category Card Container */
+.hd-category-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 35px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
+/* Category Header */
+.hd-category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.hd-category-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.hd-category-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #e8f7ee;
+    color: var(--primary-color, #15803d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hd-category-heading-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.hd-category-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+}
+
+.hd-category-subtitle {
+    margin: 3px 0 0;
+    font-size: 13.5px;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+.hd-category-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--primary-color, #15803d);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.hd-category-collapse-btn:hover {
+    background: #f0fdf4;
+    opacity: 0.9;
+}
+
+.hd-collapse-icon {
+    transition: transform 0.25s ease;
+}
+
+.hd-category-card.is-collapsed .hd-collapse-icon {
+    transform: rotate(180deg);
+}
+
+.hd-category-body {
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+    max-height: 4000px;
+    opacity: 1;
+    overflow: visible;
+}
+
+.hd-category-card.is-collapsed .hd-category-body {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+/* 4-Column Responsive Grid */
+.hd-doors-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: stretch;
+}
+
+/* Door Card */
+.hd-door-card {
+    background: #ffffff;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.hd-door-card:hover {
+    border-color: #16a34a;
+    box-shadow: 0 4px 14px rgba(22, 163, 74, 0.12);
+}
+
+/* Image Wrap */
+.hd-door-image-wrap {
+    height: 310px;
+    background: #fbfbfb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 16px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.hd-door-image-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hd-door-img {
+    max-height: 275px;
+    max-width: 100%;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+}
+
+/* Hover Dark Overlay (Active Card State) */
+.hd-door-hover-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(45, 52, 54, 0.88);
+    opacity: 0;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.22s ease;
+    z-index: 4;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.hd-door-card:hover .hd-door-hover-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Magnifying Glass Zoom Button */
+.hd-zoom-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+    z-index: 6;
+    padding: 0;
+}
+
+.hd-zoom-btn:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.08);
+}
+
+/* Center Content inside Hover Overlay */
+.hd-hover-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.hd-hover-title {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 2px;
+    line-height: 1.3;
+}
+
+.hd-hover-subtitle {
+    color: #e2e8f0;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+.hd-view-details-btn {
+    background: #16a34a;
+    color: #ffffff;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hd-view-details-btn:hover {
+    background: #15803d;
+    transform: scale(1.03);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Card Info Body */
+.hd-door-info-body {
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.hd-door-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.3;
+}
+
+.hd-door-subtitle {
+    margin: 2px 0 12px;
+    font-size: 13.5px;
+    color: #4b5563;
+    line-height: 1.35;
+}
+
+/* Specs List */
+.hd-door-specs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 10px;
+}
+
+.hd-spec-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #374151;
+    line-height: 1.3;
+}
+
+.hd-spec-icon-wrap {
+    color: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.hd-spec-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Card Price Footer Bar */
+.hd-door-price-footer {
+    background: #f0fdf4;
+    border-top: 1px solid #dcfce7;
+    padding: 12px 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.hd-door-price-label {
+    font-size: 13.5px;
+    color: #4b5563;
+    font-weight: 500;
+}
+
+.hd-door-price-val {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--primary-color, #15803d);
+}
+
+/* Bottom Notice Banner */
+.hd-bottom-notice {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 24px;
+    font-size: 13.5px;
+    color: #166534;
+    line-height: 1.4;
+}
+
+.hd-notice-icon {
+    color: #16a34a;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* ==========================================================================
+   DOOR CONFIGURATOR POPUP MODAL STYLES (MATCHING SCREENSHOT)
+   ========================================================================== */
+
+.hd-config-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 100000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.hd-config-overlay.is-open {
+    display: flex;
+    opacity: 1;
+}
+
+.hd-config-modal {
+    width: 95%;
+    max-width: 1080px;
+    max-height: 90vh;
+    height: 700px;
+    background: #ffffff;
+    border-radius: 6px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.hd-config-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    color: #0284c7;
+    cursor: pointer;
+    z-index: 10;
+    padding: 4px;
+    transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.hd-config-close:hover {
+    color: #0369a1;
+    transform: scale(1.1);
+}
+
+.hd-config-layout {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+}
+
+/* Left Column: Gallery & Description */
+.hd-config-gallery {
+    width: 380px;
+    flex-shrink: 0;
+    background: #fbfbfb;
+    border-right: 1px solid #e5e7eb;
+    padding: 24px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.hd-config-main-image-wrap {
+    width: 100%;
+    height: 230px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hd-config-main-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+}
+
+.hd-config-thumbs {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.hd-config-thumb {
+    width: 68px;
+    height: 56px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #f3f4f6;
+    transition: border-color 0.18s ease;
+}
+
+.hd-config-thumb.active {
+    border-color: #0284c7;
+}
+
+.hd-config-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hd-config-product-info {
+    margin-top: 18px;
+}
+
+.hd-config-product-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hd-config-product-subtitle {
+    font-size: 13.5px;
+    color: #4b5563;
+    margin-top: 3px;
+}
+
+.hd-config-desc-block {
+    margin-top: 16px;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 14px;
+}
+
+.hd-config-desc-heading {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hd-config-desc-text {
+    margin: 0;
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.45;
+}
+
+/* Right Column: Configurator Steps */
+.hd-config-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+/* Top Row: Wizard Tabs + Purchase Actions */
+.hd-config-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 48px 16px 28px;
+    border-bottom: 1px solid #e5e7eb;
+    box-sizing: border-box;
+}
+
+/* Stepper Tabs (Arrow/Chevron Shapes) */
+.hd-config-tabs {
+    display: flex;
+    align-items: center;
+}
+
+.hd-config-tab {
+    position: relative;
+    padding: 10px 22px 10px 26px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+    margin-left: -14px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.hd-config-tab:first-child {
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+    margin-left: 0;
+    padding-left: 20px;
+    border-radius: 4px 0 0 4px;
+}
+
+.hd-config-tab.active {
+    background: #0284c7;
+    color: #ffffff;
+    font-weight: 600;
+    z-index: 3;
+}
+
+.hd-config-tab.completed {
+    background: #9ca3af;
+    color: #ffffff;
+    z-index: 2;
+}
+
+.hd-config-tab:hover:not(.active) {
+    background: #e5e7eb;
+}
+
+/* Purchase Control on Top Right */
+.hd-config-purchase {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    min-width: 170px;
+}
+
+.hd-config-qty {
+    display: flex;
+    width: 100%;
+    height: 36px;
+}
+
+.hd-qty-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #0284c7;
+    background: #ffffff;
+    color: #0284c7;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.hd-qty-btn:hover {
+    background: #f0f9ff;
+}
+
+.hd-config-qty input {
+    flex: 1;
+    width: 0;
+    height: 36px;
+    border: 1px solid #d1d5db;
+    border-left: none;
+    border-right: none;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+    box-sizing: border-box;
+}
+
+.hd-config-add-basket {
+    width: 100%;
+    height: 36px;
+    background: #bfdbfe;
+    color: #1e40af;
+    border: none;
+    border-radius: 3px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.hd-config-add-basket.is-ready {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.hd-config-add-basket.is-ready:hover {
+    background: #0369a1;
+}
+
+.hd-config-total-wrap {
+    text-align: right;
+}
+
+.hd-config-total {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hd-config-total-vat {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Configurator Body Panes */
+.hd-config-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 30px;
+    box-sizing: border-box;
+}
+
+.hd-tab-pane {
+    display: none;
+}
+
+.hd-tab-pane.active {
+    display: block;
+}
+
+.hd-details-heading {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hd-details-specs {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13.5px;
+    color: #374151;
+    line-height: 1.5;
+}
+
+.hd-details-note {
+    font-size: 13.5px;
+    color: #374151;
+    margin-top: 18px;
+    line-height: 1.45;
+}
+
+/* Available products Radio Box */
+.hd-available-products-wrap {
+    margin-top: 32px;
+}
+
+.hd-available-heading {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.hd-available-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    border-radius: 4px;
+    overflow: hidden;
+    max-width: 500px;
+}
+
+.hd-product-type-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 10px;
+    cursor: pointer;
+    border-right: 1px solid #e5e7eb;
+    transition: background 0.15s ease;
+}
+
+.hd-product-type-option:last-child {
+    border-right: none;
+}
+
+.hd-product-type-option:hover,
+.hd-product-type-option.selected {
+    background: #f0fdf4;
+}
+
+.hd-pt-label {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.hd-product-type-option input[type="radio"] {
+    margin: 0;
+    accent-color: #0284c7;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+}
+
+/* Form Fields for Size, Drilling, Finish */
+.hd-field-group {
+    margin-bottom: 18px;
+}
+
+.hd-field-group label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+}
+
+.hd-field-group input[type="number"],
+.hd-field-group input[type="text"],
+.hd-field-group select {
+    width: 320px;
+    max-width: 100%;
+    height: 38px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 0 12px;
+    font-size: 14px;
+    color: #111827;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.hd-field-group input:focus,
+.hd-field-group select:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+}
+
+.hd-field-hint {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.hd-btn-group-toggle {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    max-width: 360px;
+}
+
+.hd-toggle-btn {
+    flex: 1;
+    height: 38px;
+    border: 1px solid #d1d5db;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.hd-toggle-btn.active {
+    background: #0284c7;
+    border-color: #0284c7;
+    color: #ffffff;
+}
+
+/* Finish Cards */
+.hd-finish-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    max-width: 520px;
+    margin-bottom: 20px;
+}
+
+.hd-finish-card {
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    padding: 14px;
+    background: #ffffff;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.18s ease;
+}
+
+.hd-finish-card input[type="radio"] {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    accent-color: #0284c7;
+}
+
+.hd-finish-card.selected {
+    border-color: #0284c7;
+    background: #f0f9ff;
+}
+
+.hd-finish-card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.hd-finish-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.hd-finish-sub {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.hd-finish-price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0284c7;
+    margin-top: 10px;
+}
+
+/* Lightbox Quick View Dialog */
+.hd-quickview-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 100001;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.hd-quickview-modal-backdrop.is-open {
+    display: flex;
+    opacity: 1;
+}
+
+.hd-quickview-modal-dialog {
+    background: #ffffff;
+    border-radius: 12px;
+    max-width: 700px;
+    width: 100%;
+    position: relative;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.hd-quickview-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: transparent;
+    border: none;
+    font-size: 26px;
+    line-height: 1;
+    color: #6b7280;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.15s ease;
+}
+
+.hd-quickview-close-btn:hover {
+    color: #111827;
+}
+
+.hd-quickview-modal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 28px;
+}
+
+.hd-quickview-image-pane {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 320px;
+}
+
+.hd-quickview-big-img {
+    max-height: 320px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.hd-quickview-info-pane {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.hd-quickview-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    margin: 0 0 4px;
+}
+
+.hd-quickview-subtitle {
+    font-size: 15px;
+    color: var(--primary-color, #15803d);
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.hd-quickview-price {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary-color, #15803d);
+    margin-bottom: 14px;
+}
+
+.hd-quickview-desc {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1150px) {
+    .hd-doors-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    .hd-config-modal {
+        height: 80vh;
+    }
+}
+
+@media (max-width: 860px) {
+    .hd-config-layout {
+        flex-direction: column;
+    }
+
+    .hd-config-gallery {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 18px;
+    }
+
+    .hd-config-top-row {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .hd-config-purchase {
+        width: 100%;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 680px) {
+    .hd-doors-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+
+    .hd-category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .hd-category-collapse-btn {
+        align-self: flex-end;
+    }
+
+    .hd-finish-cards {
+        grid-template-columns: 1fr;
+    }
+}

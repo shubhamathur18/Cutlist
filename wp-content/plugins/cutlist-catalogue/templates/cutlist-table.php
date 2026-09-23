@@ -920,15 +920,26 @@ CUT, EDGE & SPRAY SUMMARY
         <span class="edge-section-info"
             title="<?php esc_attr_e('The edging tape matched to this panel\'s board.', 'cutlist-catalogue'); ?>">i</span>
     </div>
-    <button type="button" class="edge-summary" id="edgeSummaryBtn">
-        <span class="edge-summary-radio" aria-hidden="true"></span>
-        <img class="edge-summary-image" id="edgeSummaryImage" alt="" hidden>
-        <span class="edge-summary-text">
-            <span class="edge-summary-code" id="edgeSummaryCode">&ndash;</span>
-            <span class="edge-summary-desc"
-                id="edgeSummaryDesc"><?php esc_html_e('No matching edging tape', 'cutlist-catalogue'); ?></span>
-        </span>
-    </button>
+    <div class="edge-tape-selector-wrap" id="edgeTapeSelectorWrap">
+        <button type="button" class="edge-summary" id="edgeSummaryBtn">
+            <span class="edge-summary-radio" aria-hidden="true"></span>
+            <img class="edge-summary-image" id="edgeSummaryImage" alt="" hidden>
+            <span class="edge-summary-text">
+                <span class="edge-summary-code" id="edgeSummaryCode">&ndash;</span>
+                <span class="edge-summary-desc"
+                    id="edgeSummaryDesc"><?php esc_html_e('No matching edging tape', 'cutlist-catalogue'); ?></span>
+            </span>
+            <span class="edge-summary-chevron" id="edgeSummaryChevron" title="<?php esc_attr_e('Select another edge tape', 'cutlist-catalogue'); ?>" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4.5 7.5 10 13l5.5-5.5"></path></svg>
+            </span>
+        </button>
+        <div class="edge-tape-dropdown" id="edgeTapeDropdown" style="display:none;">
+            <div class="edge-tape-dropdown-search">
+                <input type="text" id="edgeTapeSearchInput" placeholder="<?php esc_attr_e('Search all edge tapes...', 'cutlist-catalogue'); ?>" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="edge-tape-dropdown-list" id="edgeTapeDropdownList"></div>
+        </div>
+    </div>
     <div class="edge-section-label"><?php esc_html_e('Edge shape', 'cutlist-catalogue'); ?></div>
     <div class="edge-finish-options" id="edgeFinishOptions">
         <div class="edge-finish-option" data-finish="radius">

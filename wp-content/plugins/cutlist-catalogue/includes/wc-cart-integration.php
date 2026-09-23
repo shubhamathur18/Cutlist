@@ -23,6 +23,9 @@ function cutlist_get_or_create_wc_product()
 			update_post_meta($product_id, '_tax_status', 'taxable');
 			update_post_meta($product_id, '_tax_class', '');
 		}
+		if (get_post_meta($product_id, '_virtual', true) !== 'no') {
+			update_post_meta($product_id, '_virtual', 'no');
+		}
 		return (int) $product_id;
 	}
 
@@ -40,6 +43,7 @@ function cutlist_get_or_create_wc_product()
 		$product_id = (int) $existing[0];
 		update_post_meta($product_id, '_tax_status', 'taxable');
 		update_post_meta($product_id, '_tax_class', '');
+		update_post_meta($product_id, '_virtual', 'no');
 		update_option('cutlist_wc_product_id', $product_id);
 		return $product_id;
 	}
@@ -60,7 +64,7 @@ function cutlist_get_or_create_wc_product()
 	update_post_meta($post_id, '_stock_status', 'instock');
 	update_post_meta($post_id, 'total_sales', '0');
 	update_post_meta($post_id, '_downloadable', 'no');
-	update_post_meta($post_id, '_virtual', 'yes');
+	update_post_meta($post_id, '_virtual', 'no');
 	update_post_meta($post_id, '_tax_status', 'taxable');
 	update_post_meta($post_id, '_tax_class', '');
 	update_post_meta($post_id, '_regular_price', '0');
@@ -407,6 +411,72 @@ function cutlist_ajax_add_to_cart()
 
 	$added_count = 0;
 
+	// Validate incoming items against workshop board stock (Strict Stock Control)
+	$incoming_full_sheets = array();
+	$incoming_cut_panels = array();
+
+	if (!empty($data['fullSheetItems']) && is_array($data['fullSheetItems'])) {
+		foreach ($data['fullSheetItems'] as $item) {
+			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
+			$decor = !empty($item['decor']) ? sanitize_text_field($item['decor']) : '';
+			$decor_code = !empty($item['decorCode']) ? sanitize_text_field($item['decorCode']) : $decor;
+			$board_id = function_exists('cutlist_get_board_by_decor') ? (cutlist_get_board_by_decor($decor_code) ?: cutlist_get_board_by_decor($decor)) : 0;
+			if ($board_id) {
+				if (!isset($incoming_full_sheets[$board_id])) $incoming_full_sheets[$board_id] = 0;
+				$incoming_full_sheets[$board_id] += $qty;
+			}
+		}
+	}
+
+	if (!empty($data['cutItems']) && is_array($data['cutItems'])) {
+		foreach ($data['cutItems'] as $item) {
+			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
+			$decor = !empty($item['decor']) ? sanitize_text_field($item['decor']) : '';
+			$decor_code = !empty($item['decorCode']) ? sanitize_text_field($item['decorCode']) : $decor;
+			$board_id = function_exists('cutlist_get_board_by_decor') ? (cutlist_get_board_by_decor($decor_code) ?: cutlist_get_board_by_decor($decor)) : 0;
+			if ($board_id) {
+				if (!isset($incoming_cut_panels[$board_id])) $incoming_cut_panels[$board_id] = array();
+				$incoming_cut_panels[$board_id][] = array(
+					'length' => isset($item['length']) ? (float) $item['length'] : 0,
+					'width'  => isset($item['width']) ? (float) $item['width'] : 0,
+					'qty'    => $qty,
+				);
+			}
+		}
+	}
+
+	$all_incoming_boards = array_unique(array_merge(array_keys($incoming_full_sheets), array_keys($incoming_cut_panels)));
+	foreach ($all_incoming_boards as $b_id) {
+		if (function_exists('cutlist_get_board_available_stock')) {
+			$avail = cutlist_get_board_available_stock($b_id);
+			if ($avail['is_managed']) {
+				$needed = 0;
+				if (isset($incoming_full_sheets[$b_id])) {
+					$needed += $incoming_full_sheets[$b_id];
+				}
+				if (isset($incoming_cut_panels[$b_id]) && function_exists('cutlist_calculate_cutlist_sheet_requirement')) {
+					$calc = cutlist_calculate_cutlist_sheet_requirement($incoming_cut_panels[$b_id], $b_id);
+					$needed += $calc['sheets_consumed'];
+				}
+
+				if ($needed > $avail['stock']) {
+					$b_name = get_the_title($b_id);
+					if ($avail['stock'] <= 0) {
+						wp_send_json_error(array(
+							'message' => sprintf(__('Sorry, "%s" is currently out of stock (0 full sheets available in workshop).', 'cutlist-catalogue'), $b_name),
+						));
+						return;
+					} else {
+						wp_send_json_error(array(
+							'message' => sprintf(__('Your order requires %d sheet(s) of "%s", but only %d sheet(s) are currently in stock.', 'cutlist-catalogue'), $needed, $b_name, $avail['stock']),
+						));
+						return;
+					}
+				}
+			}
+		}
+	}
+
 	// 1. Cut Panels
 	if (!empty($data['cutItems']) && is_array($data['cutItems'])) {
 		foreach ($data['cutItems'] as $idx => $item) {
@@ -520,6 +590,10 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_description' => $desc,
 				'cutlist_panel_info' => $panel_info,
 				'cutlist_edges' => $edge_summary,
+				'cutlist_edging_l1' => !empty($item['edgeL1']) ? sanitize_text_field($item['edgeL1']) : '',
+				'cutlist_edging_l2' => !empty($item['edgeL2']) ? sanitize_text_field($item['edgeL2']) : '',
+				'cutlist_edging_w1' => !empty($item['edgeW1']) ? sanitize_text_field($item['edgeW1']) : '',
+				'cutlist_edging_w2' => !empty($item['edgeW2']) ? sanitize_text_field($item['edgeW2']) : '',
 				'cutlist_machining' => $machining_summary,
 				'cutlist_panel_shaping' => $panel_shaping,
 				'cutlist_surface_shaping' => $surface_shaping,
@@ -675,6 +749,43 @@ function cutlist_ajax_add_to_cart()
 
 		WC()->cart->add_to_cart($product_id, 1, 0, array(), $cart_item_data);
 		$added_count++;
+	}
+
+	// 5. Sliding Doors
+	if (!empty($data['slidingDoorsItems']) && is_array($data['slidingDoorsItems'])) {
+		foreach ($data['slidingDoorsItems'] as $idx => $item) {
+			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
+			$title = !empty($item['title']) ? sanitize_text_field($item['title']) : __('Custom Sliding Wardrobe Doors', 'cutlist-catalogue');
+			$opening_w = !empty($item['openingWidth']) ? sanitize_text_field($item['openingWidth']) : '';
+			$opening_h = !empty($item['openingHeight']) ? sanitize_text_field($item['openingHeight']) : '';
+			$door_count = !empty($item['doorCount']) ? sanitize_text_field($item['doorCount']) : '';
+			$door_w = !empty($item['doorWidth']) ? sanitize_text_field($item['doorWidth']) : '';
+			$door_h = !empty($item['doorHeight']) ? sanitize_text_field($item['doorHeight']) : '';
+			$frame_finish = !empty($item['frameFinish']) ? sanitize_text_field($item['frameFinish']) : '';
+			$track_type = !empty($item['trackType']) ? sanitize_text_field($item['trackType']) : '';
+			$soft_close = !empty($item['softClose']) ? sanitize_text_field($item['softClose']) : '';
+			$door_details = !empty($item['doorDetails']) ? sanitize_text_field($item['doorDetails']) : '';
+			$price = isset($item['unitPrice']) ? max(0, (float) $item['unitPrice']) : 0;
+			$image_url = !empty($item['image']) ? esc_url_raw($item['image']) : '';
+
+			$cart_item_data = array(
+				'cutlist_type'             => __('Sliding Doors', 'cutlist-catalogue'),
+				'cutlist_title'            => $title,
+				'cutlist_opening_size'     => ($opening_w && $opening_h) ? ($opening_w . ' x ' . $opening_h . ' mm') : '',
+				'cutlist_door_count'       => $door_count ? ($door_count . ' Doors') : '',
+				'cutlist_door_size'        => ($door_w && $door_h) ? ($door_w . ' x ' . $door_h . ' mm (each)') : '',
+				'cutlist_frame_finish'     => $frame_finish,
+				'cutlist_track_type'       => $track_type,
+				'cutlist_soft_close'       => $soft_close,
+				'cutlist_door_details'     => $door_details,
+				'cutlist_unit_price'       => $price,
+				'cutlist_image_url'        => $image_url,
+				'cutlist_unique_key'       => 'sd_' . md5($title . $opening_w . $opening_h . $door_count . $frame_finish . $price . $idx . microtime(true)),
+			);
+
+			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
+			$added_count++;
+		}
 	}
 
 	WC()->cart->calculate_totals();
@@ -1024,6 +1135,48 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 			'display' => '<span style="font-weight:600; color:#0369a1;">' . esc_html($cart_item['cutlist_selected_offcuts']) . ' (' . __('Free', 'cutlist-catalogue') . ')</span>',
 		);
 	}
+	if (!empty($cart_item['cutlist_opening_size'])) {
+		$item_data[] = array(
+			'name' => __('Opening Dimensions', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_opening_size']),
+		);
+	}
+	if (!empty($cart_item['cutlist_door_count'])) {
+		$item_data[] = array(
+			'name' => __('Door Quantity', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_door_count']),
+		);
+	}
+	if (!empty($cart_item['cutlist_door_size'])) {
+		$item_data[] = array(
+			'name' => __('Calculated Door Size', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_door_size']),
+		);
+	}
+	if (!empty($cart_item['cutlist_frame_finish'])) {
+		$item_data[] = array(
+			'name' => __('Frame Profile Finish', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_frame_finish']),
+		);
+	}
+	if (!empty($cart_item['cutlist_track_type'])) {
+		$item_data[] = array(
+			'name' => __('Track Running Gear', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_track_type']),
+		);
+	}
+	if (!empty($cart_item['cutlist_soft_close'])) {
+		$item_data[] = array(
+			'name' => __('Soft-Close Dampers', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_soft_close']),
+		);
+	}
+	if (!empty($cart_item['cutlist_door_details'])) {
+		$item_data[] = array(
+			'name' => __('Door Panel Layout & Infills', 'cutlist-catalogue'),
+			'value' => esc_html($cart_item['cutlist_door_details']),
+		);
+	}
 
 	return $item_data;
 }
@@ -1098,6 +1251,27 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 	}
 	if (!empty($values['cutlist_selected_offcuts'])) {
 		$item->add_meta_data(__('Selected Offcuts', 'cutlist-catalogue'), $values['cutlist_selected_offcuts'] . ' (Free)');
+	}
+	if (!empty($values['cutlist_opening_size'])) {
+		$item->add_meta_data(__('Opening Dimensions', 'cutlist-catalogue'), $values['cutlist_opening_size']);
+	}
+	if (!empty($values['cutlist_door_count'])) {
+		$item->add_meta_data(__('Door Quantity', 'cutlist-catalogue'), $values['cutlist_door_count']);
+	}
+	if (!empty($values['cutlist_door_size'])) {
+		$item->add_meta_data(__('Calculated Door Size', 'cutlist-catalogue'), $values['cutlist_door_size']);
+	}
+	if (!empty($values['cutlist_frame_finish'])) {
+		$item->add_meta_data(__('Frame Profile Finish', 'cutlist-catalogue'), $values['cutlist_frame_finish']);
+	}
+	if (!empty($values['cutlist_track_type'])) {
+		$item->add_meta_data(__('Track Running Gear', 'cutlist-catalogue'), $values['cutlist_track_type']);
+	}
+	if (!empty($values['cutlist_soft_close'])) {
+		$item->add_meta_data(__('Soft-Close Dampers', 'cutlist-catalogue'), $values['cutlist_soft_close']);
+	}
+	if (!empty($values['cutlist_door_details'])) {
+		$item->add_meta_data(__('Door Panel Layout & Infills', 'cutlist-catalogue'), $values['cutlist_door_details']);
 	}
 	if (!empty($values['cutlist_image_id'])) {
 		$item->add_meta_data('_cutlist_image_id', (int) $values['cutlist_image_id'], true);
@@ -1381,6 +1555,69 @@ function cutlist_checkout_process_quantity_validation()
 	}
 }
 add_action('woocommerce_checkout_process', 'cutlist_checkout_process_quantity_validation', 10);
+
+/**
+ * Validates board stock for all items in the cart on Cart and Checkout review screens.
+ */
+function cutlist_validate_cart_items_board_stock()
+{
+	if (function_exists('cutlist_validate_cart_board_stock')) {
+		$stock_errors = cutlist_validate_cart_board_stock();
+		foreach ($stock_errors as $err) {
+			if (!wc_has_notice($err, 'error')) {
+				wc_add_notice($err, 'error');
+			}
+		}
+	}
+	if (function_exists('cutlist_validate_cart_edge_tape_stock')) {
+		$tape_errors = cutlist_validate_cart_edge_tape_stock();
+		foreach ($tape_errors as $err) {
+			if (!wc_has_notice($err, 'error')) {
+				wc_add_notice($err, 'error');
+			}
+		}
+	}
+}
+add_action('woocommerce_check_cart_items', 'cutlist_validate_cart_items_board_stock', 25);
+add_action('woocommerce_review_order_before_cart_contents', 'cutlist_validate_cart_items_board_stock', 25);
+
+/**
+ * Prevents checkout submission if cart has out-of-stock or insufficient board or edge tape materials.
+ */
+function cutlist_checkout_process_board_stock_validation()
+{
+	if (function_exists('cutlist_validate_cart_board_stock')) {
+		$stock_errors = cutlist_validate_cart_board_stock();
+		foreach ($stock_errors as $err) {
+			if (!wc_has_notice($err, 'error')) {
+				wc_add_notice($err, 'error');
+			}
+		}
+	}
+	if (function_exists('cutlist_validate_cart_edge_tape_stock')) {
+		$tape_errors = cutlist_validate_cart_edge_tape_stock();
+		foreach ($tape_errors as $err) {
+			if (!wc_has_notice($err, 'error')) {
+				wc_add_notice($err, 'error');
+			}
+		}
+	}
+}
+add_action('woocommerce_checkout_process', 'cutlist_checkout_process_board_stock_validation', 15);
+add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
+	if (function_exists('cutlist_validate_cart_board_stock')) {
+		$stock_errors = cutlist_validate_cart_board_stock();
+		foreach ($stock_errors as $err) {
+			$errors->add('stock_error', $err);
+		}
+	}
+	if (function_exists('cutlist_validate_cart_edge_tape_stock')) {
+		$tape_errors = cutlist_validate_cart_edge_tape_stock();
+		foreach ($tape_errors as $err) {
+			$errors->add('tape_stock_error', $err);
+		}
+	}
+}, 15, 2);
 
 /**
  * Allows HTML links to render safely in WooCommerce Order Item Meta (emails, order view).

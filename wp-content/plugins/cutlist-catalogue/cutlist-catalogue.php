@@ -32,9 +32,15 @@ add_filter('acf/settings/load_json', function ($paths) {
 // require_once CUTLIST_CATALOGUE_PATH . 'includes/order-routing.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/cpt-registration.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/gallery-meta-box.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/frame-colors-meta-box.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/rest-endpoints.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/cutting-list-shortcode.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/cnc-shortcode.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/sliding-doors-shortcode.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/hinged-doors-shortcode.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/wc-cart-integration.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/board-inventory.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/edge-tape-inventory.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/admin-settings.php';
 
 register_activation_hook(__FILE__, function () {

@@ -1,0 +1,15 @@
+2026-09-21T06:18:13+00:00 INFO Email "new_order" for order #200 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":200}
+2026-09-21T06:18:13+00:00 INFO Email "customer_processing_order" for order #200 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":200}
+2026-09-21T06:19:01+00:00 INFO Email "new_order" for order #201 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":201}
+2026-09-21T06:19:01+00:00 INFO Email "customer_processing_order" for order #201 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":201}
+2026-09-21T06:19:45+00:00 INFO Email "new_order" for order #202 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":202}
+2026-09-21T06:19:45+00:00 INFO Email "customer_processing_order" for order #202 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":202}
+2026-09-21T06:20:47+00:00 INFO Email "cancelled_order" for order #202 sent CONTEXT: {"email_type":"cancelled_order","status":"sent","recipient":"admin","order":202}
+2026-09-21T06:20:47+00:00 NOTICE Email "customer_cancelled_order" for order #202 not sent: email type is disabled CONTEXT: {"email_type":"customer_cancelled_order","status":"disabled","recipient":"admin","order":202}
+2026-09-21T06:21:10+00:00 INFO Email "customer_completed_order" for order #201 sent CONTEXT: {"email_type":"customer_completed_order","status":"sent","recipient":"admin","order":201}
+2026-09-21T06:21:37+00:00 INFO Email "cancelled_order" for order #200 sent CONTEXT: {"email_type":"cancelled_order","status":"sent","recipient":"admin","order":200}
+2026-09-21T06:21:37+00:00 NOTICE Email "customer_cancelled_order" for order #200 not sent: email type is disabled CONTEXT: {"email_type":"customer_cancelled_order","status":"disabled","recipient":"admin","order":200}
+2026-09-21T07:48:35+00:00 INFO Email "new_order" for order #210 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":210}
+2026-09-21T07:48:35+00:00 INFO Email "customer_processing_order" for order #210 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":210}
+2026-09-21T08:02:28+00:00 INFO Email "new_order" for order #211 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":211}
+2026-09-21T08:02:28+00:00 INFO Email "customer_processing_order" for order #211 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":211}

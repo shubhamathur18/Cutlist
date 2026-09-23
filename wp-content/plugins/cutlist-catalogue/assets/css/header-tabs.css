@@ -2,6 +2,24 @@
    GLOBAL HEADER TABS & TOPBAR STYLES
    Used across Cutlist, CNC Machining, and future service pages.
    ========================================================================== */
+:root {
+    --primary-color: #15803d;
+}
+
+.container {
+    padding: 0 88px 0 33px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 860px) {
+    .container {
+        padding: 0 16px;
+    }
+}
+
+.is-layout-constrained> :where(:not(.alignleft):not(.alignright):not(.alignfull)) {
+    max-width: 100% !important;
+}
 
 /* TOP SECTION TABS — horizontal white bar with icons, numbers, and basket CTA */
 .header {
@@ -49,7 +67,7 @@
 }
 
 .tab:nth-of-type(5),
-.tabs > .tab:last-of-type {
+.tabs>.tab:last-of-type {
     border-right: 1.5px solid #e0e3e7;
     border-radius: 0;
 }
@@ -124,7 +142,7 @@
     position: relative;
 }
 
-.tab.active + .tab {
+.tab.active+.tab {
     border-left: none;
 }
 
@@ -287,6 +305,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
     .tab,
     .tab-basket-btn {
         transition: none;

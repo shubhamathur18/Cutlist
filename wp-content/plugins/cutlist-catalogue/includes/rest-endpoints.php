@@ -265,6 +265,10 @@ function cutlist_format_edge_tape($post) {
 	$radius = get_field('radius_edge_finish', $post->ID);
 	$square = get_field('square_edge_finish', $post->ID);
 
+	$stock_status = function_exists('cutlist_get_edge_tape_stock_status') ? cutlist_get_edge_tape_stock_status($post->ID) : 'instock';
+	$stock_avail = function_exists('cutlist_get_edge_tape_available_stock') ? cutlist_get_edge_tape_available_stock($post->ID) : ['is_managed' => false, 'stock' => 999999, 'is_available' => true];
+	$is_out_of_stock = ($stock_status === 'outofstock' || !$stock_avail['is_available']);
+
 	return [
 		'id' => $post->ID,
 		'tape_code' => get_field('tape_code', $post->ID),
@@ -276,6 +280,13 @@ function cutlist_format_edge_tape($post) {
 		'square_edge_finish' => ($square === null ? true : (bool) $square),
 		'image' => get_the_post_thumbnail_url($post->ID, 'thumbnail') ?: null,
 		'boards' => $boards,
+		'stock_units' => (int) $stock_avail['stock'],
+		'stock_quantity' => (int) $stock_avail['stock'],
+		'stock_status' => $stock_status,
+		'is_managed_stock' => (bool) $stock_avail['is_managed'],
+		'is_out_of_stock' => $is_out_of_stock,
+		'rack_location' => (string) get_post_meta($post->ID, 'rack_location', true),
+		'supplier_sku' => (string) get_post_meta($post->ID, 'supplier_sku', true),
 	];
 }
 
@@ -448,6 +459,10 @@ function cutlist_format_board($post) {
 		$spray_finishing = (bool) get_field('spray_finishing', $post->ID);
 		$grain_match = (bool) get_field('grain_match', $post->ID);
 
+		$stock_status = function_exists('cutlist_get_board_stock_status') ? cutlist_get_board_stock_status($post->ID) : 'instock';
+		$stock_avail = function_exists('cutlist_get_board_available_stock') ? cutlist_get_board_available_stock($post->ID) : ['stock' => 999999, 'is_available' => true, 'is_managed' => false];
+		$is_out_of_stock = ($stock_status === 'outofstock' || !$stock_avail['is_available']);
+
 		$currency_sym = function_exists('get_woocommerce_currency_symbol') ? html_entity_decode(get_woocommerce_currency_symbol(), ENT_QUOTES, 'UTF-8') : '£';
 		return [
 			'id' => $post->ID,
@@ -471,6 +486,10 @@ function cutlist_format_board($post) {
 			'additional_cut_price' => $additional_cut_price,
 			'price_sheet' => ($full_sheet_price > 0) ? $currency_sym . number_format($full_sheet_price, 2) : '–',
 			'price_cut' => ($cutting_list_price > 0) ? $currency_sym . number_format($cutting_list_price, 2) : (($full_sheet_price > 0) ? $currency_sym . number_format($full_sheet_price, 2) : '–'),
+			'stock_status' => $stock_status,
+			'stock_sheets' => $stock_avail['stock'],
+			'is_managed_stock' => $stock_avail['is_managed'],
+			'is_out_of_stock' => $is_out_of_stock,
 			'slides' => $slides,
 			'chars' => implode("\n", $lines),
 			'machining' => [

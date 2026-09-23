@@ -1802,10 +1802,19 @@
             border-bottom: none;
         }
 
+        td.grain,
+        .grain {
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
         .grain input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
+            vertical-align: middle;
+            margin: 0;
         }
 
         .grain input[type="checkbox"]:disabled {
@@ -7024,13 +7033,16 @@ CUT, EDGE & SPRAY SUMMARY
     <div class="decor-popup" id="decorPopup">
         <div class="decor-popup-search-wrap">
             <span class="decor-popup-search-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
             </span>
-            <input type="text" class="decor-popup-search-input" placeholder="Search decor code, name, or core..." autocomplete="off" spellcheck="false">
-            <button type="button" class="decor-popup-search-clear" style="display:none;" aria-label="Clear search">&times;</button>
+            <input type="text" class="decor-popup-search-input" placeholder="Search decor code, name, or core..."
+                autocomplete="off" spellcheck="false">
+            <button type="button" class="decor-popup-search-clear" style="display:none;"
+                aria-label="Clear search">&times;</button>
         </div>
         <div class="supplier-tabs">
             <div class="supplier-tab active" data-tab="egger">
@@ -7423,9 +7435,9 @@ CUT, EDGE & SPRAY SUMMARY
                 input.classList.remove("invalid");
             }
 
-            }
-
         }
+
+
 
 
         function updateEdging(row) {
@@ -9062,9 +9074,9 @@ CUT, EDGE & SPRAY SUMMARY
                 var str = String(val).trim();
                 if (/<[a-z][\s\S]*>/i.test(str)) {
                     return str.replace(/<\/(p|div|ul|ol|li|h[1-6])>\s*<br\s*\/?>/gi, '</$1>')
-                              .replace(/<br\s*\/?>\s*<(p|div|ul|ol|li|h[1-6])/gi, '<$1')
-                              .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '')
-                              .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
+                        .replace(/<br\s*\/?>\s*<(p|div|ul|ol|li|h[1-6])/gi, '<$1')
+                        .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '')
+                        .replace(/(<br\s*\/?>\s*){2,}/gi, '<br>');
                 }
                 return str.replace(/\r\n|\r|\n/g, '<br>');
             }
@@ -10288,9 +10300,17 @@ letter-spacing:-2px;">
             const downloadBtn = document.getElementById("downloadRowBtn");
             if (downloadBtn) {
                 downloadBtn.addEventListener("click", function () {
-                    const trs = Array.from(document.querySelectorAll(".table-area table tr")).filter(tr =>
+                    const mainTable = document.querySelector(".tab-panel[data-panel='cutspray'] > .table-area > table") ||
+                                      document.querySelector(".table-area > table:not(#fsTable):not(#etTable)") ||
+                                      (typeof table !== "undefined" && table ? table : document.querySelector(".table-area table"));
+
+                    const trs = Array.from(mainTable ? mainTable.querySelectorAll("tr") : []).filter(tr =>
                         !tr.classList.contains("header-row") &&
                         !tr.classList.contains("section-row") &&
+                        !tr.classList.contains("fs-row") &&
+                        !tr.classList.contains("et-row") &&
+                        !tr.closest("#fsTable") &&
+                        !tr.closest("#etTable") &&
                         tr.querySelector(".rownum")
                     );
 
@@ -10329,16 +10349,28 @@ letter-spacing:-2px;">
                         const w1Input = tr.querySelector('.edging-input[data-edge="W1"] input');
                         const w2Input = tr.querySelector('.edging-input[data-edge="W2"] input');
 
-                        const l1 = l1Input ? l1Input.value : "";
-                        const l2 = l2Input ? l2Input.value : "";
-                        const w1 = w1Input ? w1Input.value : "";
-                        const w2 = w2Input ? w2Input.value : "";
+                        const state = (typeof edgeState !== "undefined" && edgeState && edgeState.has(tr)) ? edgeState.get(tr) : null;
 
-                        let finish = "";
-                        if (typeof edgeState !== "undefined") {
-                            const state = edgeState.get(tr);
-                            finish = (state && state.finish) ? state.finish : "";
-                        }
+                        const isEdgeOn = function (edgeKey, inputEl) {
+                            if (state && state[edgeKey]) return 1;
+                            if (inputEl) {
+                                const val = inputEl.value;
+                                if (val === null || val === undefined || val === "") return 0;
+                                if (typeof val === "number") return val > 0 ? 1 : 0;
+                                const s = String(val).trim().toLowerCase();
+                                if (s === "0" || s === "false" || s === "no" || s === "n" || s === "-" || s === "none" || s === "off") return 0;
+                                return 1;
+                            }
+                            return 0;
+                        };
+
+                        const l1 = isEdgeOn("L1", l1Input);
+                        const l2 = isEdgeOn("L2", l2Input);
+                        const w1 = isEdgeOn("W1", w1Input);
+                        const w2 = isEdgeOn("W2", w2Input);
+
+                        let finish = (state && state.finish) ? state.finish : "";
+                        if (finish) finish = finish.charAt(0).toUpperCase() + finish.slice(1);
 
                         const note = tr.dataset.panelInfo || "";
 

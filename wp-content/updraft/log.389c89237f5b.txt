@@ -1,0 +1,722 @@
+0000.001 (0) Opened log file at time: Wed, 23 Sep 2026 04:36:58 +0000 on http://cutlist.local
+0000.011 (0) UpdraftPlus WordPress backup plugin (https://updraftplus.com): 1.26.7 WP: 7.0.2 PHP: 8.2.27 (cgi-fcgi, Windows NT DESKTOP-01HFOBC 10.0 build 19045 (Windows 10) AMD64) MySQL: 8.0.35 (max packet size=1073741824) WPLANG: en_US Server: nginx/1.26.1 safe_mode: 0 max_execution_time: 900 memory_limit: 256M (used: 10.7M | 12M) multisite: N openssl: OpenSSL 3.0.15 3 Sep 2024 mcrypt: N LANG:  WP Proxy: disabled ZipArchive::addFile: Y
+0000.022 (0) Free space on disk containing Updraft's temporary directory: 34264.4 MB
+0000.042 (0) Tasks: Backup files: 1 (schedule: unset) Backup DB: 1 (schedule: unset)
+0000.063 (0) Requesting semaphore lock (fd) (apparently not via scheduler)
+0000.093 (0) Set semaphore last lock (fd) time to 2026-09-23 04:36:58
+0000.101 (0) Semaphore lock (fd) complete
+0000.127 (0) Backup run: resumption=0, nonce=389c89237f5b, file_nonce=389c89237f5b begun at=1790138218 (0s ago), job type=backup
+0000.145 (0) Scheduling a resumption (1) after 300 seconds (1790138518) in case this run gets aborted
+0000.225 (0) Checking if we have a zip executable available
+0000.251 (0) Creation of backups of directories: beginning
+0000.284 (0) Beginning creation of dump of plugins (split every: 400 MB)
+0003.701 (0) Total entities for the zip file: 1271 directories, 7875 files (0 skipped as non-modified), 116.5 MB
+0003.720 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 2.0 seconds have passed since the last write (0 MB, 1 (1) files added so far); re-opening (prior size: 0 KB)
+0003.942 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 100 files added (on-disk size: 243.7 KB)
+0004.014 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 200 files added (on-disk size: 243.7 KB)
+0004.087 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 300 files added (on-disk size: 243.7 KB)
+0004.158 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 400 files added (on-disk size: 243.7 KB)
+0004.230 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 500 files added (on-disk size: 243.7 KB)
+0004.263 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 25 MB added on this batch (25 MB, 7875 files batched, 537 (538) added so far); re-opening (prior size: 243.7 KB)
+0015.034 (0) A useful amount of data was added after this amount of zip processing: 11.3 s (normalised: 11.3 s, rate: 2271.5 KB/s)
+0015.112 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 600 files added (on-disk size: 8895.8 KB)
+0015.182 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 700 files added (on-disk size: 8895.8 KB)
+0015.259 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 800 files added (on-disk size: 8895.8 KB)
+0015.330 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 900 files added (on-disk size: 8895.8 KB)
+0015.402 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1000 files added (on-disk size: 8895.8 KB)
+0015.474 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1100 files added (on-disk size: 8895.8 KB)
+0015.484 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 25 MB added on this batch (25.2 MB, 7875 files batched, 564 (1102) added so far); re-opening (prior size: 8895.8 KB)
+0023.967 (0) A useful amount of data was added after this amount of zip processing: 9.2 s (normalised: 9.2 s, rate: 2793.8 KB/s)
+0024.074 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1200 files added (on-disk size: 20020.4 KB)
+0024.138 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1300 files added (on-disk size: 20020.4 KB)
+0024.219 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1400 files added (on-disk size: 20020.4 KB)
+0024.297 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1500 files added (on-disk size: 20020.4 KB)
+0024.388 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1600 files added (on-disk size: 20020.4 KB)
+0024.493 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1700 files added (on-disk size: 20020.4 KB)
+0024.562 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1800 files added (on-disk size: 20020.4 KB)
+0024.640 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 1900 files added (on-disk size: 20020.4 KB)
+0024.743 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2000 files added (on-disk size: 20020.4 KB)
+0024.827 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2100 files added (on-disk size: 20020.4 KB)
+0024.837 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (14.5 MB, 7875 files batched, 1001 (2103) added so far); re-opening (prior size: 20020.4 KB)
+0035.362 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2200 files added (on-disk size: 24407.2 KB)
+0035.459 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2300 files added (on-disk size: 24407.2 KB)
+0035.561 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2400 files added (on-disk size: 24407.2 KB)
+0035.649 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2500 files added (on-disk size: 24407.2 KB)
+0035.767 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2600 files added (on-disk size: 24407.2 KB)
+0035.829 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2700 files added (on-disk size: 24407.2 KB)
+0035.898 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2800 files added (on-disk size: 24407.2 KB)
+0035.974 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 2900 files added (on-disk size: 24407.2 KB)
+0036.051 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3000 files added (on-disk size: 24407.2 KB)
+0036.126 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3100 files added (on-disk size: 24407.2 KB)
+0036.138 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (13.5 MB, 7875 files batched, 1001 (3104) added so far); re-opening (prior size: 24407.2 KB)
+0062.084 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3200 files added (on-disk size: 28087.2 KB)
+0062.148 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3300 files added (on-disk size: 28087.2 KB)
+0062.208 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3400 files added (on-disk size: 28087.2 KB)
+0062.263 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3500 files added (on-disk size: 28087.2 KB)
+0062.320 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3600 files added (on-disk size: 28087.2 KB)
+0062.384 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3700 files added (on-disk size: 28087.2 KB)
+0062.442 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3800 files added (on-disk size: 28087.2 KB)
+0062.508 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 3900 files added (on-disk size: 28087.2 KB)
+0062.582 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4000 files added (on-disk size: 28087.2 KB)
+0062.657 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4100 files added (on-disk size: 28087.2 KB)
+0062.669 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (13.9 MB, 7875 files batched, 1001 (4105) added so far); re-opening (prior size: 28087.2 KB)
+0083.387 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4200 files added (on-disk size: 34041.4 KB)
+0083.465 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4300 files added (on-disk size: 34041.4 KB)
+0083.528 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4400 files added (on-disk size: 34041.4 KB)
+0083.586 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4500 files added (on-disk size: 34041.4 KB)
+0083.661 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4600 files added (on-disk size: 34041.4 KB)
+0083.735 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4700 files added (on-disk size: 34041.4 KB)
+0083.798 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4800 files added (on-disk size: 34041.4 KB)
+0083.877 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 4900 files added (on-disk size: 34041.4 KB)
+0083.944 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5000 files added (on-disk size: 34041.4 KB)
+0083.999 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5100 files added (on-disk size: 34041.4 KB)
+0084.012 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (8 MB, 7875 files batched, 1001 (5106) added so far); re-opening (prior size: 34041.4 KB)
+0085.624 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5200 files added (on-disk size: 36283.9 KB)
+0085.698 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5300 files added (on-disk size: 36283.9 KB)
+0085.754 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5400 files added (on-disk size: 36283.9 KB)
+0085.808 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5500 files added (on-disk size: 36283.9 KB)
+0085.879 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5600 files added (on-disk size: 36283.9 KB)
+0085.943 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5700 files added (on-disk size: 36283.9 KB)
+0086.007 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5800 files added (on-disk size: 36283.9 KB)
+0086.069 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 5900 files added (on-disk size: 36283.9 KB)
+0086.138 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6000 files added (on-disk size: 36283.9 KB)
+0086.205 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6100 files added (on-disk size: 36283.9 KB)
+0086.222 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (4.9 MB, 7875 files batched, 1001 (6107) added so far); re-opening (prior size: 36283.9 KB)
+0087.665 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6200 files added (on-disk size: 37864.1 KB)
+0087.732 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6300 files added (on-disk size: 37864.1 KB)
+0087.797 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6400 files added (on-disk size: 37864.1 KB)
+0087.874 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6500 files added (on-disk size: 37864.1 KB)
+0087.950 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6600 files added (on-disk size: 37864.1 KB)
+0088.032 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6700 files added (on-disk size: 37864.1 KB)
+0088.104 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6800 files added (on-disk size: 37864.1 KB)
+0088.171 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 6900 files added (on-disk size: 37864.1 KB)
+0088.221 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7000 files added (on-disk size: 37864.1 KB)
+0088.289 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7100 files added (on-disk size: 37864.1 KB)
+0088.304 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 1000 files added on this batch (6.8 MB, 7875 files batched, 1001 (7108) added so far); re-opening (prior size: 37864.1 KB)
+0090.110 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7200 files added (on-disk size: 39947 KB)
+0091.313 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7300 files added (on-disk size: 39947 KB)
+0092.079 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7400 files added (on-disk size: 39947 KB)
+0092.661 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7500 files added (on-disk size: 39947 KB)
+0092.743 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 2.0 seconds have passed since the last write (2.8 MB, 428 (7536) files added so far); re-opening (prior size: 39947 KB)
+0099.821 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7600 files added (on-disk size: 40776.4 KB)
+0099.909 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7700 files added (on-disk size: 40776.4 KB)
+0100.065 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.tmp: 7800 files added (on-disk size: 40776.4 KB)
+0102.126 (0) Creating zip file manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.list-temp.tmp)
+0102.267 (0) Successfully created zip file manifest (size: 694225)
+0103.544 (0) Created plugins zip (0) - 41305.1 KB in 103.2 s (400.3 KB/s) (sha1: ba4c2aac06eb82c757eb8e132ee5938a46fc88b8, sha256: 0e53a6f92ff32bf18df1f7120f38475dde479312f3a5f4a50ea313054fb2cc0a)
+0103.638 (0) Cloud backup selection (1/1): none with instance (1/1) (last)
+0103.701 (0) No remote despatch: user chose no remote backup service
+0103.765 (0) Recording as successfully uploaded: backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip
+0103.903 (0) Deleting zip manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip.list.tmp)
+0103.980 (0) Retain: beginning examination of existing backup sets; user setting: retain_files=2, retain_db=2
+0104.057 (0) Number of backup sets in history: 6; groups (db): 1
+0104.123 (0) Examining (for databases) backup set with group_id=0, nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0104.132 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.140 (0) Examining (for databases) backup set with group_id=0, nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0104.140 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.141 (0) Examining (for databases) backup set with group_id=0, nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0104.141 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.141 (0) Examining (for databases) backup set with group_id=0, nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0104.141 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.141 (0) Examining (for databases) backup set with group_id=0, nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0104.141 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.141 (0) Examining (for databases) backup set with group_id=0, nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0104.141 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.141 (0) Number of backup sets in history: 6; groups (files): 1
+0104.209 (0) Examining (for files) backup set with nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0104.209 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.339 (0) Examining (for files) backup set with nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0104.339 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.339 (0) Examining (for files) backup set with nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0104.339 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.340 (0) Examining (for files) backup set with nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0104.340 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.340 (0) Examining (for files) backup set with nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0104.340 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.340 (0) Examining (for files) backup set with nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0104.340 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0104.340 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0104.340 (0) Retain: saving new backup history (sets now: 6) and finishing retain operation
+0104.439 (0) Beginning creation of dump of themes (split every: 400 MB)
+0105.445 (0) Total entities for the zip file: 363 directories, 991 files (0 skipped as non-modified), 29.7 MB
+0105.648 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 100 files added (on-disk size: 0 KB)
+0106.436 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 200 files added (on-disk size: 0 KB)
+0106.745 (0) Adding batch to zip file (UpdraftPlus_ZipArchive): over 2.0 seconds have passed since the last write (11.4 MB, 207 (207) files added so far); re-opening (prior size: 0 KB)
+0115.868 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 300 files added (on-disk size: 3860.4 KB)
+0116.009 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 400 files added (on-disk size: 3860.4 KB)
+0116.226 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 500 files added (on-disk size: 3860.4 KB)
+0116.384 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 600 files added (on-disk size: 3860.4 KB)
+0116.508 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 700 files added (on-disk size: 3860.4 KB)
+0116.634 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 800 files added (on-disk size: 3860.4 KB)
+0116.766 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.tmp: 900 files added (on-disk size: 3860.4 KB)
+0126.667 (0) Creating zip file manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.list-temp.tmp)
+0126.689 (0) Successfully created zip file manifest (size: 80359)
+0127.106 (0) Created themes zip (0) - 14615.7 KB in 22.6 s (645.5 KB/s) (sha1: a5628488ad1ef45ce9ee6679a38f93cbc0c7f255, sha256: fe68f51090eb546012976d58a244f57524ff0bf79e26362e1839a4d19acc4728)
+0127.143 (0) Cloud backup selection (1/1): none with instance (1/1) (last)
+0127.181 (0) No remote despatch: user chose no remote backup service
+0127.189 (0) Recording as successfully uploaded: backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip
+0127.210 (0) Deleting zip manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip.list.tmp)
+0127.231 (0) Retain: beginning examination of existing backup sets; user setting: retain_files=2, retain_db=2
+0127.244 (0) Number of backup sets in history: 6; groups (db): 1
+0127.252 (0) Examining (for databases) backup set with group_id=0, nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0127.261 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.292 (0) Examining (for databases) backup set with group_id=0, nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0127.292 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.292 (0) Examining (for databases) backup set with group_id=0, nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0127.292 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.292 (0) Examining (for databases) backup set with group_id=0, nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0127.292 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.292 (0) Examining (for databases) backup set with group_id=0, nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0127.292 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.292 (0) Examining (for databases) backup set with group_id=0, nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0127.292 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.292 (0) Number of backup sets in history: 6; groups (files): 1
+0127.303 (0) Examining (for files) backup set with nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0127.303 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.313 (0) Examining (for files) backup set with nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0127.313 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.314 (0) Examining (for files) backup set with nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0127.314 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.314 (0) Examining (for files) backup set with nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0127.314 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.314 (0) Examining (for files) backup set with nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0127.314 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.314 (0) Examining (for files) backup set with nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0127.314 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.314 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.315 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.315 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0127.315 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0127.315 (0) Retain: saving new backup history (sets now: 6) and finishing retain operation
+0127.362 (0) Exclusion option setting (uploads): backup*,*backups,backwpup*,wp-clone,snapshots,wp-staging
+0127.374 (0) Looking for candidates to backup in: C:\Users\LG-76\Local Sites\cutlist\app\public/wp-content/uploads
+0127.384 (0) finding files: 2026: adding to list (1)
+0127.391 (0) finding files: wc-logs: adding to list (2)
+0127.402 (0) finding files: woocommerce-placeholder-100x100.webp: adding to list (3)
+0127.414 (0) finding files: woocommerce-placeholder-1024x1024.webp: adding to list (4)
+0127.432 (0) finding files: woocommerce-placeholder-150x150.webp: adding to list (5)
+0127.441 (0) finding files: woocommerce-placeholder-300x300.webp: adding to list (6)
+0127.455 (0) finding files: woocommerce-placeholder-600x600.webp: adding to list (7)
+0127.465 (0) finding files: woocommerce-placeholder-768x768.webp: adding to list (8)
+0127.477 (0) finding files: woocommerce-placeholder.webp: adding to list (9)
+0127.494 (0) finding files: woocommerce_uploads: adding to list (10)
+0127.513 (0) Beginning creation of dump of uploads (split every: 400 MB)
+0127.696 (0) Total entities for the zip file: 6 directories, 149 files (0 skipped as non-modified), 8.4 MB
+0127.853 (0) Zip: backup_2026-09-23-0436_Cutlist_389c89237f5b-uploads.zip.tmp: 100 files added (on-disk size: 0 KB)
+0128.324 (0) Creating zip file manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-uploads.zip.list-temp.tmp)
+0128.333 (0) Successfully created zip file manifest (size: 9592)
+0128.522 (0) Created uploads zip (0) - 8593.5 KB in 1 s (8985.1 KB/s) (sha1: 68099df894d6e027c4a162ea70b849062321140e, sha256: dd7793ebae16956ca1b246d709d9138d4b52eca2a2593499aac1f007e0261f5c)
+0128.555 (0) Cloud backup selection (1/1): none with instance (1/1) (last)
+0128.564 (0) No remote despatch: user chose no remote backup service
+0128.572 (0) Recording as successfully uploaded: backup_2026-09-23-0436_Cutlist_389c89237f5b-uploads.zip
+0128.594 (0) Deleting zip manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-uploads.zip.list.tmp)
+0128.619 (0) Retain: beginning examination of existing backup sets; user setting: retain_files=2, retain_db=2
+0128.633 (0) Number of backup sets in history: 6; groups (db): 1
+0128.644 (0) Examining (for databases) backup set with group_id=0, nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0128.644 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.655 (0) Examining (for databases) backup set with group_id=0, nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0128.655 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.655 (0) Examining (for databases) backup set with group_id=0, nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0128.655 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.655 (0) Examining (for databases) backup set with group_id=0, nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0128.655 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.655 (0) Examining (for databases) backup set with group_id=0, nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0128.655 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.656 (0) Examining (for databases) backup set with group_id=0, nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0128.656 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.656 (0) Number of backup sets in history: 6; groups (files): 1
+0128.666 (0) Examining (for files) backup set with nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0128.666 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.675 (0) Examining (for files) backup set with nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0128.675 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.676 (0) Examining (for files) backup set with nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0128.676 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.676 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.677 (0) Examining (for files) backup set with nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0128.677 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.677 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.678 (0) Examining (for files) backup set with nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0128.678 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.678 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.678 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.678 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.678 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.678 (0) Examining (for files) backup set with nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0128.678 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.679 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.679 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.679 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0128.679 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0128.679 (0) Retain: saving new backup history (sets now: 6) and finishing retain operation
+0128.729 (0) No backup of mu-plugins: excluded by user's options
+0128.752 (0) Beginning backup of other directories found in the content directory (index: 0)
+0128.764 (0) Exclusion option setting (others): upgrade,cache,updraft,backup*,*backups,mysql.sql,debug.log
+0128.775 (0) Looking for candidates to backup in: C:\Users\LG-76\Local Sites\cutlist\app\public/wp-content
+0128.785 (0) finding files: index.php: adding to list (1)
+0128.795 (0) finding files: mu-plugins: skipping: this is the mu-plugins directory
+0128.805 (0) finding files: plugins: skipping: this is the plugins directory
+0128.816 (0) finding files: themes: skipping: this is the themes directory
+0128.826 (0) finding files: updraft: skipping: this is the updraft directory
+0128.836 (0) finding files: upgrade: skipping: excluded by options
+0128.853 (0) finding files: upgrade-temp-backup: adding to list (2)
+0128.863 (0) finding files: uploads: skipping: this is the uploads directory
+0128.904 (0) Total entities for the zip file: 1 directories, 1 files (0 skipped as non-modified), 0 MB
+0129.002 (0) Creating zip file manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-others.zip.list-temp.tmp)
+0129.013 (0) Successfully created zip file manifest (size: 43)
+0129.085 (0) Created others zip (0) - 0.3 KB in 0.2 s (1.4 KB/s) (sha1: 3e1f06ba017a654c7132a2604226857178cde058, sha256: ec1950face05e995d45d677954c5974d53826f9ec5e9ce5cd82fc3a92bbe9716)
+0129.121 (0) Cloud backup selection (1/1): none with instance (1/1) (last)
+0129.129 (0) No remote despatch: user chose no remote backup service
+0129.138 (0) Recording as successfully uploaded: backup_2026-09-23-0436_Cutlist_389c89237f5b-others.zip
+0129.168 (0) Deleting zip manifest (backup_2026-09-23-0436_Cutlist_389c89237f5b-others.zip.list.tmp)
+0129.188 (0) Retain: beginning examination of existing backup sets; user setting: retain_files=2, retain_db=2
+0129.198 (0) Number of backup sets in history: 6; groups (db): 1
+0129.205 (0) Examining (for databases) backup set with group_id=0, nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0129.205 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.213 (0) Examining (for databases) backup set with group_id=0, nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0129.214 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.214 (0) Examining (for databases) backup set with group_id=0, nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0129.214 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.214 (0) Examining (for databases) backup set with group_id=0, nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0129.214 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.214 (0) Examining (for databases) backup set with group_id=0, nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0129.214 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.214 (0) Examining (for databases) backup set with group_id=0, nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0129.214 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.214 (0) Number of backup sets in history: 6; groups (files): 1
+0129.222 (0) Examining (for files) backup set with nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0129.222 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.233 (0) Examining (for files) backup set with nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0129.233 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.234 (0) Examining (for files) backup set with nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0129.234 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.234 (0) Examining (for files) backup set with nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0129.234 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.234 (0) Examining (for files) backup set with nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0129.234 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.234 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.234 (0) Examining (for files) backup set with nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0129.235 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.235 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.235 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.235 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0129.235 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0129.235 (0) Retain: saving new backup history (sets now: 6) and finishing retain operation
+0129.308 (0) Saving backup status to database (elements: 8)
+0129.330 (0) Beginning creation of database dump (WordPress DB)
+0129.339 (0) SQL compatibility mode is: NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+0129.447 (0) Table wp_options: Total expected rows (via COUNT): 575
+0129.756 (0) Table wp_options: Rows added in this batch (next record: 8109): 571 (uncompressed bytes in this segment=2186959) in 0.34 seconds
+0129.846 (0) Table wp_options: finishing file(s) (2, 280.2 KB)
+0129.897 (0) Table wp_users: Total expected rows (via COUNT): 1
+0129.904 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0129.921 (0) Table wp_users: Rows added in this batch (next record: 1): 1 (uncompressed bytes in this segment=1418) in 0.03 seconds
+0129.966 (0) Table wp_users: finishing file(s) (2, 0.6 KB)
+0130.013 (0) Table wp_usermeta: Total expected rows (via COUNT): 45
+0130.021 (0) Table is relatively small; fetch_rows will thus be: 50 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0130.040 (0) Table wp_usermeta: Rows added in this batch (next record: 133): 45 (uncompressed bytes in this segment=4050) in 0.04 seconds
+0130.090 (0) Table wp_usermeta: finishing file(s) (2, 1.7 KB)
+0130.158 (0) Table wp_actionscheduler_actions: Total expected rows (via COUNT): 348
+0130.172 (0) Table is relatively small; fetch_rows will thus be: 500 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0130.230 (0) Table wp_actionscheduler_actions: Rows added in this batch (next record: 697): 348 (uncompressed bytes in this segment=149281) in 0.10 seconds
+0130.301 (0) Table wp_actionscheduler_actions: finishing file(s) (2, 11.4 KB)
+0130.349 (0) Table wp_actionscheduler_claims: Total expected rows (via COUNT): 0
+0130.371 (0) Table wp_actionscheduler_claims: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=622) in 0.03 seconds
+0130.424 (0) Table wp_actionscheduler_claims: finishing file(s) (2, 0.4 KB)
+0130.470 (0) Table wp_actionscheduler_groups: Total expected rows (via COUNT): 9
+0130.495 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0130.524 (0) Table wp_actionscheduler_groups: Rows added in this batch (next record: 9): 9 (uncompressed bytes in this segment=881) in 0.06 seconds
+0130.583 (0) Table wp_actionscheduler_groups: finishing file(s) (2, 0.5 KB)
+0130.636 (0) Table wp_actionscheduler_logs: Total expected rows (via COUNT): 1014
+0130.699 (0) Table wp_actionscheduler_logs: Rows added in this batch (next record: 2023): 1014 (uncompressed bytes in this segment=90129) in 0.08 seconds
+0130.749 (0) Table wp_actionscheduler_logs: finishing file(s) (2, 8.9 KB)
+0130.813 (0) Table wp_commentmeta: Total expected rows (via COUNT): 57
+0130.825 (0) Table is relatively small; fetch_rows will thus be: 100 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0130.845 (0) Table wp_commentmeta: Rows added in this batch (next record: 57): 57 (uncompressed bytes in this segment=3238) in 0.06 seconds
+0130.902 (0) Table wp_commentmeta: finishing file(s) (2, 0.7 KB)
+0130.940 (0) Table wp_comments: Total expected rows (via COUNT): 58
+0130.951 (0) Table is relatively small; fetch_rows will thus be: 100 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0130.968 (0) Table wp_comments: Rows added in this batch (next record: 58): 58 (uncompressed bytes in this segment=14204) in 0.04 seconds
+0131.007 (0) Table wp_comments: finishing file(s) (2, 1.7 KB)
+0131.061 (0) Table wp_links: Total expected rows (via COUNT): 0
+0131.083 (0) Table wp_links: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=1298) in 0.04 seconds
+0131.139 (0) Table wp_links: finishing file(s) (2, 0.5 KB)
+0131.201 (0) Table wp_postmeta: Total expected rows (approximate): 1063
+0131.261 (0) Table wp_postmeta: Rows added in this batch (next record: 1587): 1149 (uncompressed bytes in this segment=128888) in 0.08 seconds
+0131.338 (0) Table wp_postmeta: finishing file(s) (2, 17 KB)
+0131.391 (0) Table wp_posts: Total expected rows (via COUNT): 143
+0131.398 (0) Table is relatively small; fetch_rows will thus be: 250 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0131.451 (0) Table wp_posts: Rows added in this batch (next record: 257): 143 (uncompressed bytes in this segment=88664) in 0.08 seconds
+0131.502 (0) Table wp_posts: finishing file(s) (2, 13 KB)
+0131.545 (0) Table wp_term_relationships: Total expected rows (approximate): 29
+0131.564 (0) Table wp_term_relationships: Rows added in this batch (next record: 100000): 29 (uncompressed bytes in this segment=1108) in 0.02 seconds
+0131.600 (0) Table wp_term_relationships: finishing file(s) (2, 0.5 KB)
+0131.647 (0) Table wp_term_taxonomy: Total expected rows (via COUNT): 27
+0131.659 (0) Table is relatively small; fetch_rows will thus be: 50 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0131.686 (0) Table wp_term_taxonomy: Rows added in this batch (next record: 27): 27 (uncompressed bytes in this segment=1930) in 0.06 seconds
+0131.744 (0) Table wp_term_taxonomy: finishing file(s) (2, 0.7 KB)
+0131.810 (0) Table wp_termmeta: Total expected rows (via COUNT): 0
+0131.834 (0) Table wp_termmeta: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=650) in 0.05 seconds
+0132.035 (0) Table wp_termmeta: finishing file(s) (2, 0.4 KB)
+0132.093 (0) Table wp_terms: Total expected rows (via COUNT): 27
+0132.105 (0) Table is relatively small; fetch_rows will thus be: 50 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0132.134 (0) Table wp_terms: Rows added in this batch (next record: 27): 27 (uncompressed bytes in this segment=1756) in 0.05 seconds
+0132.188 (0) Table wp_terms: finishing file(s) (2, 0.8 KB)
+0132.236 (0) Table wp_wc_category_lookup: Total expected rows (approximate): 0
+0132.267 (0) Table wp_wc_category_lookup: Rows added in this batch (next record: 1000): 1 (uncompressed bytes in this segment=581) in 0.04 seconds
+0132.303 (0) Table wp_wc_category_lookup: finishing file(s) (2, 0.3 KB)
+0132.348 (0) Table wp_wc_product_meta_lookup: Total expected rows (via COUNT): 1
+0132.356 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0132.385 (0) Table wp_wc_product_meta_lookup: Rows added in this batch (next record: 136): 1 (uncompressed bytes in this segment=1590) in 0.05 seconds
+0132.424 (0) Table wp_wc_product_meta_lookup: finishing file(s) (2, 0.6 KB)
+0132.462 (0) Table wp_wc_reserved_stock: Total expected rows (approximate): 0
+0132.482 (0) Table wp_wc_reserved_stock: Rows added in this batch (next record: 0): 0 (uncompressed bytes in this segment=710) in 0.03 seconds
+0132.542 (0) Table wp_wc_reserved_stock: finishing file(s) (2, 0.4 KB)
+0132.594 (0) Table wp_wc_tax_rate_classes: Total expected rows (via COUNT): 2
+0132.604 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0132.628 (0) Table wp_wc_tax_rate_classes: Rows added in this batch (next record: 2): 2 (uncompressed bytes in this segment=808) in 0.04 seconds
+0132.676 (0) Table wp_wc_tax_rate_classes: finishing file(s) (2, 0.4 KB)
+0132.725 (0) Table wp_woocommerce_order_itemmeta: Total expected rows (via COUNT): 198
+0132.734 (0) Table is relatively small; fetch_rows will thus be: 250 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0132.752 (0) Table wp_woocommerce_order_itemmeta: Rows added in this batch (next record: 354): 198 (uncompressed bytes in this segment=9564) in 0.04 seconds
+0132.802 (0) Table wp_woocommerce_order_itemmeta: finishing file(s) (2, 2 KB)
+0132.844 (0) Table wp_woocommerce_payment_tokenmeta: Total expected rows (via COUNT): 0
+0132.861 (0) Table wp_woocommerce_payment_tokenmeta: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=790) in 0.04 seconds
+0132.913 (0) Table wp_woocommerce_payment_tokenmeta: finishing file(s) (2, 0.4 KB)
+0132.970 (0) Table wp_cutlist_orders: Total expected rows (via COUNT): 18
+0132.979 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0133.002 (0) Table wp_cutlist_orders: Rows added in this batch (next record: 2008): 18 (uncompressed bytes in this segment=11057) in 0.06 seconds
+0133.062 (0) Table wp_cutlist_orders: finishing file(s) (2, 2.1 KB)
+0133.119 (0) Table wp_wc_admin_note_actions: Total expected rows (via COUNT): 95
+0133.126 (0) Table is relatively small; fetch_rows will thus be: 100 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0133.144 (0) Table wp_wc_admin_note_actions: Rows added in this batch (next record: 2653): 95 (uncompressed bytes in this segment=17471) in 0.05 seconds
+0133.189 (0) Table wp_wc_admin_note_actions: finishing file(s) (2, 3.2 KB)
+0133.244 (0) Table wp_wc_admin_notes: Total expected rows (via COUNT): 68
+0133.254 (0) Table is relatively small; fetch_rows will thus be: 100 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0133.272 (0) Table wp_wc_admin_notes: Rows added in this batch (next record: 68): 68 (uncompressed bytes in this segment=33169) in 0.05 seconds
+0133.340 (0) Table wp_wc_admin_notes: finishing file(s) (2, 7.5 KB)
+0133.392 (0) Table wp_wc_customer_lookup: Total expected rows (via COUNT): 1
+0133.402 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0133.427 (0) Table wp_wc_customer_lookup: Rows added in this batch (next record: 2): 1 (uncompressed bytes in this segment=1471) in 0.05 seconds
+0133.483 (0) Table wp_wc_customer_lookup: finishing file(s) (2, 0.6 KB)
+0133.523 (0) Table wp_wc_download_log: Total expected rows (via COUNT): 0
+0133.552 (0) Table wp_wc_download_log: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=735) in 0.04 seconds
+0133.592 (0) Table wp_wc_download_log: finishing file(s) (2, 0.4 KB)
+0133.626 (0) Table wp_wc_email_unsubscribes: Total expected rows (via COUNT): 0
+0133.634 (0) Table wp_wc_email_unsubscribes: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=760) in 0.02 seconds
+0133.674 (0) Table wp_wc_email_unsubscribes: finishing file(s) (2, 0.4 KB)
+0133.724 (0) Table wp_wc_order_addresses: Total expected rows (via COUNT): 12
+0133.735 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0133.761 (0) Table wp_wc_order_addresses: Rows added in this batch (next record: 22): 12 (uncompressed bytes in this segment=3107) in 0.05 seconds
+0133.810 (0) Table wp_wc_order_addresses: finishing file(s) (2, 0.7 KB)
+0133.864 (0) Table wp_wc_order_coupon_lookup: Total expected rows (approximate): 0
+0133.890 (0) Table wp_wc_order_coupon_lookup: Rows added in this batch (next record: 0): 0 (uncompressed bytes in this segment=709) in 0.04 seconds
+0133.950 (0) Table wp_wc_order_coupon_lookup: finishing file(s) (2, 0.4 KB)
+0134.008 (0) Table wp_wc_order_operational_data: Total expected rows (via COUNT): 6
+0134.021 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0134.050 (0) Table wp_wc_order_operational_data: Rows added in this batch (next record: 113): 6 (uncompressed bytes in this segment=2752) in 0.06 seconds
+0134.110 (0) Table wp_wc_order_operational_data: finishing file(s) (2, 1 KB)
+0134.167 (0) Table wp_wc_order_product_lookup: Total expected rows (approximate): 7
+0134.195 (0) Table wp_wc_order_product_lookup: Rows added in this batch (next record: 1000): 7 (uncompressed bytes in this segment=1958) in 0.04 seconds
+0134.268 (0) Table wp_wc_order_product_lookup: finishing file(s) (2, 0.6 KB)
+0134.311 (0) Table wp_wc_order_stats: Total expected rows (via COUNT): 3
+0134.318 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0134.341 (0) Table wp_wc_order_stats: Rows added in this batch (next record: 257): 3 (uncompressed bytes in this segment=1712) in 0.04 seconds
+0134.382 (0) Table wp_wc_order_stats: finishing file(s) (2, 0.7 KB)
+0134.421 (0) Table wp_wc_order_tax_lookup: Total expected rows (approximate): 3
+0134.441 (0) Table wp_wc_order_tax_lookup: Rows added in this batch (next record: 1000): 3 (uncompressed bytes in this segment=1008) in 0.02 seconds
+0134.482 (0) Table wp_wc_order_tax_lookup: finishing file(s) (2, 0.5 KB)
+0134.521 (0) Table wp_wc_orders: Total expected rows (via COUNT): 6
+0134.533 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0134.559 (0) Table wp_wc_orders: Rows added in this batch (next record: 257): 6 (uncompressed bytes in this segment=3704) in 0.05 seconds
+0134.606 (0) Table wp_wc_orders: finishing file(s) (2, 0.9 KB)
+0134.639 (0) Table wp_wc_orders_meta: Total expected rows (via COUNT): 97
+0134.646 (0) Table is relatively small; fetch_rows will thus be: 100 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0134.665 (0) Table wp_wc_orders_meta: Rows added in this batch (next record: 290): 97 (uncompressed bytes in this segment=8227) in 0.03 seconds
+0134.701 (0) Table wp_wc_orders_meta: finishing file(s) (2, 1.6 KB)
+0134.736 (0) Table wp_wc_product_attributes_lookup: Total expected rows (approximate): 0
+0134.759 (0) Table wp_wc_product_attributes_lookup: Rows added in this batch (next record: 0): 0 (uncompressed bytes in this segment=998) in 0.03 seconds
+0134.803 (0) Table wp_wc_product_attributes_lookup: finishing file(s) (2, 0.4 KB)
+0134.846 (0) Table wp_wc_product_download_directories: Total expected rows (via COUNT): 2
+0134.855 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0134.879 (0) Table wp_wc_product_download_directories: Rows added in this batch (next record: 2): 2 (uncompressed bytes in this segment=928) in 0.05 seconds
+0134.923 (0) Table wp_wc_product_download_directories: finishing file(s) (2, 0.5 KB)
+0134.969 (0) Table wp_wc_rate_limits: Total expected rows (via COUNT): 0
+0134.992 (0) Table wp_wc_rate_limits: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=688) in 0.03 seconds
+0135.033 (0) Table wp_wc_rate_limits: finishing file(s) (2, 0.4 KB)
+0135.074 (0) Table wp_wc_webhooks: Total expected rows (via COUNT): 0
+0135.088 (0) Table wp_wc_webhooks: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=1215) in 0.03 seconds
+0135.123 (0) Table wp_wc_webhooks: finishing file(s) (2, 0.5 KB)
+0135.171 (0) Table wp_woocommerce_api_keys: Total expected rows (via COUNT): 0
+0135.181 (0) Table wp_woocommerce_api_keys: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=1038) in 0.03 seconds
+0135.234 (0) Table wp_woocommerce_api_keys: finishing file(s) (2, 0.5 KB)
+0135.278 (0) Table wp_woocommerce_attribute_taxonomies: Total expected rows (via COUNT): 0
+0135.288 (0) Table wp_woocommerce_attribute_taxonomies: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=954) in 0.02 seconds
+0135.335 (0) Table wp_woocommerce_attribute_taxonomies: finishing file(s) (2, 0.4 KB)
+0135.377 (0) Table wp_woocommerce_downloadable_product_permissions: Total expected rows (via COUNT): 0
+0135.386 (0) Table wp_woocommerce_downloadable_product_permissions: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=1562) in 0.02 seconds
+0135.431 (0) Table wp_woocommerce_downloadable_product_permissions: finishing file(s) (2, 0.5 KB)
+0135.480 (0) Table wp_woocommerce_log: Total expected rows (via COUNT): 0
+0135.491 (0) Table wp_woocommerce_log: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=715) in 0.03 seconds
+0135.544 (0) Table wp_woocommerce_log: finishing file(s) (2, 0.4 KB)
+0135.581 (0) Table wp_woocommerce_order_items: Total expected rows (via COUNT): 17
+0135.589 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0135.610 (0) Table wp_woocommerce_order_items: Rows added in this batch (next record: 29): 17 (uncompressed bytes in this segment=1848) in 0.04 seconds
+0135.650 (0) Table wp_woocommerce_order_items: finishing file(s) (2, 0.6 KB)
+0135.693 (0) Table wp_woocommerce_payment_tokens: Total expected rows (via COUNT): 0
+0135.716 (0) Table wp_woocommerce_payment_tokens: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=833) in 0.03 seconds
+0135.772 (0) Table wp_woocommerce_payment_tokens: finishing file(s) (2, 0.4 KB)
+0135.825 (0) Table wp_woocommerce_sessions: Total expected rows (via COUNT): 1
+0135.836 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0135.862 (0) Table wp_woocommerce_sessions: Rows added in this batch (next record: 617): 1 (uncompressed bytes in this segment=5542) in 0.06 seconds
+0135.920 (0) Table wp_woocommerce_sessions: finishing file(s) (2, 1.8 KB)
+0135.966 (0) Table wp_woocommerce_shipping_zone_locations: Total expected rows (via COUNT): 0
+0135.988 (0) Table wp_woocommerce_shipping_zone_locations: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=858) in 0.04 seconds
+0136.042 (0) Table wp_woocommerce_shipping_zone_locations: finishing file(s) (2, 0.4 KB)
+0136.106 (0) Table wp_woocommerce_shipping_zone_methods: Total expected rows (via COUNT): 0
+0136.119 (0) Table wp_woocommerce_shipping_zone_methods: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=829) in 0.03 seconds
+0136.172 (0) Table wp_woocommerce_shipping_zone_methods: finishing file(s) (2, 0.4 KB)
+0136.224 (0) Table wp_woocommerce_shipping_zones: Total expected rows (via COUNT): 0
+0136.231 (0) Table wp_woocommerce_shipping_zones: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=673) in 0.02 seconds
+0136.268 (0) Table wp_woocommerce_shipping_zones: finishing file(s) (2, 0.4 KB)
+0136.311 (0) Table wp_woocommerce_tax_rate_locations: Total expected rows (via COUNT): 0
+0136.324 (0) Table wp_woocommerce_tax_rate_locations: Rows added in this batch (next record: -1): 0 (uncompressed bytes in this segment=840) in 0.02 seconds
+0136.367 (0) Table wp_woocommerce_tax_rate_locations: finishing file(s) (2, 0.4 KB)
+0136.406 (0) Table wp_woocommerce_tax_rates: Total expected rows (via COUNT): 1
+0136.413 (0) Table is relatively small; fetch_rows will thus be: 20 (allow_further_reductions=1, is_first_fetch=1, known_bigger_than_table=1)
+0136.433 (0) Table wp_woocommerce_tax_rates: Rows added in this batch (next record: 1): 1 (uncompressed bytes in this segment=1396) in 0.03 seconds
+0136.477 (0) Table wp_woocommerce_tax_rates: finishing file(s) (2, 0.5 KB)
+0136.491 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_options.table.tmpr8110.gz (1/52/fopen): adding to final database dump
+0136.514 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_options.table.gz (2/52/fopen): adding to final database dump
+0136.522 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_users.table.tmpr2.gz (3/52/fopen): adding to final database dump
+0136.531 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_users.table.gz (4/52/fopen): adding to final database dump
+0136.541 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_usermeta.table.tmpr134.gz (5/52/fopen): adding to final database dump
+0136.557 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_usermeta.table.gz (6/52/fopen): adding to final database dump
+0136.565 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_actions.table.tmpr698.gz (7/52/fopen): adding to final database dump
+0136.576 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_actions.table.gz (8/52/fopen): adding to final database dump
+0136.587 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_claims.table.tmpr0.gz (9/52/fopen): adding to final database dump
+0136.599 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_claims.table.gz (10/52/fopen): adding to final database dump
+0136.609 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_groups.table.tmpr10.gz (11/52/fopen): adding to final database dump
+0136.618 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_groups.table.gz (12/52/fopen): adding to final database dump
+0136.628 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_logs.table.tmpr2024.gz (13/52/fopen): adding to final database dump
+0136.641 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_actionscheduler_logs.table.gz (14/52/fopen): adding to final database dump
+0136.650 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_commentmeta.table.tmpr58.gz (15/52/fopen): adding to final database dump
+0136.661 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_commentmeta.table.gz (16/52/fopen): adding to final database dump
+0136.675 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_comments.table.tmpr59.gz (17/52/fopen): adding to final database dump
+0136.687 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_comments.table.gz (18/52/fopen): adding to final database dump
+0136.698 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_links.table.tmpr0.gz (19/52/fopen): adding to final database dump
+0136.710 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_links.table.gz (20/52/fopen): adding to final database dump
+0136.720 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_postmeta.table.tmpr1588.gz (21/52/fopen): adding to final database dump
+0136.732 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_postmeta.table.gz (22/52/fopen): adding to final database dump
+0136.743 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_posts.table.tmpr258.gz (23/52/fopen): adding to final database dump
+0136.757 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_posts.table.gz (24/52/fopen): adding to final database dump
+0136.767 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_term_relationships.table.tmpr100001.gz (25/52/fopen): adding to final database dump
+0136.776 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_term_relationships.table.gz (26/52/fopen): adding to final database dump
+0136.788 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_term_taxonomy.table.tmpr28.gz (27/52/fopen): adding to final database dump
+0136.800 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_term_taxonomy.table.gz (28/52/fopen): adding to final database dump
+0136.811 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_termmeta.table.tmpr0.gz (29/52/fopen): adding to final database dump
+0136.821 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_termmeta.table.gz (30/52/fopen): adding to final database dump
+0136.833 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_terms.table.tmpr28.gz (31/52/fopen): adding to final database dump
+0136.845 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_terms.table.gz (32/52/fopen): adding to final database dump
+0136.857 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_category_lookup.table.tmpr1001.gz (33/52/fopen): adding to final database dump
+0136.867 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_category_lookup.table.gz (34/52/fopen): adding to final database dump
+0136.882 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_meta_lookup.table.tmpr137.gz (35/52/fopen): adding to final database dump
+0136.937 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_meta_lookup.table.gz (36/52/fopen): adding to final database dump
+0137.005 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_reserved_stock.table.tmpr1.gz (37/52/fopen): adding to final database dump
+0137.013 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_reserved_stock.table.gz (38/52/fopen): adding to final database dump
+0137.020 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_tax_rate_classes.table.tmpr3.gz (39/52/fopen): adding to final database dump
+0137.080 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_tax_rate_classes.table.gz (40/52/fopen): adding to final database dump
+0137.086 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_order_itemmeta.table.tmpr355.gz (41/52/fopen): adding to final database dump
+0137.094 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_order_itemmeta.table.gz (42/52/fopen): adding to final database dump
+0137.101 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_payment_tokenmeta.table.tmpr0.gz (43/52/fopen): adding to final database dump
+0137.113 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_payment_tokenmeta.table.gz (44/52/fopen): adding to final database dump
+0137.125 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_cutlist_orders.table.tmpr2009.gz (45/52/fopen): adding to final database dump
+0137.139 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_cutlist_orders.table.gz (46/52/fopen): adding to final database dump
+0137.148 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_admin_note_actions.table.tmpr2654.gz (47/52/fopen): adding to final database dump
+0137.155 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_admin_note_actions.table.gz (48/52/fopen): adding to final database dump
+0137.162 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_admin_notes.table.tmpr69.gz (49/52/fopen): adding to final database dump
+0137.171 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_admin_notes.table.gz (50/52/fopen): adding to final database dump
+0137.180 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_customer_lookup.table.tmpr3.gz (51/52/fopen): adding to final database dump
+0137.189 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_customer_lookup.table.gz (52/52/fopen): adding to final database dump
+0137.196 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_download_log.table.tmpr0.gz (53/52/fopen): adding to final database dump
+0137.205 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_download_log.table.gz (54/52/fopen): adding to final database dump
+0137.213 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_email_unsubscribes.table.tmpr0.gz (55/52/fopen): adding to final database dump
+0137.225 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_email_unsubscribes.table.gz (56/52/fopen): adding to final database dump
+0137.234 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_addresses.table.tmpr23.gz (57/52/fopen): adding to final database dump
+0137.248 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_addresses.table.gz (58/52/fopen): adding to final database dump
+0137.257 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_coupon_lookup.table.tmpr1.gz (59/52/fopen): adding to final database dump
+0137.268 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_coupon_lookup.table.gz (60/52/fopen): adding to final database dump
+0137.278 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_operational_data.table.tmpr114.gz (61/52/fopen): adding to final database dump
+0137.289 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_operational_data.table.gz (62/52/fopen): adding to final database dump
+0137.299 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_product_lookup.table.tmpr1001.gz (63/52/fopen): adding to final database dump
+0137.310 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_product_lookup.table.gz (64/52/fopen): adding to final database dump
+0137.325 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_stats.table.tmpr258.gz (65/52/fopen): adding to final database dump
+0137.335 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_stats.table.gz (66/52/fopen): adding to final database dump
+0137.346 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_tax_lookup.table.tmpr1001.gz (67/52/fopen): adding to final database dump
+0137.356 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_order_tax_lookup.table.gz (68/52/fopen): adding to final database dump
+0137.366 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_orders.table.tmpr258.gz (69/52/fopen): adding to final database dump
+0137.378 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_orders.table.gz (70/52/fopen): adding to final database dump
+0137.388 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_orders_meta.table.tmpr291.gz (71/52/fopen): adding to final database dump
+0137.400 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_orders_meta.table.gz (72/52/fopen): adding to final database dump
+0137.414 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_attributes_lookup.table.tmpr1.gz (73/52/fopen): adding to final database dump
+0137.425 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_attributes_lookup.table.gz (74/52/fopen): adding to final database dump
+0137.436 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_download_directories.table.tmpr3.gz (75/52/fopen): adding to final database dump
+0137.448 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_product_download_directories.table.gz (76/52/fopen): adding to final database dump
+0137.457 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_rate_limits.table.tmpr0.gz (77/52/fopen): adding to final database dump
+0137.469 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_rate_limits.table.gz (78/52/fopen): adding to final database dump
+0137.481 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_webhooks.table.tmpr0.gz (79/52/fopen): adding to final database dump
+0137.493 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_wc_webhooks.table.gz (80/52/fopen): adding to final database dump
+0137.549 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_api_keys.table.tmpr0.gz (81/52/fopen): adding to final database dump
+0137.561 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_api_keys.table.gz (82/52/fopen): adding to final database dump
+0137.583 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_attribute_taxonomies.table.tmpr0.gz (83/52/fopen): adding to final database dump
+0137.596 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_attribute_taxonomies.table.gz (84/52/fopen): adding to final database dump
+0137.606 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_downloadable_product_permissions.table.tmpr0.gz (85/52/fopen): adding to final database dump
+0137.616 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_downloadable_product_permissions.table.gz (86/52/fopen): adding to final database dump
+0137.627 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_log.table.tmpr0.gz (87/52/fopen): adding to final database dump
+0137.637 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_log.table.gz (88/52/fopen): adding to final database dump
+0137.648 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_order_items.table.tmpr30.gz (89/52/fopen): adding to final database dump
+0137.667 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_order_items.table.gz (90/52/fopen): adding to final database dump
+0137.677 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_payment_tokens.table.tmpr0.gz (91/52/fopen): adding to final database dump
+0137.689 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_payment_tokens.table.gz (92/52/fopen): adding to final database dump
+0137.698 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_sessions.table.tmpr618.gz (93/52/fopen): adding to final database dump
+0137.712 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_sessions.table.gz (94/52/fopen): adding to final database dump
+0137.721 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zone_locations.table.tmpr0.gz (95/52/fopen): adding to final database dump
+0137.732 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zone_locations.table.gz (96/52/fopen): adding to final database dump
+0137.745 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zone_methods.table.tmpr0.gz (97/52/fopen): adding to final database dump
+0137.759 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zone_methods.table.gz (98/52/fopen): adding to final database dump
+0137.770 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zones.table.tmpr0.gz (99/52/fopen): adding to final database dump
+0137.792 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_shipping_zones.table.gz (100/52/fopen): adding to final database dump
+0137.811 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_tax_rate_locations.table.tmpr0.gz (101/52/fopen): adding to final database dump
+0137.824 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_tax_rate_locations.table.gz (102/52/fopen): adding to final database dump
+0137.834 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_tax_rates.table.tmpr2.gz (103/52/fopen): adding to final database dump
+0137.848 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db-table-wp_woocommerce_tax_rates.table.gz (104/52/fopen): adding to final database dump
+0137.905 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db.gz: finished writing out complete database file (371.3 KB)
+0138.005 (0) Total database tables backed up: 52 (backup_2026-09-23-0436_Cutlist_389c89237f5b-db.gz, size: 380354, sha1: 3c64c4afd4decde2a3049af702f283e8f70cfd87, sha256: fbcf957e2026d13e842acc2a1d31dc21a7cef2e0b8cddeb3b49dfd7d2ce97fa7)
+0138.063 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-plugins.zip: plugins: This file has already been successfully processed
+0138.071 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-themes.zip: themes: This file has already been successfully processed
+0138.079 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-uploads.zip: uploads: This file has already been successfully processed
+0138.089 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-others.zip: others: This file has already been successfully processed
+0138.097 (0) backup_2026-09-23-0436_Cutlist_389c89237f5b-db.gz: db: This file has not yet been successfully uploaded: will queue
+0138.106 (0) Saving backup history. Total backup size: 63.4 MB
+0138.141 (0) Requesting upload of the files that have not yet been successfully uploaded (1)
+0138.181 (0) Cloud backup selection (1/1): none with instance (1/1) (last)
+0138.190 (0) No remote despatch: user chose no remote backup service
+0138.201 (0) Recording as successfully uploaded: backup_2026-09-23-0436_Cutlist_389c89237f5b-db.gz
+0138.236 (0) Retain: beginning examination of existing backup sets; user setting: retain_files=2, retain_db=2
+0138.250 (0) Number of backup sets in history: 7; groups (db): 1
+0138.260 (0) Examining (for databases) backup set with group_id=0, nonce=389c89237f5b, datestamp=1790138218 (Sep 23 2026 04:36:58)
+0138.270 (0) This backup set is the backup set just made, so will not be deleted.
+0138.270 (0) Examining (for databases) backup set with group_id=0, nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0138.270 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.280 (0) Examining (for databases) backup set with group_id=0, nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0138.280 (0) 1789458486: db: this set includes a database (backup_2026-09-15-0748_Cutlist_18bacae07979-db.gz); db count is now 2
+0138.280 (0) 1789458486: db: over retain limit (2); will delete this database
+0138.280 (0) Delete file: backup_2026-09-15-0748_Cutlist_18bacae07979-db.gz, service=none
+0138.293 (0) Deleting local copy (backup_2026-09-15-0748_Cutlist_18bacae07979-db.gz)
+0138.318 (0) This backup set remains non-empty (f=1/d=0); will retain in history
+0138.329 (0) Examining (for databases) backup set with group_id=0, nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0138.329 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.329 (0) Examining (for databases) backup set with group_id=0, nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0138.329 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.329 (0) Examining (for databases) backup set with group_id=0, nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0138.329 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.329 (0) Examining (for databases) backup set with group_id=0, nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0138.329 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.330 (0) Number of backup sets in history: 7; groups (files): 1
+0138.340 (0) Examining (for files) backup set with nonce=389c89237f5b, datestamp=1790138218 (Sep 23 2026 04:36:58)
+0138.341 (0) This backup set is the backup set just made, so will not be deleted.
+0138.352 (0) This backup set is the backup set just made, so will not be deleted.
+0138.353 (0) This backup set is the backup set just made, so will not be deleted.
+0138.353 (0) This backup set is the backup set just made, so will not be deleted.
+0138.353 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.364 (0) Examining (for files) backup set with nonce=22b188e6c6e0, datestamp=1789984393 (Sep 21 2026 09:53:13)
+0138.364 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.364 (0) Examining (for files) backup set with nonce=18bacae07979, datestamp=1789458486 (Sep 15 2026 07:48:06)
+0138.364 (0) plugins: over retain limit (2); will delete this file entity
+0138.364 (0) themes: over retain limit (2); will delete this file entity
+0138.364 (0) uploads: over retain limit (2); will delete this file entity
+0138.365 (0) others: over retain limit (2); will delete this file entity
+0138.365 (0) Delete file: backup_2026-09-15-0748_Cutlist_18bacae07979-plugins.zip, service=none
+0138.374 (0) Deleting local copy (backup_2026-09-15-0748_Cutlist_18bacae07979-plugins.zip)
+0138.387 (0) Delete file: backup_2026-09-15-0748_Cutlist_18bacae07979-themes.zip, service=none
+0138.398 (0) Deleting local copy (backup_2026-09-15-0748_Cutlist_18bacae07979-themes.zip)
+0138.410 (0) Delete file: backup_2026-09-15-0748_Cutlist_18bacae07979-uploads.zip, service=none
+0138.420 (0) Deleting local copy (backup_2026-09-15-0748_Cutlist_18bacae07979-uploads.zip)
+0138.431 (0) Delete file: backup_2026-09-15-0748_Cutlist_18bacae07979-others.zip, service=none
+0138.446 (0) Deleting local copy (backup_2026-09-15-0748_Cutlist_18bacae07979-others.zip)
+0138.473 (0) This backup set is now empty; will remove from history
+0138.484 (0) Deleting log file (log.18bacae07979.txt)
+0138.495 (0) Examining (for files) backup set with nonce=f9e86201fc5c, datestamp=1789452096 (Sep 15 2026 06:01:36)
+0138.495 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.495 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.495 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.495 (0) This backup set (1789452096) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.495 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.518 (0) Examining (for files) backup set with nonce=23c0a19c2c20, datestamp=1789026601 (Sep 10 2026 07:50:01)
+0138.518 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.518 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.518 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.518 (0) This backup set (1789026601) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.518 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.519 (0) Examining (for files) backup set with nonce=9160c4c9e995, datestamp=1788947539 (Sep 09 2026 09:52:19)
+0138.519 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788947539) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.519 (0) Examining (for files) backup set with nonce=a1b8343ab712, datestamp=1788780060 (Sep 07 2026 11:21:00)
+0138.519 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set (1788780060) was an 'Always Keep' backup, so it will not be pruned. Skipping.
+0138.519 (0) This backup set remains non-empty (f=1/d=1); will retain in history
+0138.520 (0) Retain: saving new backup history (sets now: 6) and finishing retain operation
+0138.597 (0) Resume backup (389c89237f5b, 0): finish run
+0138.715 (0) Decremented the semaphore (fd) by 1
+0138.730 (0) Semaphore (fd) unlocked
+0138.742 (0) There were no errors in the uploads, so the 'resume' event (1) is being unscheduled
+0138.775 (0) No email will/can be sent - the user has not configured an email address.
+0138.783 (0) The backup succeeded and is now complete

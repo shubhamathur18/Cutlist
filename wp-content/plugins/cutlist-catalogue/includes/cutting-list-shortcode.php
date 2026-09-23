@@ -77,6 +77,13 @@ function cutlist_proto_get_edge_tape_options()
 					'decorCode' => $board['decor_code'] ?? '',
 					'radiusEdgeFinish' => $tape['radius_edge_finish'],
 					'squareEdgeFinish' => $tape['square_edge_finish'],
+					'stock_units' => (int) ($tape['stock_units'] ?? 10),
+					'stock_quantity' => (int) ($tape['stock_quantity'] ?? 10),
+					'stock_status' => $tape['stock_status'] ?? 'instock',
+					'is_managed_stock' => $tape['is_managed_stock'] ?? false,
+					'is_out_of_stock' => !empty($tape['is_out_of_stock']),
+					'rack_location' => $tape['rack_location'] ?? '',
+					'supplier_sku' => $tape['supplier_sku'] ?? '',
 				];
 			}
 		} else {
@@ -90,6 +97,13 @@ function cutlist_proto_get_edge_tape_options()
 				'decorCode' => '',
 				'radiusEdgeFinish' => $tape['radius_edge_finish'],
 				'squareEdgeFinish' => $tape['square_edge_finish'],
+				'stock_units' => (int) ($tape['stock_units'] ?? 10),
+				'stock_quantity' => (int) ($tape['stock_quantity'] ?? 10),
+				'stock_status' => $tape['stock_status'] ?? 'instock',
+				'is_managed_stock' => $tape['is_managed_stock'] ?? false,
+				'is_out_of_stock' => !empty($tape['is_out_of_stock']),
+				'rack_location' => $tape['rack_location'] ?? '',
+				'supplier_sku' => $tape['supplier_sku'] ?? '',
 			];
 		}
 	}
@@ -324,6 +338,10 @@ function cutlist_proto_build_pm_products($boards)
 			'additional_cut_price' => (float) (!empty($board['additional_cut_price']) ? $board['additional_cut_price'] : 3.46),
 			'price_sheet' => (!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? $currency_sym . number_format((float) $board['full_sheet_price'], 2) : '–',
 			'price_cut' => (!empty($board['cutting_list_price']) && (float) $board['cutting_list_price'] > 0) ? $currency_sym . number_format((float) $board['cutting_list_price'], 2) : ((!empty($board['full_sheet_price']) && (float) $board['full_sheet_price'] > 0) ? $currency_sym . number_format((float) $board['full_sheet_price'], 2) : '–'),
+			'stock_status' => $board['stock_status'] ?? 'instock',
+			'stock_sheets' => $board['stock_sheets'] ?? 0,
+			'is_managed_stock' => $board['is_managed_stock'] ?? false,
+			'is_out_of_stock' => !empty($board['is_out_of_stock']),
 			'slides' => $slides,
 			'thicknesses' => $board['thickness_mm'] ? [$board['thickness_mm']] : [],
 			'machining' => $board['machining'],
@@ -457,28 +475,5 @@ add_shortcode('cutlist_table', function () {
 	return ob_get_clean();
 });
 
-add_shortcode('cnc_machining_table', function () {
-	$boards = cutlist_proto_get_boards();
-	$spray_finishes = cutlist_proto_get_spray_finishes();
-
-	cutlist_enqueue_frontend_assets($boards, $spray_finishes);
-
-	ob_start();
-	if (file_exists(CUTLIST_CATALOGUE_PATH . 'templates/cnc-table.php')) {
-		include CUTLIST_CATALOGUE_PATH . 'templates/cnc-table.php';
-	} else {
-		include CUTLIST_CATALOGUE_PATH . 'templates/cutlist-table.php';
-	}
-	return ob_get_clean();
-});
-
-// Shortcode aliases
-add_shortcode('cnc_machining', function () {
-	return do_shortcode('[cnc_machining_table]');
-});
-
-add_shortcode('cnc_table', function () {
-	return do_shortcode('[cnc_machining_table]');
-});
 
 

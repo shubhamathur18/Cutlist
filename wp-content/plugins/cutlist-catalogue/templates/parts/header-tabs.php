@@ -18,6 +18,8 @@ $zero_price_formatted = function_exists('wc_price') ? wp_strip_all_tags(wc_price
 $wc_cart_total = (function_exists('WC') && WC()->cart) ? WC()->cart->get_cart_total() : (function_exists('wc_price') ? wc_price(0) : ($currency_sym . '0.00'));
 $cutlist_page_url = function_exists('cutlist_get_cutlist_page_url') ? cutlist_get_cutlist_page_url() : home_url('/cutlist/');
 $cnc_page_url = function_exists('cutlist_get_cnc_page_url') ? cutlist_get_cnc_page_url() : home_url('/cnc-machining/');
+$sliding_doors_page_url = function_exists('cutlist_get_sliding_doors_page_url') ? cutlist_get_sliding_doors_page_url() : home_url('/sliding-doors/');
+$hinged_doors_page_url = function_exists('cutlist_get_hinged_doors_page_url') ? cutlist_get_hinged_doors_page_url() : home_url('/hinged-doors/');
 ?>
 <div class="cb-topbar" id="cbTopbar" style="display:none">
     <a href="<?php echo esc_url($wc_cart_url); ?>"
@@ -43,7 +45,7 @@ $cnc_page_url = function_exists('cutlist_get_cnc_page_url') ? cutlist_get_cnc_pa
             </span>
         </a>
         <a href="<?php echo $active_tab === 'cncmachining' ? 'javascript:void(0)' : esc_url($cnc_page_url); ?>"
-            class="tab<?php echo $active_tab === 'cncmachining' ? ' active' : ''; ?>">
+            class="tab<?php echo $active_tab === 'cncmachining' ? ' active' : ''; ?> disabled">
             <span class="tab-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -57,8 +59,8 @@ $cnc_page_url = function_exists('cutlist_get_cnc_page_url') ? cutlist_get_cnc_pa
                 <span class="tab-price"><?php echo esc_html($zero_price_formatted); ?></span>
             </span>
         </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
+        <a href="<?php echo $active_tab === 'slidingdoors' ? 'javascript:void(0)' : esc_url($sliding_doors_page_url); ?>"
+            class="tab<?php echo $active_tab === 'slidingdoors' ? ' active' : ''; ?> disabled">
             <span class="tab-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -71,8 +73,8 @@ $cnc_page_url = function_exists('cutlist_get_cnc_page_url') ? cutlist_get_cnc_pa
                 <span class="tab-price"><?php echo esc_html($zero_price_formatted); ?></span>
             </span>
         </a>
-        <a href="#" class="tab disabled" aria-disabled="true"
-            title="<?php esc_attr_e('Not built yet', 'cutlist-catalogue'); ?>">
+        <a href="<?php echo $active_tab === 'hingeddoors' ? 'javascript:void(0)' : esc_url($hinged_doors_page_url); ?>"
+            class="tab<?php echo $active_tab === 'hingeddoors' ? ' active' : ''; ?> disabled">
             <span class="tab-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">

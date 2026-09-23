@@ -1,0 +1,367 @@
+/* ==========================================================================
+   CNC MACHINING JOB STYLES
+   ========================================================================== */
+.cnc-job-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-top: 35px;
+    margin-bottom: 40px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-sizing: border-box;
+}
+
+.cnc-job-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.cnc-job-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.cnc-job-title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e8f7ee;
+    color: var(--primary-color, #15803d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cnc-job-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+}
+
+.cnc-job-collapse-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: none;
+    color: var(--primary-color, #15803d);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.cnc-job-collapse-btn:hover {
+    opacity: 0.85;
+    background: #f0fdf4;
+}
+
+.cnc-job-collapse-icon {
+    transition: transform 0.25s ease;
+}
+
+.cnc-job-card.is-collapsed .cnc-job-collapse-icon {
+    transform: rotate(180deg);
+}
+
+.cnc-job-body {
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin 0.3s ease;
+    max-height: 2000px;
+    opacity: 1;
+    overflow: visible;
+}
+
+.cnc-job-card.is-collapsed .cnc-job-body {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+.cnc-job-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 36px;
+    align-items: start;
+}
+
+.cnc-col-header {
+    margin-bottom: 14px;
+}
+
+.cnc-col-title {
+    margin: 0 0 4px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.3;
+}
+
+.cnc-col-subtitle {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+    color: #6b7280;
+    line-height: 1.4;
+}
+
+/* Dropzone */
+.cnc-dropzone-box {
+    border: 1.5px dashed #86efac;
+    background: #fbfdfb;
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    box-sizing: border-box;
+}
+
+.cnc-dropzone-box:hover,
+.cnc-dropzone-box.is-dragover {
+    border-color: var(--primary-color, #15803d);
+    background: #f2faf4;
+}
+
+.cnc-upload-cloud-badge {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: var(--primary-color, #15803d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.cnc-dropzone-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 4px;
+}
+
+.cnc-dropzone-or {
+    font-size: 13px;
+    color: #9ca3af;
+    margin: 0 0 10px;
+}
+
+.cnc-choose-files-btn {
+    background: #ffffff;
+    border: 1.5px solid #22c55e;
+    color: var(--primary-color, #15803d);
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-block;
+    transition: all 0.15s ease;
+}
+
+.cnc-choose-files-btn:hover {
+    background: #f0fdf4;
+    border-color: #16a34a;
+}
+
+/* File List */
+.cnc-uploaded-files-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
+
+.cnc-file-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: #166534;
+}
+
+.cnc-file-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
+    font-weight: 500;
+}
+
+.cnc-file-chip-remove {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+/* Metadata Badges below Dropzone */
+.cnc-file-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 14px;
+    padding-top: 4px;
+}
+
+.cnc-meta-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12.5px;
+    color: #6b7280;
+    line-height: 1.35;
+}
+
+.cnc-meta-item svg {
+    flex-shrink: 0;
+    color: #6b7280;
+    margin-top: 1px;
+}
+
+.cnc-meta-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.cnc-meta-label {
+    color: #6b7280;
+}
+
+.cnc-meta-val {
+    font-weight: 700;
+    color: #111827;
+}
+
+/* Right Column - Textarea */
+.cnc-textarea-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.cnc-details-textarea {
+    width: 100%;
+    height: 186px;
+    min-height: 186px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 14px;
+    color: #374151;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    background: #ffffff;
+    line-height: 1.5;
+}
+
+.cnc-details-textarea::placeholder {
+    color: #9ca3af;
+}
+
+.cnc-details-textarea:focus {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.cnc-char-count {
+    text-align: right;
+    color: #6b7280;
+    font-size: 12.5px;
+    margin-top: 6px;
+}
+
+/* Submit Button */
+.cnc-submit-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 32px;
+    width: 100%;
+}
+
+.cnc-submit-btn {
+    background: var(--primary-color, #1e874b);
+    color: #ffffff;
+    border: none;
+    padding: 12px 42px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.18s ease, transform 0.1s ease, box-shadow 0.18s ease;
+    box-shadow: 0 2px 4px rgba(21, 128, 61, 0.2);
+    text-decoration: none;
+}
+
+.cnc-submit-btn:hover {
+    background: #146c36;
+    box-shadow: 0 4px 6px rgba(21, 128, 61, 0.25);
+}
+
+.cnc-submit-btn:active {
+    transform: scale(0.98);
+}
+
+.cnc-feedback-toast {
+    margin-top: 14px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+    text-align: center;
+}
+
+.cnc-feedback-toast.is-success {
+    display: block;
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.cnc-feedback-toast.is-error {
+    display: block;
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+@media (max-width: 860px) {
+    .cnc-job-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+    }
+
+    .cnc-job-card {
+        padding: 20px 16px;
+    }
+}

@@ -1,0 +1,728 @@
+{
+    "key": "group_hinged_door_fields",
+    "title": "Hinged Door Details",
+    "fields": [
+        {
+            "key": "field_hd_tab_general",
+            "label": "General / Product Information",
+            "name": "",
+            "type": "tab",
+            "placement": "top"
+        },
+        {
+            "key": "field_hinged_door_subtitle",
+            "label": "Subtitle",
+            "name": "subtitle",
+            "type": "text",
+            "instructions": "e.g. Shaker with one panel",
+            "wrapper": { "width": "50" },
+            "placeholder": "e.g. Shaker with one panel"
+        },
+        {
+            "key": "field_hinged_door_price_from",
+            "label": "Catalogue \"From Price\" (£)",
+            "name": "price_from",
+            "type": "number",
+            "instructions": "Display starting price on catalog card (e.g. 41.50)",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "placeholder": "41.50"
+        },
+        {
+            "key": "field_hinged_door_description",
+            "label": "Product Description",
+            "name": "description",
+            "type": "textarea",
+            "instructions": "Full description displayed on card and in configurator popup.",
+            "rows": 3,
+            "default_value": "Mortise and tenon structure. Built using moisture resistant MDF.",
+            "placeholder": "Mortise and tenon structure. Built using moisture resistant MDF."
+        },
+        {
+            "key": "field_hinged_door_panels_count",
+            "label": "Panels Count",
+            "name": "panels_count",
+            "type": "number",
+            "instructions": "Number of recessed panels (1, 2, 3, 4, etc.)",
+            "wrapper": { "width": "33.33" },
+            "step": "1",
+            "min": 1,
+            "max": 10,
+            "default_value": 1
+        },
+        {
+            "key": "field_hinged_door_feature_1",
+            "label": "Card Feature 1 (with Stack icon)",
+            "name": "feature_1",
+            "type": "text",
+            "instructions": "First bullet point on product card.",
+            "wrapper": { "width": "33.33" },
+            "default_value": "Mortise and tenon structure",
+            "placeholder": "Mortise and tenon structure"
+        },
+        {
+            "key": "field_hinged_door_feature_2",
+            "label": "Card Feature 2 (with Leaf icon)",
+            "name": "feature_2",
+            "type": "text",
+            "instructions": "Second bullet point on product card.",
+            "wrapper": { "width": "33.33" },
+            "default_value": "Built using moisture resistant MDF.",
+            "placeholder": "Built using moisture resistant MDF."
+        },
+        {
+            "key": "field_hinged_door_spec_material",
+            "label": "Material Spec",
+            "name": "spec_material",
+            "type": "text",
+            "instructions": "e.g. Moisture-resistant MDF",
+            "wrapper": { "width": "50" },
+            "default_value": "Moisture-resistant MDF",
+            "placeholder": "Moisture-resistant MDF"
+        },
+        {
+            "key": "field_hinged_door_spec_build",
+            "label": "Build Spec",
+            "name": "spec_build",
+            "type": "text",
+            "instructions": "e.g. Mortise and tenon",
+            "wrapper": { "width": "50" },
+            "default_value": "Mortise and tenon",
+            "placeholder": "Mortise and tenon"
+        },
+        {
+            "key": "field_hinged_door_spec_overall_thickness",
+            "label": "Overall Thickness Spec",
+            "name": "spec_overall_thickness",
+            "type": "text",
+            "instructions": "e.g. 21mm",
+            "wrapper": { "width": "33.33" },
+            "default_value": "21mm",
+            "placeholder": "21mm"
+        },
+        {
+            "key": "field_hinged_door_spec_panel_thickness",
+            "label": "Panel Thickness Spec",
+            "name": "spec_panel_thickness",
+            "type": "text",
+            "instructions": "e.g. 9mm",
+            "wrapper": { "width": "33.33" },
+            "default_value": "9mm",
+            "placeholder": "9mm"
+        },
+        {
+            "key": "field_hinged_door_spec_finish",
+            "label": "Finish Options Spec",
+            "name": "spec_finish",
+            "type": "text",
+            "instructions": "e.g. can be supplied raw, primed or painted",
+            "wrapper": { "width": "33.33" },
+            "default_value": "can be supplied raw, primed or painted",
+            "placeholder": "can be supplied raw, primed or painted"
+        },
+        {
+            "key": "field_hinged_door_spec_disclaimer",
+            "label": "Disclaimer / Note",
+            "name": "spec_disclaimer",
+            "type": "textarea",
+            "instructions": "Notice text below details specs.",
+            "rows": 2,
+            "default_value": "No fixings are supplied; they are to be purchased separately.",
+            "placeholder": "No fixings are supplied; they are to be purchased separately."
+        },
+        {
+            "key": "field_hinged_door_price_per_hinge",
+            "label": "Hinge Hole Drilling Price Per Hole (£)",
+            "name": "price_per_hinge_hole",
+            "type": "number",
+            "instructions": "Drilling charge per 35mm hinge hole.",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 3.00,
+            "placeholder": "3.00"
+        },
+
+        {
+            "key": "field_hd_tab_door",
+            "label": "Door (-D)",
+            "name": "",
+            "type": "tab",
+            "placement": "top"
+        },
+        {
+            "key": "field_hd_door_acc_settings",
+            "label": "PRODUCT SETTINGS",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_price_door",
+            "label": "Door Starting Price (£)",
+            "name": "price_door",
+            "type": "number",
+            "instructions": "Starting base price for Door (e.g. 41.50)",
+            "wrapper": { "width": "20" },
+            "step": "0.01",
+            "default_value": 41.50,
+            "placeholder": "41.50"
+        },
+        {
+            "key": "field_hinged_door_door_min_height",
+            "label": "Door Min Height (mm)",
+            "name": "door_min_height",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 250,
+            "placeholder": "250"
+        },
+        {
+            "key": "field_hinged_door_door_max_height",
+            "label": "Door Max Height (mm)",
+            "name": "door_max_height",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 2800,
+            "placeholder": "2800"
+        },
+        {
+            "key": "field_hinged_door_door_min_width",
+            "label": "Door Min Width (mm)",
+            "name": "door_min_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 200,
+            "placeholder": "200"
+        },
+        {
+            "key": "field_hinged_door_door_max_width",
+            "label": "Door Max Width (mm)",
+            "name": "door_max_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 1200,
+            "placeholder": "1200"
+        },
+        {
+            "key": "field_hd_door_acc_drilling",
+            "label": "DRILLING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_door_allow_drilling",
+            "label": "Door Hinge Drilling Available",
+            "name": "door_allow_drilling",
+            "type": "true_false",
+            "instructions": "Allow hinge hole drilling for Doors",
+            "wrapper": { "width": "50" },
+            "default_value": 1,
+            "ui": 1
+        },
+        {
+            "key": "field_hd_door_drilling_holes",
+            "label": "Door Allowed Hinge Hole Counts",
+            "name": "door_drilling_holes",
+            "type": "checkbox",
+            "instructions": "Select which hole count options to offer for Doors",
+            "wrapper": { "width": "50" },
+            "choices": {
+                "2": "2 holes",
+                "3": "3 holes",
+                "4": "4 holes",
+                "5": "5 holes"
+            },
+            "default_value": ["2", "3", "4", "5"],
+            "layout": "horizontal",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_hinged_door_door_allow_drilling",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ]
+        },
+        {
+            "key": "field_hd_door_acc_finish",
+            "label": "FINISH PRICING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_door_price_primer",
+            "label": "Door White Primer Extra (£)",
+            "name": "door_price_primer",
+            "type": "number",
+            "instructions": "Extra charge for White Primer finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 18.50,
+            "placeholder": "18.50"
+        },
+        {
+            "key": "field_hinged_door_door_price_painted",
+            "label": "Door Fully Painted Extra (£)",
+            "name": "door_price_painted",
+            "type": "number",
+            "instructions": "Extra charge for Fully Painted finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 38.00,
+            "placeholder": "38.00"
+        },
+        {
+            "key": "field_hd_door_acc_gallery",
+            "label": "IMAGES & GALLERY",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hd_door_quick_view_image",
+            "label": "Door Quick View / High-Res Image",
+            "name": "door_quick_view_image",
+            "type": "image",
+            "instructions": "Dedicated high-res zoom image for Door. If empty, the post Featured Image is used.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_door_gallery_1",
+            "label": "Door Gallery Image 1",
+            "name": "door_gallery_1",
+            "type": "image",
+            "instructions": "First gallery thumbnail for Door.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_door_gallery_2",
+            "label": "Door Gallery Image 2",
+            "name": "door_gallery_2",
+            "type": "image",
+            "instructions": "Second gallery thumbnail for Door.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_door_gallery_3",
+            "label": "Door Gallery Image 3",
+            "name": "door_gallery_3",
+            "type": "image",
+            "instructions": "Third gallery thumbnail for Door.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+
+        {
+            "key": "field_hd_tab_ep",
+            "label": "End Panel (-EP)",
+            "name": "",
+            "type": "tab",
+            "placement": "top"
+        },
+        {
+            "key": "field_hd_ep_acc_settings",
+            "label": "PRODUCT SETTINGS",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_price_end_panel",
+            "label": "End Panel Starting Price (£)",
+            "name": "price_end_panel",
+            "type": "number",
+            "instructions": "Starting base price for End Panel (e.g. 48.00)",
+            "wrapper": { "width": "20" },
+            "step": "0.01",
+            "default_value": 48.00,
+            "placeholder": "48.00"
+        },
+        {
+            "key": "field_hinged_door_ep_min_height",
+            "label": "End Panel Min Height (mm)",
+            "name": "ep_min_height",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 300,
+            "placeholder": "300"
+        },
+        {
+            "key": "field_hinged_door_ep_max_height",
+            "label": "End Panel Max Height (mm)",
+            "name": "ep_max_height",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 3000,
+            "placeholder": "3000"
+        },
+        {
+            "key": "field_hinged_door_ep_min_width",
+            "label": "End Panel Min Width (mm)",
+            "name": "ep_min_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 200,
+            "placeholder": "200"
+        },
+        {
+            "key": "field_hinged_door_ep_max_width",
+            "label": "End Panel Max Width (mm)",
+            "name": "ep_max_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 1500,
+            "placeholder": "1500"
+        },
+        {
+            "key": "field_hd_ep_acc_drilling",
+            "label": "DRILLING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_ep_allow_drilling",
+            "label": "End Panel Hinge Drilling Available",
+            "name": "ep_allow_drilling",
+            "type": "true_false",
+            "instructions": "Enable only if hinge drilling should be allowed for End panels (Default: No)",
+            "wrapper": { "width": "50" },
+            "default_value": 0,
+            "ui": 1
+        },
+        {
+            "key": "field_hd_ep_drilling_holes",
+            "label": "End Panel Allowed Hinge Hole Counts",
+            "name": "ep_drilling_holes",
+            "type": "checkbox",
+            "instructions": "Select which hole count options to offer for End Panels if drilling enabled",
+            "wrapper": { "width": "50" },
+            "choices": {
+                "2": "2 holes",
+                "3": "3 holes",
+                "4": "4 holes",
+                "5": "5 holes"
+            },
+            "default_value": ["2", "3", "4", "5"],
+            "layout": "horizontal",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_hinged_door_ep_allow_drilling",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ]
+        },
+        {
+            "key": "field_hd_ep_acc_finish",
+            "label": "FINISH PRICING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_ep_price_primer",
+            "label": "End Panel White Primer Extra (£)",
+            "name": "ep_price_primer",
+            "type": "number",
+            "instructions": "Extra charge for White Primer finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 22.50,
+            "placeholder": "22.50"
+        },
+        {
+            "key": "field_hinged_door_ep_price_painted",
+            "label": "End Panel Fully Painted Extra (£)",
+            "name": "ep_price_painted",
+            "type": "number",
+            "instructions": "Extra charge for Fully Painted finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 45.00,
+            "placeholder": "45.00"
+        },
+        {
+            "key": "field_hd_ep_acc_gallery",
+            "label": "IMAGES & GALLERY",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hd_ep_quick_view_image",
+            "label": "End Panel Quick View / High-Res Image",
+            "name": "ep_quick_view_image",
+            "type": "image",
+            "instructions": "Dedicated high-res zoom image for End Panel. If empty, the post Featured Image is used.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_ep_gallery_1",
+            "label": "End Panel Gallery Image 1",
+            "name": "ep_gallery_1",
+            "type": "image",
+            "instructions": "First gallery thumbnail for End Panel.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_ep_gallery_2",
+            "label": "End Panel Gallery Image 2",
+            "name": "ep_gallery_2",
+            "type": "image",
+            "instructions": "Second gallery thumbnail for End Panel.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_ep_gallery_3",
+            "label": "End Panel Gallery Image 3",
+            "name": "ep_gallery_3",
+            "type": "image",
+            "instructions": "Third gallery thumbnail for End Panel.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+
+        {
+            "key": "field_hd_tab_df",
+            "label": "Drawer Front (-DF)",
+            "name": "",
+            "type": "tab",
+            "placement": "top"
+        },
+        {
+            "key": "field_hd_df_acc_settings",
+            "label": "PRODUCT SETTINGS",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_price_drawer_front",
+            "label": "Drawer Front Starting Price (£)",
+            "name": "price_drawer_front",
+            "type": "number",
+            "instructions": "Starting base price for Drawer Front (e.g. 28.00)",
+            "wrapper": { "width": "20" },
+            "step": "0.01",
+            "default_value": 28.00,
+            "placeholder": "28.00"
+        },
+        {
+            "key": "field_hinged_door_df_min_height",
+            "label": "Drawer Front Min Height (mm)",
+            "name": "df_min_height",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 100,
+            "placeholder": "100"
+        },
+        {
+            "key": "field_hinged_door_df_max_height",
+            "label": "Drawer Front Max Height (mm)",
+            "name": "df_max_height",
+            "type": "number",
+            "instructions": "Max height constraint for drawer front",
+            "wrapper": { "width": "20" },
+            "default_value": 450,
+            "placeholder": "450"
+        },
+        {
+            "key": "field_hinged_door_df_min_width",
+            "label": "Drawer Front Min Width (mm)",
+            "name": "df_min_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 150,
+            "placeholder": "150"
+        },
+        {
+            "key": "field_hinged_door_df_max_width",
+            "label": "Drawer Front Max Width (mm)",
+            "name": "df_max_width",
+            "type": "number",
+            "wrapper": { "width": "20" },
+            "default_value": 1200,
+            "placeholder": "1200"
+        },
+        {
+            "key": "field_hd_df_acc_drilling",
+            "label": "DRILLING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_df_allow_drilling",
+            "label": "Drawer Front Hinge Drilling Available",
+            "name": "df_allow_drilling",
+            "type": "true_false",
+            "instructions": "Enable only if hinge drilling should be allowed for Drawer fronts (Default: No)",
+            "wrapper": { "width": "50" },
+            "default_value": 0,
+            "ui": 1
+        },
+        {
+            "key": "field_hd_df_drilling_holes",
+            "label": "Drawer Front Allowed Hinge Hole Counts",
+            "name": "df_drilling_holes",
+            "type": "checkbox",
+            "instructions": "Select which hole count options to offer for Drawer Fronts if drilling enabled",
+            "wrapper": { "width": "50" },
+            "choices": {
+                "2": "2 holes",
+                "3": "3 holes",
+                "4": "4 holes",
+                "5": "5 holes"
+            },
+            "default_value": ["2", "3", "4", "5"],
+            "layout": "horizontal",
+            "conditional_logic": [
+                [
+                    {
+                        "field": "field_hinged_door_df_allow_drilling",
+                        "operator": "==",
+                        "value": "1"
+                    }
+                ]
+            ]
+        },
+        {
+            "key": "field_hd_df_acc_finish",
+            "label": "FINISH PRICING",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hinged_door_df_price_primer",
+            "label": "Drawer Front White Primer Extra (£)",
+            "name": "df_price_primer",
+            "type": "number",
+            "instructions": "Extra charge for White Primer finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 12.00,
+            "placeholder": "12.00"
+        },
+        {
+            "key": "field_hinged_door_df_price_painted",
+            "label": "Drawer Front Fully Painted Extra (£)",
+            "name": "df_price_painted",
+            "type": "number",
+            "instructions": "Extra charge for Fully Painted finish",
+            "wrapper": { "width": "50" },
+            "step": "0.01",
+            "default_value": 25.00,
+            "placeholder": "25.00"
+        },
+        {
+            "key": "field_hd_df_acc_gallery",
+            "label": "IMAGES & GALLERY",
+            "name": "",
+            "type": "accordion",
+            "open": 1,
+            "multi_expand": 1
+        },
+        {
+            "key": "field_hd_df_quick_view_image",
+            "label": "Drawer Front Quick View / High-Res Image",
+            "name": "df_quick_view_image",
+            "type": "image",
+            "instructions": "Dedicated high-res zoom image for Drawer Front. If empty, the post Featured Image is used.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_df_gallery_1",
+            "label": "Drawer Front Gallery Image 1",
+            "name": "df_gallery_1",
+            "type": "image",
+            "instructions": "First gallery thumbnail for Drawer Front.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_df_gallery_2",
+            "label": "Drawer Front Gallery Image 2",
+            "name": "df_gallery_2",
+            "type": "image",
+            "instructions": "Second gallery thumbnail for Drawer Front.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        },
+        {
+            "key": "field_hd_df_gallery_3",
+            "label": "Drawer Front Gallery Image 3",
+            "name": "df_gallery_3",
+            "type": "image",
+            "instructions": "Third gallery thumbnail for Drawer Front.",
+            "wrapper": { "width": "25" },
+            "return_format": "array",
+            "preview_size": "medium",
+            "library": "all"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "post_type",
+                "operator": "==",
+                "value": "hinged_door"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": true,
+    "description": "Structured independent variations for Hinged Doors (Door, End Panel, Drawer Front)",
+    "show_in_rest": 1
+}

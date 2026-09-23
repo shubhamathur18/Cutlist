@@ -123,6 +123,11 @@ const edgeSummaryCode = document.getElementById("edgeSummaryCode");
 const edgeSummaryDesc = document.getElementById("edgeSummaryDesc");
 const edgeSummaryImage = document.getElementById("edgeSummaryImage");
 const edgeSummaryBtn = document.getElementById("edgeSummaryBtn");
+const edgeTapeSelectorWrap = document.getElementById("edgeTapeSelectorWrap");
+const edgeSummaryChevron = document.getElementById("edgeSummaryChevron");
+const edgeTapeDropdown = document.getElementById("edgeTapeDropdown");
+const edgeTapeSearchInput = document.getElementById("edgeTapeSearchInput");
+const edgeTapeDropdownList = document.getElementById("edgeTapeDropdownList");
 const edgeSubtitleEdge = document.getElementById("edgeSubtitleEdge");
 const edgeSubtitleType = document.getElementById("edgeSubtitleType");
 const edgeTabs = document.getElementById("edgeTabs");
@@ -142,14 +147,47 @@ const edgeHighlights = {
 
 const edgeState = new WeakMap();
 
-// The edging tape matched to a row's decor, from the Edge Tape CPT — was a
-// hardcoded "M1" before. A row whose decor has no matched tape gets null, and
-function edgeTapeForRow(row) {
+// The edging tape matched to a row or specific edge (L1, L2, W1, W2), from the Edge Tape CPT.
+// Supports choosing a distinct edge tape for each of the 4 edges.
+function edgeTapeForRow(row, edge) {
     if (!row || !window.cutlistEdgeTapes) return null;
-    const decorInput = row.querySelector(".decor input");
+    var state = typeof edgeState !== "undefined" && edgeState && edgeState.has(row) ? edgeState.get(row) : null;
+    
+    // 1. Specific tape assigned to this specific edge (e.g. L1, L2, W1, W2)
+    if (edge && state && state.tapes && state.tapes[edge]) {
+        var specificCode = state.tapes[edge];
+        var specificTape = window.cutlistEdgeTapes.find(function (t) {
+            return t.code === specificCode || t.code.split(" / ")[0] === specificCode.split(" / ")[0] || (t.code && specificCode && t.code.trim().toLowerCase() === specificCode.trim().toLowerCase());
+        });
+        if (specificTape) return specificTape;
+    }
+
+    // 2. Table cell dataset for this specific edge
+    if (edge && row) {
+        var cell = row.querySelector('.edging-input[data-edge="' + edge + '"]');
+        var input = cell ? cell.querySelector('input') : null;
+        var cellCode = cell ? (cell.dataset.tapeCode || (input ? input.dataset.tapeCode : '')) : '';
+        if (cellCode) {
+            var foundTape = window.cutlistEdgeTapes.find(function (t) {
+                return t.code === cellCode || t.code.split(" / ")[0] === cellCode.split(" / ")[0] || (t.code && cellCode && t.code.trim().toLowerCase() === cellCode.trim().toLowerCase());
+            });
+            if (foundTape) return foundTape;
+        }
+    }
+
+    // 3. Row-level custom tape override
+    if (state && state.tapeCode) {
+        var custom = window.cutlistEdgeTapes.find(function (t) {
+            return t.code === state.tapeCode || t.code.split(" / ")[0] === state.tapeCode.split(" / ")[0];
+        });
+        if (custom) return custom;
+    }
+
+    // 4. Default: Matched tape from board decor
+    const decorInput = row.querySelector(".decor-real-input") || row.querySelector(".decor input");
     const decorCode = decorInput && decorInput.value
         ? decorInput.value.split(" - ")[0].trim()
-        : "";
+        : (row.dataset.decorCode || "");
     if (!decorCode) return null;
     return window.cutlistEdgeTapes
         .filter(t => t.decorCode === decorCode)[0] || null;
@@ -321,6 +359,9 @@ function edgeApplyToggle(state, activeEdge, allowed) {
 
     } else {
 
+        var currTape = activeEdgeRow ? edgeTapeForRow(activeEdgeRow, activeEdge) : null;
+        if (!currTape) return; // Do not apply edge if no tape is matched or selected
+
         // Tape always carries a finish. Reuse the one the row is already using so a
         // second edge never re-asks; only fall back to the tape's first supported
         if (!state.finish || allowed[state.finish] === false) {
@@ -329,6 +370,8 @@ function edgeApplyToggle(state, activeEdge, allowed) {
 
         var wasBare = !EDGE_KEYS.some(function (edge) { return state[edge]; });
         state[activeEdge] = true;
+        if (!state.tapes) state.tapes = {};
+        state.tapes[activeEdge] = currTape.code;
 
         // Tabs opened before any tape existed shouldn't count as having been offered
         // it — clear the record so those edges still get it automatically the next
@@ -347,20 +390,42 @@ function edgeVisit(state, edge) {
     state.visited[edge] = true;
 
     var rowHasTape = EDGE_KEYS.some(function (key) { return state[key]; });
-    if (rowHasTape && state.finish) state[edge] = true;
+    if (rowHasTape && state.finish) {
+        var currTape = activeEdgeRow ? edgeTapeForRow(activeEdgeRow, edge) : null;
+        if (currTape) {
+            state[edge] = true;
+            if (!state.tapes) state.tapes = {};
+            if (!state.tapes[edge]) {
+                state.tapes[edge] = currTape.code;
+            }
+        }
+    }
 }
 
 // L1/L2/W1/W2 are per-edge on/off flags, so a panel can be banded on only some
-// of its sides. `finish` sits outside that group deliberately: the tape is the
+// of its sides. `tapes` stores per-edge tape selections.
 function getEdgeState(row) {
 
     if (!edgeState.has(row)) {
 
-        edgeState.set(row, { L1: null, L2: null, W1: null, W2: null, finish: null, visited: {} });
+        edgeState.set(row, {
+            L1: null,
+            L2: null,
+            W1: null,
+            W2: null,
+            finish: null,
+            tapes: { L1: null, L2: null, W1: null, W2: null },
+            visited: {}
+        });
 
     }
 
-    return edgeState.get(row);
+    var st = edgeState.get(row);
+    if (!st.tapes) {
+        st.tapes = { L1: null, L2: null, W1: null, W2: null };
+    }
+
+    return st;
 
 }
 
@@ -411,7 +476,8 @@ function renderEdgePopup() {
     edgeSubtitleEdge.textContent = activeEdge;
     edgeSubtitleType.textContent = "(" + EDGE_TYPE_LABEL[activeEdge] + ")";
 
-    let tape = edgeTapeForRow(activeEdgeRow);
+    // Resolve the specific edge tape for the CURRENT active edge
+    let tape = edgeTapeForRow(activeEdgeRow, activeEdge);
     let shortCode = edgeTapeShortCode(tape);
 
     if (tape && tape.image) {
@@ -422,32 +488,42 @@ function renderEdgePopup() {
         edgeSummaryImage.hidden = true;
     }
 
-    edgeSummaryCode.textContent = tape ? tape.code : "–";
-    edgeSummaryDesc.textContent = tape
-        ? edgeTapeDescription(tape)
-        : "No matching edging tape";
-    edgeSummaryBtn.disabled = !tape;
+    var tapeDescText = tape ? edgeTapeDescription(tape) : "Select an edging tape";
+    if (tape && (tape.is_out_of_stock || tape.stock_status === "outofstock")) {
+        tapeDescText += ' <span class="edge-summary-oos-tag">⚠️ Out of stock</span>';
+    } else if (tape && tape.stock_status === "lowstock") {
+        tapeDescText += ' <span class="edge-summary-lowstock-tag">Low stock</span>';
+    }
 
+    edgeSummaryCode.textContent = tape ? tape.code : "–";
+    edgeSummaryDesc.innerHTML = tapeDescText;
+    edgeSummaryBtn.disabled = false;
+
+    // Show each edge tab's own shortCode according to its assigned tape
     edgeTabs.querySelectorAll(".edge-tab").forEach(tab => {
 
         let edge = tab.dataset.edge;
 
         tab.classList.toggle("active", edge === activeEdge);
 
+        let tabTape = edgeTapeForRow(activeEdgeRow, edge);
+        let tabShortCode = edgeTapeShortCode(tabTape);
+
         tab.querySelector(".edge-tab-value").textContent =
-            state[edge] ? shortCode : "-";
+            (state[edge] && tabTape) ? (tabShortCode || "-") : "-";
 
     });
 
     Object.keys(edgeHighlights).forEach(edge => {
 
-        edgeHighlights[edge].classList.toggle("active", !!state[edge]);
+        let hTape = edgeTapeForRow(activeEdgeRow, edge);
+        edgeHighlights[edge].classList.toggle("active", !!(state[edge] && hTape));
 
     });
 
     // The tape button reads as selected (bordered) whenever the edge being edited
-    // actually has tape on it, so switching tabs shows each edge's own state
-    let tapeApplied = !!state[activeEdge];
+    // actually has a valid tape applied to it
+    let tapeApplied = !!(state[activeEdge] && tape);
     edgeSummaryBtn.classList.toggle("selected", tapeApplied);
 
     // A finish only becomes selectable once the tape has been applied to this edge
@@ -469,6 +545,102 @@ function renderEdgePopup() {
 
     });
 
+    renderEdgeTapeDropdownList();
+
+}
+
+
+function renderEdgeTapeDropdownList(query) {
+    var dropdownList = document.getElementById("edgeTapeDropdownList");
+    if (!dropdownList || !window.cutlistEdgeTapes) return;
+
+    var q = (query || "").trim().toLowerCase();
+    var currentTape = edgeTapeForRow(activeEdgeRow, activeEdge);
+    var currentCode = currentTape ? currentTape.code : "";
+
+    var decorInput = activeEdgeRow ? (activeEdgeRow.querySelector(".decor-real-input") || activeEdgeRow.querySelector(".decor input")) : null;
+    var decorCode = decorInput && decorInput.value ? decorInput.value.split(" - ")[0].trim() : (activeEdgeRow ? activeEdgeRow.dataset.decorCode || "" : "");
+
+    var allTapes = (window.cutlistEdgeTapes || []).slice();
+    var filtered = allTapes.filter(function (t) {
+        if (!q) return true;
+        var hay = ((t.code || "") + " " + (t.name || "") + " " + (t.size || "")).toLowerCase();
+        return hay.indexOf(q) !== -1;
+    });
+
+    // Prioritize the board's matched tape at the top, then sort by tape code
+    filtered.sort(function (a, b) {
+        var aDefault = (decorCode && a.decorCode === decorCode) ? 1 : 0;
+        var bDefault = (decorCode && b.decorCode === decorCode) ? 1 : 0;
+        if (aDefault !== bDefault) return bDefault - aDefault;
+        return (a.code || "").localeCompare(b.code || "");
+    });
+
+    if (!filtered.length) {
+        dropdownList.innerHTML = '<div style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">No matching edge tapes found</div>';
+        return;
+    }
+
+    var html = "";
+    filtered.forEach(function (t) {
+        var isSel = t.code === currentCode || (t.code && currentCode && t.code.split(" / ")[0] === currentCode.split(" / ")[0]);
+        var isDefault = decorCode && t.decorCode === decorCode;
+        var desc = edgeTapeDescription(t);
+        var isOos = t.is_out_of_stock || t.stock_status === "outofstock";
+        var isLow = t.stock_status === "lowstock";
+        var stockBadge = "";
+        if (isOos) {
+            stockBadge = '<span class="edge-tape-stock-badge out-of-stock">Out of stock</span>';
+        } else if (isLow) {
+            stockBadge = '<span class="edge-tape-stock-badge low-stock">Low stock</span>';
+        }
+
+        html += '<div class="edge-tape-option' + (isSel ? ' is-selected' : '') + (isOos ? ' is-out-of-stock' : '') + '" data-code="' + panelSummaryEscape(t.code) + '">' +
+            (t.image ? '<img src="' + encodeURI(t.image) + '" class="edge-tape-option-img" alt="">' : '<span class="edge-tape-option-img" style="background:#e2e8f0;display:inline-block;"></span>') +
+            '<div class="edge-tape-option-info">' +
+                '<div class="edge-tape-option-header">' +
+                    '<span class="edge-tape-option-code">' + panelSummaryEscape(t.code) + '</span>' +
+                    (isDefault ? '<span class="edge-tape-default-badge">Matched</span>' : '') +
+                    stockBadge +
+                '</div>' +
+                (desc ? '<div class="edge-tape-option-desc">' + panelSummaryEscape(desc) + '</div>' : '') +
+                (t.size ? '<div class="edge-tape-option-size">' + panelSummaryEscape(t.size) + '</div>' : '') +
+            '</div>' +
+        '</div>';
+    });
+
+    dropdownList.innerHTML = html;
+}
+
+function toggleEdgeTapeDropdown(forceOpen) {
+    var wrap = document.getElementById("edgeTapeSelectorWrap");
+    var dd = document.getElementById("edgeTapeDropdown");
+    if (!wrap || !dd) return;
+
+    var isHidden = dd.style.display === "none" || !dd.style.display;
+    var shouldOpen = (typeof forceOpen === "boolean") ? forceOpen : isHidden;
+    if (shouldOpen) {
+        dd.style.display = "flex";
+        wrap.classList.add("is-open");
+        var searchInput = document.getElementById("edgeTapeSearchInput");
+        if (searchInput) {
+            searchInput.value = "";
+            renderEdgeTapeDropdownList("");
+            setTimeout(function () { searchInput.focus(); }, 40);
+        } else {
+            renderEdgeTapeDropdownList("");
+        }
+    } else {
+        dd.style.display = "none";
+        wrap.classList.remove("is-open");
+    }
+}
+
+function closeEdgeTapeDropdown() {
+    var wrap = document.getElementById("edgeTapeSelectorWrap");
+    var dd = document.getElementById("edgeTapeDropdown");
+    if (dd) dd.style.display = "none";
+    if (wrap) wrap.classList.remove("is-open");
 }
 
 
@@ -476,6 +648,8 @@ function openEdgePopup(row, edge, anchorEl) {
 
     activeEdgeRow = row;
     activeEdge = edge;
+
+    closeEdgeTapeDropdown();
 
     // Same first-visit inheritance as the tabs — reopening the popup on a fresh
     // edge of an already-taped row should behave the same as switching to it from
@@ -518,10 +692,11 @@ function openEdgePopup(row, edge, anchorEl) {
 
 function closeEdgePopup() {
 
+    closeEdgeTapeDropdown();
+
     if (activeEdgeRow) {
 
         let state = getEdgeState(activeEdgeRow);
-        let shortCode = edgeTapeShortCode(edgeTapeForRow(activeEdgeRow));
 
         activeEdgeRow.querySelectorAll(".edging-input").forEach(td => {
 
@@ -530,7 +705,18 @@ function closeEdgePopup() {
 
             if (!input || input.disabled) return;
 
-            input.value = state[edge] ? shortCode : "";
+            let edgeTape = edgeTapeForRow(activeEdgeRow, edge);
+            let shortCode = edgeTapeShortCode(edgeTape);
+
+            if (state[edge] && edgeTape) {
+                input.value = shortCode || "";
+                td.dataset.tapeCode = edgeTape.code;
+                input.dataset.tapeCode = edgeTape.code;
+            } else {
+                input.value = "";
+                delete td.dataset.tapeCode;
+                delete input.dataset.tapeCode;
+            }
 
         });
 
@@ -816,6 +1002,9 @@ function renderDecorCard(row, code) {
     // Boards filed under no collection still get the line, so the card
     // keeps its three-line shape rather than reflowing.
     var collection = board.collection || (board.brand ? board.brand + " Collection" : "");
+    var stockBadge = board.is_out_of_stock
+        ? '<span class="decor-stock-badge" style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;background:#fee2e2;color:#b91c1c;margin-top:3px;letter-spacing:0.3px;">⚠️ Out of stock</span>'
+        : "";
 
     card.innerHTML =
         '<span class="decor-card-swatch"' +
@@ -827,6 +1016,7 @@ function renderDecorCard(row, code) {
         (collection
             ? '<span class="decor-card-collection">' + panelSummaryEscape(collection) + "</span>"
             : "") +
+        stockBadge +
         "</span>" +
         // Same chevron the placeholder carries — the card is still the
         // control that reopens the picker.
@@ -866,6 +1056,13 @@ function resetRow(row) {
     delete row.dataset.maxWidth;
     delete row.dataset.priceSheet;
     delete row.dataset.machiningApplied;
+    delete row.dataset.machiningData;
+    delete row.dataset.panelShaping;
+    delete row.dataset.surfaceShaping;
+    delete row.dataset.drillingData;
+    delete row.dataset.spray;
+    delete row.dataset.sprayApplied;
+    delete row.dataset.selectedOffcuts;
     edgeState.delete(row);
     sprayStateByRow.delete(row);
 
@@ -1458,7 +1655,14 @@ function collectCuttingListItems() {
         var edges = {};
         row.querySelectorAll(".edging-input").forEach(function (cell) {
             var input = cell.querySelector("input");
-            edges[cell.dataset.edge] = input ? input.value.trim() : "";
+            var edgeKey = cell.dataset.edge;
+            var tapeCode = cell.dataset.tapeCode || (input ? input.dataset.tapeCode : "");
+            var val = input ? input.value.trim() : "";
+            if (val && val !== "-" && val !== "none") {
+                edges[edgeKey] = tapeCode || val;
+            } else {
+                edges[edgeKey] = "";
+            }
         });
 
         // Machining details
@@ -1798,6 +2002,58 @@ function openSprayMinModal(currentVal, options) {
     }
 }
 
+function showCutlistStockWarningModal(message, decorCode) {
+    var existingModal = document.getElementById("cutlistStockModal");
+    if (existingModal) existingModal.remove();
+
+    var modal = document.createElement("div");
+    modal.id = "cutlistStockModal";
+    modal.className = "cutlist-custom-modal-overlay";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.7);backdrop-filter:blur(4px);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;";
+
+    var escapedMsg = message || "One or more selected board materials are currently out of stock.";
+
+    modal.innerHTML = 
+        '<div class="cutlist-custom-modal-box" style="background:#fff;border-radius:14px;max-width:480px;width:100%;padding:30px 24px 24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);position:relative;text-align:center;font-family:inherit;box-sizing:border-box;border-top:6px solid #ef4444;">' +
+            '<div style="width:60px;height:60px;border-radius:50%;background:#fee2e2;color:#ef4444;display:inline-flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;">' +
+                '⚠️' +
+            '</div>' +
+            '<h3 style="margin:0 0 10px;font-size:20px;font-weight:700;color:#0f172a;">Material Out of Stock</h3>' +
+            '<div style="font-size:14px;color:#334155;line-height:1.6;margin-bottom:24px;background:#fef2f2;padding:14px 16px;border-radius:8px;border:1px solid #fecaca;text-align:left;">' +
+                escapedMsg +
+            '</div>' +
+            '<div style="display:flex;gap:12px;justify-content:center;">' +
+                '<button type="button" id="closeStockModalBtn" style="background:#0f172a;color:#fff;border:none;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">' +
+                    'Update Cutlist Materials' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(modal);
+
+    function closeModal() {
+        if (modal) modal.remove();
+    }
+
+    var closeBtn = modal.querySelector("#closeStockModalBtn");
+    if (closeBtn) closeBtn.onclick = closeModal;
+    modal.onclick = function(e) {
+        if (e.target === modal) closeModal();
+    };
+
+    // Highlight any row with this decor
+    if (decorCode) {
+        var clean = decorCode.trim().toLowerCase();
+        document.querySelectorAll("#cutTable tr.row-item, #fsTable tr.fs-row").forEach(function(r) {
+            var input = r.querySelector(".decor input, .decor-real-input");
+            if (input && input.value && input.value.toLowerCase().indexOf(clean) !== -1) {
+                r.style.boxShadow = "0 0 0 2px #ef4444";
+                r.style.backgroundColor = "#fff1f2";
+            }
+        });
+    }
+}
+
 function sendCutlistToWcCart(options) {
     options = options || {};
 
@@ -1824,6 +2080,66 @@ function sendCutlistToWcCart(options) {
     var etItems = collectEdgingTapeItems();
     var mcItems = collectMachiningItems();
     var selectedOffcuts = collectSelectedOffcuts();
+
+    // Pre-check for known out-of-stock items in pmProducts
+    var oosBoards = [];
+    if (window.cutlistPmProducts) {
+        var checkDecor = function(decorStr) {
+            if (!decorStr) return;
+            var code = decorStr.split(" - ")[0].split(" / ")[0].trim();
+            var pm = window.cutlistPmProducts[code];
+            if (pm && pm.is_out_of_stock) {
+                var title = pm.title || pm.name || code;
+                if (oosBoards.indexOf(title) === -1) oosBoards.push(title);
+            }
+        };
+        cutItems.forEach(function(it) { checkDecor(it.decor); });
+        fsItems.forEach(function(it) { checkDecor(it.decor); });
+    }
+
+    // Pre-check for known out-of-stock edge tapes
+    var oosTapes = [];
+    if (window.cutlistEdgeTapes && Array.isArray(window.cutlistEdgeTapes)) {
+        var checkTapeOos = function(tapeCodeOrStr, decorStr) {
+            if (!tapeCodeOrStr || tapeCodeOrStr === "-" || tapeCodeOrStr === "none") return;
+            var cleanCode = tapeCodeOrStr.split(" - ")[0].trim();
+            var matched = window.cutlistEdgeTapes.find(function(t) {
+                return t.code === cleanCode || (t.decorCode && decorStr && decorStr.indexOf(t.decorCode) !== -1);
+            });
+            if (matched && (matched.is_out_of_stock || matched.stock_status === "outofstock")) {
+                var tTitle = matched.name ? (matched.code + " (" + matched.name + ")") : matched.code;
+                if (oosTapes.indexOf(tTitle) === -1) oosTapes.push(tTitle);
+            }
+        };
+
+        cutItems.forEach(function(it) {
+            ['L1', 'L2', 'W1', 'W2'].forEach(function(k) {
+                var val = it[k] || it['edging_' + k.toLowerCase()];
+                if (val && val !== '-' && val !== 'none') {
+                    checkTapeOos(val, it.decor);
+                }
+            });
+        });
+        if (etItems && Array.isArray(etItems)) {
+            etItems.forEach(function(it) {
+                checkTapeOos(it.tapeCode || it.code || it.name, "");
+            });
+        }
+    }
+
+    var oosSections = [];
+    if (oosBoards.length > 0) {
+        oosSections.push("The following board material(s) in your order are currently <strong>out of stock</strong> in the workshop:<br>• " + oosBoards.join("<br>• "));
+    }
+    if (oosTapes.length > 0) {
+        oosSections.push("The following edge tape(s) in your order are currently <strong>out of stock</strong> in the workshop:<br>• " + oosTapes.join("<br>• "));
+    }
+
+    if (oosSections.length > 0) {
+        var oosMsg = oosSections.join("<br><br>") + "<br><br>Please select in-stock materials before proceeding.";
+        showCutlistStockWarningModal(oosMsg);
+        return;
+    }
 
     // Compute complete price per customized cut panel (board + machining + spray + grain)
     computeCutItemPrices(cutItems);
@@ -1919,10 +2235,14 @@ function sendCutlistToWcCart(options) {
                 } else if (options.redirect === "checkout") {
                     window.location.href = res.data.checkout_url || (typeof cutlistWcVars !== "undefined" ? cutlistWcVars.checkout_url : "/checkout/");
                 }
+            } else {
+                var errMsg = (res && res.data && res.data.message) ? res.data.message : (res && res.message ? res.message : "Unable to proceed because one or more selected board materials are currently out of stock.");
+                showCutlistStockWarningModal(errMsg);
             }
         })
         .catch(function (err) {
             console.error("❌ [Cutlist Cart Sync Error]:", err);
+            showCutlistStockWarningModal("An error occurred while communicating with the cart. Please try again.");
         });
 }
 
@@ -2242,7 +2562,6 @@ function collectEdgebandingItems() {
         var widthM = (dims.width || 0) / 1000;
 
         var state = typeof getEdgeState === "function" ? getEdgeState(row) : {};
-        var tape = typeof edgeTapeForRow === "function" ? edgeTapeForRow(row) : null;
 
         var edges = ["L1", "L2", "W1", "W2"];
         edges.forEach(function (edgeKey) {
@@ -2261,10 +2580,13 @@ function collectEdgebandingItems() {
             var edgeLenM = (edgeKey.indexOf("L") === 0 ? lengthM : widthM) * panels;
             if (!(edgeLenM > 0)) return;
 
-            var tapeCode = tape ? (tape.tape_code || tape.code) : "EDGE-TAPE";
-            var prodName = tape ? (tape.product_name || tape.name) : "Edgebanding tape";
-            var tapeSize = tape ? tape.size : "";
-            var unitPrice = tape ? (isFinite(parseFloat(tape.edgebanding_unit_price)) && parseFloat(tape.edgebanding_unit_price) > 0 ? parseFloat(tape.edgebanding_unit_price) : (isFinite(parseFloat(tape.unit_price)) && parseFloat(tape.unit_price) > 0 ? parseFloat(tape.unit_price) : 2.20)) : 2.20;
+            var edgeTape = typeof edgeTapeForRow === "function" ? edgeTapeForRow(row, edgeKey) : null;
+            if (!edgeTape) return;
+
+            var tapeCode = edgeTape.tape_code || edgeTape.code || "EDGE-TAPE";
+            var prodName = edgeTape.product_name || edgeTape.name || "Edgebanding tape";
+            var tapeSize = edgeTape.size || "";
+            var unitPrice = (isFinite(parseFloat(edgeTape.edgebanding_unit_price)) && parseFloat(edgeTape.edgebanding_unit_price) > 0 ? parseFloat(edgeTape.edgebanding_unit_price) : (isFinite(parseFloat(edgeTape.unit_price)) && parseFloat(edgeTape.unit_price) > 0 ? parseFloat(edgeTape.unit_price) : 2.20));
 
             var key = tapeCode || prodName;
 
@@ -4810,9 +5132,11 @@ function loadBrandBoards(brandSlug, page, append) {
                     var swatchUrl = board.swatch || (board.gallery && board.gallery[0] && board.gallery[0].thumbnail) || '';
                     var swatchImg = swatchUrl ? ('<img src="' + panelSummaryEscape(swatchUrl) + '" style="display:none;" />') : '';
 
-                    return '<div class="product-row" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
+                    var stockTag = (board.is_out_of_stock || board.stock_status === 'outofstock') ? ' <span class="popup-stock-tag out-of-stock" style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;background:#fee2e2;color:#b91c1c;margin-left:6px;vertical-align:middle;">Out of stock</span>' : '';
+
+                    return '<div class="product-row' + (board.is_out_of_stock ? ' is-out-of-stock' : '') + '" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
                         '<span>' + decorCode + '</span>' +
-                        '<span>' + decorName + '</span>' +
+                        '<span>' + decorName + stockTag + '</span>' +
                         '<span>' + core + '</span>' +
                         '<span class="more">More info</span>' +
                         swatchImg +
@@ -4939,9 +5263,11 @@ function executeDecorSearch(query, originInput) {
                             var swatchUrl = board.swatch || (board.gallery && board.gallery[0] && board.gallery[0].thumbnail) || '';
                             var swatchImg = swatchUrl ? ('<img src="' + panelSummaryEscape(swatchUrl) + '" style="display:none;" />') : '';
 
-                            return '<div class="product-row" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
+                            var stockTag = (board.is_out_of_stock || board.stock_status === 'outofstock') ? ' <span class="popup-stock-tag out-of-stock" style="display:inline-block;padding:1px 5px;border-radius:3px;font-size:10px;font-weight:700;background:#fee2e2;color:#b91c1c;margin-left:6px;vertical-align:middle;">Out of stock</span>' : '';
+
+                            return '<div class="product-row' + (board.is_out_of_stock ? ' is-out-of-stock' : '') + '" data-size="' + sizeAttr + '" data-brand="' + brand + '" data-code="' + decorCode + '">' +
                                 '<span>' + decorCode + '</span>' +
-                                '<span>' + decorName + '</span>' +
+                                '<span>' + decorName + stockTag + '</span>' +
                                 '<span>' + core + '</span>' +
                                 '<span class="more">More info</span>' +
                                 swatchImg +
@@ -5000,6 +5326,8 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
     currentRow.dataset.decorCode = code;
     if (name) {
         currentRow.dataset.decorName = name;
+    } else {
+        delete currentRow.dataset.decorName;
     }
 
     var decorInput = currentRow.querySelector(".decor-real-input") || currentRow.querySelector(".decor input");
@@ -5023,12 +5351,19 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
     currentRow.classList.add("unlocked");
     renderDecorCard(currentRow, code);
 
+    // Thick [mm]: Preserve current selected thickness if valid for the new board; otherwise default to first available
     var thickSelectEl = currentRow.querySelector(".thick select");
     if (thickSelectEl && selectedBoard && selectedBoard.thicknesses && selectedBoard.thicknesses.length) {
+        var prevThick = thickSelectEl.value;
         thickSelectEl.innerHTML = selectedBoard.thicknesses.map(function (t) {
             return '<option value="' + t + '">' + t + '</option>';
         }).join('');
-        thickSelectEl.value = selectedBoard.thicknesses[0];
+        var strThicknesses = selectedBoard.thicknesses.map(function (t) { return String(t); });
+        if (prevThick && strThicknesses.indexOf(String(prevThick)) !== -1) {
+            thickSelectEl.value = prevThick;
+        } else {
+            thickSelectEl.value = selectedBoard.thicknesses[0];
+        }
     }
 
     if (selectedBoard && selectedBoard.length && selectedBoard.width) {
@@ -5078,19 +5413,73 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
         rowQtyInput.classList.remove("invalid");
     }
 
-    var grainCheckbox = currentRow.querySelector(".grain input");
-    if (grainCheckbox) {
-        var isGrainDecor = !!(selectedBoard && (selectedBoard.grainMatch || selectedBoard.grain_match));
-        currentRow.classList.toggle("grain-allowed", isGrainDecor);
-        grainCheckbox.disabled = !isGrainDecor;
-        if (!isGrainDecor && grainCheckbox.checked) {
-            grainCheckbox.checked = false;
-        }
-        updateGrainSection();
+    // ── CLEAR ANCILLARY DETAILS ON BOARD CHANGE (Edgebanding, Machining, Spray, Grain) ──
+    // 1. Edgebanding details (L1, L2, W1, W2)
+    currentRow.querySelectorAll(".edging-input input").forEach(function (edgeInp) {
+        edgeInp.value = "";
+    });
+    if (typeof edgeState !== "undefined" && edgeState) {
+        edgeState.delete(currentRow);
     }
 
+    // 2. Additional machining
+    delete currentRow.dataset.machiningApplied;
+    delete currentRow.dataset.machiningData;
+    delete currentRow.dataset.panelShaping;
+    delete currentRow.dataset.surfaceShaping;
+    delete currentRow.dataset.drillingData;
+    if (typeof machiningCurrentRow !== "undefined" && machiningCurrentRow === currentRow) {
+        if (typeof machiningAppliedItems !== "undefined") {
+            machiningAppliedItems = [];
+        }
+    }
+    var machiningBtn = currentRow.querySelector(".machining .add-btn");
+    if (machiningBtn) {
+        machiningBtn.classList.remove("configured", "active");
+    }
+
+    // 3. Spray finishing
+    if (typeof sprayStateByRow !== "undefined" && sprayStateByRow) {
+        sprayStateByRow.delete(currentRow);
+    }
+    delete currentRow.dataset.spray;
+    delete currentRow.dataset.sprayApplied;
+    var sprayBtn = currentRow.querySelector(".spray .add-btn");
+    if (sprayBtn) {
+        sprayBtn.classList.remove("configured", "active");
+    }
+
+    // 4. Grain match
+    var grainCheckbox = currentRow.querySelector(".grain input");
+    var isGrainDecor = !!(selectedBoard && (selectedBoard.grainMatch || selectedBoard.grain_match));
+    currentRow.classList.toggle("grain-allowed", isGrainDecor);
+    if (grainCheckbox) {
+        grainCheckbox.disabled = !isGrainDecor;
+        grainCheckbox.checked = false;
+    }
+    var grainBadge = currentRow.querySelector(".grain-letter");
+    if (grainBadge) {
+        grainBadge.textContent = "";
+        grainBadge.classList.remove("visible");
+    }
+    if (typeof updateGrainSection === "function") {
+        updateGrainSection();
+    }
+    if (typeof updateGrainLetters === "function") {
+        updateGrainLetters();
+    }
+
+    // 5. Associated offcuts
+    delete currentRow.dataset.selectedOffcuts;
+
+    // Capability toggles & button updaters
     currentRow.classList.toggle("spray-allowed", !!(selectedBoard && (selectedBoard.sprayFinishing || selectedBoard.spray_finishing)));
-    updateSprayBtn(currentRow);
+    if (typeof updateSprayBtn === "function") {
+        updateSprayBtn(currentRow);
+    }
+    if (typeof updateMachiningBtn === "function") {
+        updateMachiningBtn(currentRow);
+    }
 
     var dims = getDimInputs(currentRow);
     var qtyInput = currentRow.querySelector(".qty input");
@@ -5118,6 +5507,13 @@ function applyBoardSelectionToRow(currentRow, code, decorName, decorImage) {
     if (!currentRow.classList.contains("fs-row")) {
         updateEdging(currentRow);
         etRefreshDropdowns();
+    }
+
+    if (typeof calculateTotal === "function") {
+        calculateTotal();
+    }
+    if (typeof markDirty === "function") {
+        markDirty();
     }
 }
 
@@ -6702,37 +7098,148 @@ if (panelSummaryRotateBtn) {
 
 if (edgeTabs) {
     edgeTabs.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         let tab = e.target.closest(".edge-tab");
         if (!tab || !activeEdgeRow) return;
         activeEdge = tab.dataset.edge;
 
-        // Opening an edge for the first time on an already-taped row applies that same
-        // tape and finish to it, so the tape is only ever chosen once per panel.
+        closeEdgeTapeDropdown();
         edgeVisit(getEdgeState(activeEdgeRow), activeEdge);
         renderEdgePopup();
     });
 }
 
 
-// Applies (or removes) the tape on the edge currently being edited. It has to
-// re-render rather than just toggle a class: the finish options are gated on
 if (edgeSummaryBtn) {
-    edgeSummaryBtn.addEventListener("click", function () {
+    edgeSummaryBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         if (!activeEdgeRow || !activeEdge || edgeSummaryBtn.disabled) return;
+
+        // If chevron was clicked, toggle dropdown
+        if (e.target.closest("#edgeSummaryChevron") || e.target.closest(".edge-summary-chevron")) {
+            toggleEdgeTapeDropdown();
+            return;
+        }
+
+        let tape = edgeTapeForRow(activeEdgeRow, activeEdge);
+
+        // If no edge tape is matched/selected yet, clicking the button opens the tape selector
+        if (!tape) {
+            toggleEdgeTapeDropdown(true);
+            return;
+        }
+
+        // Close dropdown if open
+        closeEdgeTapeDropdown();
+
         let state = getEdgeState(activeEdgeRow);
-        let tape = edgeTapeForRow(activeEdgeRow);
         let allowed = machiningTapeFinishes(tape ? tape.code : "");
 
-        // Same roll of tape across the whole row (it's matched from the decor, not
-        // chosen per edge — see edgeTapeForRow), so applying or removing it acts on
         edgeApplyToggle(state, activeEdge, allowed);
         renderEdgePopup();
+
+        // Update active edge table input and dataset
+        var cell = activeEdgeRow.querySelector('.edging-input[data-edge="' + activeEdge + '"]');
+        var input = cell ? cell.querySelector("input") : null;
+        if (cell) {
+            if (tape && state[activeEdge]) cell.dataset.tapeCode = tape.code;
+            else delete cell.dataset.tapeCode;
+        }
+        if (input && !input.disabled) {
+            if (tape && state[activeEdge]) {
+                input.dataset.tapeCode = tape.code;
+                input.value = edgeTapeShortCode(tape);
+            } else {
+                delete input.dataset.tapeCode;
+                input.value = "";
+            }
+        }
+
+        if (typeof calculateTotal === "function") calculateTotal();
+        if (typeof markDirty === "function") markDirty();
     });
 }
+
+if (edgeTapeSearchInput) {
+    edgeTapeSearchInput.addEventListener("input", function (e) {
+        renderEdgeTapeDropdownList(e.target.value);
+    });
+    edgeTapeSearchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") {
+            closeEdgeTapeDropdown();
+        }
+    });
+    edgeTapeSearchInput.addEventListener("click", function (e) {
+        e.stopPropagation();
+    });
+}
+
+if (edgeTapeDropdownList) {
+    edgeTapeDropdownList.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        var opt = e.target.closest(".edge-tape-option");
+        if (!opt || !activeEdgeRow || !activeEdge) return;
+        var code = opt.dataset.code;
+        if (!code || !window.cutlistEdgeTapes) return;
+
+        var selectedTape = window.cutlistEdgeTapes.find(function (t) { return t.code === code; });
+        if (!selectedTape) return;
+
+        var state = getEdgeState(activeEdgeRow);
+        if (!state.tapes) state.tapes = {};
+        state.tapes[activeEdge] = selectedTape.code;
+
+        // Auto-apply this tape to the active edge
+        state[activeEdge] = true;
+        state.visited[activeEdge] = true;
+
+        // Validate finish against allowed finishes for this tape
+        var allowed = machiningTapeFinishes(selectedTape.code);
+        if (allowed && allowed[state.finish] === false) {
+            state.finish = "square";
+        }
+
+        // Close ONLY the dropdown list, keep the main edgePopup modal open!
+        closeEdgeTapeDropdown();
+        renderEdgePopup();
+
+        // Update active edge row input and data attribute
+        var cell = activeEdgeRow.querySelector('.edging-input[data-edge="' + activeEdge + '"]');
+        var input = cell ? cell.querySelector("input") : null;
+        if (cell) cell.dataset.tapeCode = selectedTape.code;
+        if (input && !input.disabled) {
+            input.dataset.tapeCode = selectedTape.code;
+            input.value = edgeTapeShortCode(selectedTape);
+        }
+
+        if (typeof calculateTotal === "function") calculateTotal();
+        if (typeof markDirty === "function") markDirty();
+    });
+}
+
+if (edgePopup) {
+    // Stop all clicks inside edgePopup from bubbling to document click handler
+    edgePopup.addEventListener("click", function (e) {
+        e.stopPropagation();
+    });
+}
+
+document.addEventListener("click", function (e) {
+    var wrap = document.getElementById("edgeTapeSelectorWrap");
+    if (wrap && !wrap.contains(e.target)) {
+        closeEdgeTapeDropdown();
+    }
+});
 
 
 if (edgeFinishOptions) {
     edgeFinishOptions.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         let opt = e.target.closest(".edge-finish-option");
         if (!opt || !activeEdgeRow || !activeEdge) return;
 
@@ -6750,6 +7257,8 @@ if (edgeFinishOptions) {
 
 if (edgeModeToggle) {
     edgeModeToggle.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
         let btn = e.target.closest(".mode-btn");
         if (!btn) return;
         edgeModeToggle.querySelectorAll(".mode-btn")
@@ -12409,9 +12918,17 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
     const downloadBtn = document.getElementById("downloadRowBtn");
     if (downloadBtn) {
         downloadBtn.addEventListener("click", function () {
-            const trs = Array.from(document.querySelectorAll(".table-area table tr")).filter(tr =>
+            const mainTable = document.querySelector(".tab-panel[data-panel='cutspray'] > .table-area > table") ||
+                              document.querySelector(".table-area > table:not(#fsTable):not(#etTable)") ||
+                              (typeof table !== "undefined" && table ? table : document.querySelector(".table-area table"));
+
+            const trs = Array.from(mainTable ? mainTable.querySelectorAll("tr") : []).filter(tr =>
                 !tr.classList.contains("header-row") &&
                 !tr.classList.contains("section-row") &&
+                !tr.classList.contains("fs-row") &&
+                !tr.classList.contains("et-row") &&
+                !tr.closest("#fsTable") &&
+                !tr.closest("#etTable") &&
                 tr.querySelector(".rownum")
             );
 
@@ -12450,16 +12967,28 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
                 const w1Input = tr.querySelector('.edging-input[data-edge="W1"] input');
                 const w2Input = tr.querySelector('.edging-input[data-edge="W2"] input');
 
-                const l1 = l1Input ? l1Input.value : "";
-                const l2 = l2Input ? l2Input.value : "";
-                const w1 = w1Input ? w1Input.value : "";
-                const w2 = w2Input ? w2Input.value : "";
+                const state = (typeof edgeState !== "undefined" && edgeState && edgeState.has(tr)) ? edgeState.get(tr) : null;
 
-                let finish = "";
-                if (typeof edgeState !== "undefined") {
-                    const state = edgeState.get(tr);
-                    finish = (state && state.finish) ? state.finish : "";
-                }
+                const isEdgeOn = function (edgeKey, inputEl) {
+                    if (state && state[edgeKey]) return 1;
+                    if (inputEl) {
+                        const val = inputEl.value;
+                        if (val === null || val === undefined || val === "") return 0;
+                        if (typeof val === "number") return val > 0 ? 1 : 0;
+                        const s = String(val).trim().toLowerCase();
+                        if (s === "0" || s === "false" || s === "no" || s === "n" || s === "-" || s === "none" || s === "off") return 0;
+                        return 1;
+                    }
+                    return 0;
+                };
+
+                const l1 = isEdgeOn("L1", l1Input);
+                const l2 = isEdgeOn("L2", l2Input);
+                const w1 = isEdgeOn("W1", w1Input);
+                const w2 = isEdgeOn("W2", w2Input);
+
+                let finish = (state && state.finish) ? state.finish : "";
+                if (finish) finish = finish.charAt(0).toUpperCase() + finish.slice(1);
 
                 const note = tr.dataset.panelInfo || "";
 
@@ -12663,19 +13192,52 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
         setField(row.querySelector(".qty input"), qtyVal);
         setField(row.querySelector(".desc input"), data.description || "");
 
+        // Update edging inputs based on imported length and width
+        if (typeof updateEdging === "function") {
+            updateEdging(row);
+        }
+
+        function isEdgeTapeSelected(val) {
+            if (val === null || val === undefined || val === "") return false;
+            if (typeof val === "number") return val > 0;
+            var s = String(val).trim().toLowerCase();
+            if (s === "0" || s === "false" || s === "no" || s === "n" || s === "-" || s === "none") return false;
+            return s === "1" || s === "true" || s === "yes" || s === "y" || s.startsWith("m");
+        }
+
         const finish = String(data.edgeFinish || "").trim().toLowerCase();
         const state = getEdgeState(row);
-        EDGE_KEYS.forEach(function (edge) {
-            state[edge] = data[edge.toLowerCase()] ? true : null;
-            state.visited[edge] = true;
-        });
-        state.finish = (finish === "radius" || finish === "square") ? finish : null;
+        const tape = edgeTapeForRow(row);
+        const shortCode = edgeTapeShortCode(tape);
+        let hasAnyEdge = false;
 
-        const shortCode = edgeTapeShortCode(edgeTapeForRow(row));
+        EDGE_KEYS.forEach(function (edge) {
+            const isSelected = isEdgeTapeSelected(data[edge.toLowerCase()]);
+            state[edge] = (isSelected && tape) ? true : null;
+            state.visited[edge] = true;
+            if (state[edge]) hasAnyEdge = true;
+        });
+
+        if (finish === "radius" || finish === "square") {
+            state.finish = finish;
+        } else if (hasAnyEdge && !state.finish) {
+            const allowed = machiningTapeFinishes(tape ? tape.code : "");
+            state.finish = allowed.radius ? "radius" : (allowed.square ? "square" : "radius");
+        }
+
         row.querySelectorAll(".edging-input").forEach(function (td) {
             const edge = td.dataset.edge;
             const input = td.querySelector("input");
-            if (input) input.value = state[edge] ? shortCode : "";
+            if (input) {
+                input.value = (state[edge] && tape) ? (shortCode || "") : "";
+                if (state[edge] && tape) {
+                    td.dataset.tapeCode = tape.code;
+                    input.dataset.tapeCode = tape.code;
+                } else {
+                    delete td.dataset.tapeCode;
+                    delete input.dataset.tapeCode;
+                }
+            }
         });
 
         if (data.note) row.dataset.panelInfo = String(data.note).slice(0, PANEL_INFO_MAX_LENGTH);
@@ -12772,6 +13334,10 @@ document.querySelectorAll(".summary-header").forEach(function (header) {
             });
 
             renumberRows();
+            if (typeof etRefreshDropdowns === "function") etRefreshDropdowns();
+            if (typeof calculateTotal === "function") calculateTotal();
+            if (typeof updateGrainSection === "function") updateGrainSection();
+            if (typeof updateGrainLetters === "function") updateGrainLetters();
             markDirty();
 
             if (unmatched.length) {
