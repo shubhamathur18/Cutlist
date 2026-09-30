@@ -60,7 +60,7 @@ $hinged_doors_page_url = function_exists('cutlist_get_hinged_doors_page_url') ? 
             </span>
         </a>
         <a href="<?php echo $active_tab === 'slidingdoors' ? 'javascript:void(0)' : esc_url($sliding_doors_page_url); ?>"
-            class="tab<?php echo $active_tab === 'slidingdoors' ? ' active' : ''; ?> disabled">
+            class="tab<?php echo $active_tab === 'slidingdoors' ? ' active' : ''; ?>">
             <span class="tab-icon">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                     stroke-linecap="round" stroke-linejoin="round">

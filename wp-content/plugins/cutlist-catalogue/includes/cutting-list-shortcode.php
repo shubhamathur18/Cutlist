@@ -82,7 +82,6 @@ function cutlist_proto_get_edge_tape_options()
 					'stock_status' => $tape['stock_status'] ?? 'instock',
 					'is_managed_stock' => $tape['is_managed_stock'] ?? false,
 					'is_out_of_stock' => !empty($tape['is_out_of_stock']),
-					'rack_location' => $tape['rack_location'] ?? '',
 					'supplier_sku' => $tape['supplier_sku'] ?? '',
 				];
 			}
@@ -102,7 +101,6 @@ function cutlist_proto_get_edge_tape_options()
 				'stock_status' => $tape['stock_status'] ?? 'instock',
 				'is_managed_stock' => $tape['is_managed_stock'] ?? false,
 				'is_out_of_stock' => !empty($tape['is_out_of_stock']),
-				'rack_location' => $tape['rack_location'] ?? '',
 				'supplier_sku' => $tape['supplier_sku'] ?? '',
 			];
 		}

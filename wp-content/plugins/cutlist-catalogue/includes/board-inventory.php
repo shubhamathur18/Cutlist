@@ -488,7 +488,6 @@ function cutlist_process_order_stock_deduction($order_id)
 	foreach ($full_sheets_by_board as $board_id => $qty_sheets) {
 		if ($qty_sheets > 0) {
 			$b_title = get_the_title($board_id);
-			$rack = get_post_meta($board_id, 'rack_location', true) ?: __('Workshop Floor', 'cutlist-catalogue');
 
 			cutlist_update_board_stock(
 				$board_id,
@@ -501,7 +500,6 @@ function cutlist_process_order_stock_deduction($order_id)
 			$material_pull_summary[] = array(
 				'board_id'        => $board_id,
 				'board_name'      => $b_title,
-				'rack_location'   => $rack,
 				'sheets_required' => $qty_sheets,
 				'order_type'      => 'full_sheet',
 				'notes'           => sprintf(__('%d Full Sheet(s)', 'cutlist-catalogue'), $qty_sheets),
@@ -516,7 +514,6 @@ function cutlist_process_order_stock_deduction($order_id)
 
 		if ($sheets_needed > 0) {
 			$b_title = get_the_title($board_id);
-			$rack = get_post_meta($board_id, 'rack_location', true) ?: __('Workshop Floor', 'cutlist-catalogue');
 
 			cutlist_update_board_stock(
 				$board_id,
@@ -535,7 +532,6 @@ function cutlist_process_order_stock_deduction($order_id)
 			$material_pull_summary[] = array(
 				'board_id'        => $board_id,
 				'board_name'      => $b_title,
-				'rack_location'   => $rack,
 				'sheets_required' => $sheets_needed,
 				'order_type'      => 'cutlist',
 				'notes'           => sprintf(__('%d sheet(s) for %d cut panel(s) (%s m²)', 'cutlist-catalogue'), $sheets_needed, $calc['panel_count'], $calc['total_panel_area_m2']),
@@ -630,7 +626,6 @@ function cutlist_render_board_inventory_meta_box($post)
 	$stock = ($stock_meta !== '') ? (int) $stock_meta : 0;
 	$reorder = (int) get_post_meta($post_id, 'stock_reorder_level', true);
 	if ($reorder <= 0) $reorder = 5;
-	$rack = get_post_meta($post_id, 'rack_location', true);
 	$sku = get_post_meta($post_id, 'supplier_sku', true);
 	$manage_stock = get_post_meta($post_id, 'manage_stock', true);
 	if ($manage_stock === '') $manage_stock = 'yes'; // Default to managed
@@ -754,12 +749,6 @@ function cutlist_render_board_inventory_meta_box($post)
 			}
 		</script>
 
-		<div class="form-field">
-			<label for="cutlist_rack_location"><?php esc_html_e('Rack / Storage location', 'cutlist-catalogue'); ?></label>
-			<input name="cutlist_rack_location" id="cutlist_rack_location" type="text" value="<?php echo esc_attr($rack); ?>" placeholder="e.g. Rack A - Bay 02">
-			<span class="description"><?php esc_html_e('Workshop bay or shelf number.', 'cutlist-catalogue'); ?></span>
-		</div>
-
 		<!-- Collapsible Stock Movement History Log -->
 		<details style="margin-top: 18px; border-top: 1px solid #e2e8f0; padding-top: 12px;">
 			<summary style="cursor: pointer; font-weight: 600; color: #2271b1; font-size: 13px; padding: 4px 0; user-select: none;">
@@ -827,7 +816,6 @@ add_action('save_post_board', function ($post_id) {
 		$old_stock = (int) get_post_meta($post_id, 'stock_sheets_qty', true);
 		$new_stock = max(0, (int) $_POST['cutlist_stock_sheets_qty']);
 		$reorder = max(1, (int) ($_POST['cutlist_stock_reorder_level'] ?? 5));
-		$rack = sanitize_text_field($_POST['cutlist_rack_location'] ?? '');
 		$status = sanitize_text_field($_POST['cutlist_internal_stock_status'] ?? 'instock');
 		$sku = sanitize_text_field($_POST['cutlist_supplier_sku'] ?? '');
 
@@ -845,7 +833,6 @@ add_action('save_post_board', function ($post_id) {
 		// Save meta values
 		update_post_meta($post_id, 'stock_sheets_qty', $new_stock);
 		update_post_meta($post_id, 'stock_reorder_level', $reorder);
-		update_post_meta($post_id, 'rack_location', $rack);
 		update_post_meta($post_id, 'internal_stock_status', $status);
 		update_post_meta($post_id, 'supplier_sku', $sku);
 
@@ -853,7 +840,6 @@ add_action('save_post_board', function ($post_id) {
 		if (function_exists('update_field')) {
 			update_field('stock_sheets_qty', $new_stock, $post_id);
 			update_field('stock_reorder_level', $reorder, $post_id);
-			update_field('rack_location', $rack, $post_id);
 			update_field('internal_stock_status', $status, $post_id);
 			update_field('supplier_sku', $sku, $post_id);
 		}
@@ -898,7 +884,6 @@ add_filter('manage_board_posts_columns', function ($columns) {
 		$new_cols[$key] = $title;
 		if ($key === 'title') {
 			$new_cols['stock_sheets'] = __('Stock (Sheets)', 'cutlist-catalogue');
-			$new_cols['rack_location'] = __('Rack Location', 'cutlist-catalogue');
 			$new_cols['stock_status'] = __('Stock Status', 'cutlist-catalogue');
 		}
 	}
@@ -919,9 +904,6 @@ add_action('manage_board_posts_custom_column', function ($column, $post_id) {
 		}
 
 		echo '<strong style="color:' . esc_attr($color) . '; font-size:14px;">' . esc_html($stock) . '</strong> <span style="color:#64748b; font-size:12px;">sheets</span>';
-	} elseif ($column === 'rack_location') {
-		$rack = get_post_meta($post_id, 'rack_location', true);
-		echo $rack ? '📍 <strong>' . esc_html($rack) . '</strong>' : '<span style="color:#94a3b8;">—</span>';
 	} elseif ($column === 'stock_status') {
 		$status = cutlist_get_board_stock_status($post_id);
 		$labels = array(

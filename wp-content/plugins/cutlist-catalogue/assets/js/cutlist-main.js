@@ -1659,6 +1659,12 @@ function collectCuttingListItems() {
             var tapeCode = cell.dataset.tapeCode || (input ? input.dataset.tapeCode : "");
             var val = input ? input.value.trim() : "";
             if (val && val !== "-" && val !== "none") {
+                if (!tapeCode || tapeCode === "M1" || tapeCode === "M2" || tapeCode.indexOf("/") === -1) {
+                    var resolvedTape = (typeof edgeTapeForRow === "function") ? edgeTapeForRow(row, edgeKey) : null;
+                    if (resolvedTape && resolvedTape.code) {
+                        tapeCode = resolvedTape.code;
+                    }
+                }
                 edges[edgeKey] = tapeCode || val;
             } else {
                 edges[edgeKey] = "";
@@ -1718,6 +1724,13 @@ function collectCuttingListItems() {
         var pm = (window.cutlistPmProducts && decorCode && window.cutlistPmProducts[decorCode]) ? window.cutlistPmProducts[decorCode] : null;
         var imageUrl = (pm && pm.swatch) ? pm.swatch : (row.dataset.image || "");
 
+        // Edge finish (radius / square)
+        var edgeFinish = "";
+        if (typeof edgeState !== "undefined" && edgeState && edgeState.has(row)) {
+            var st = edgeState.get(row);
+            edgeFinish = (st && st.finish) ? st.finish : "";
+        }
+
         items.push({
             id: CutlistBasket.makeId("ces"),
             decor: decor,
@@ -1734,6 +1747,7 @@ function collectCuttingListItems() {
             edgeL2: edges.L2 || "",
             edgeW1: edges.W1 || "",
             edgeW2: edges.W2 || "",
+            edgeFinish: edgeFinish,
             machining: finalMachining,
             panelShaping: panelShapingText,
             surfaceShaping: surfaceShapingText,

@@ -2128,17 +2128,27 @@ add_filter('manage_sd_frame_style_posts_columns', function ($columns) {
 
 add_action('manage_sd_frame_style_posts_custom_column', function ($column, $post_id) {
 	if ($column === 'sd_base_price') {
-		$price = get_field('base_price', $post_id) ?: get_post_meta($post_id, 'base_price', true);
-		echo $price ? cutlist_format_price_html($price) : '£68.00';
+		$price = get_post_meta($post_id, 'base_price', true);
+		if ($price === '' && function_exists('get_field')) {
+			$price = get_field('base_price', $post_id);
+		}
+		$price_num = is_numeric($price) ? (float)$price : 0.00;
+		echo cutlist_format_price_html($price_num);
 		return;
 	}
 	if ($column === 'sd_colors') {
-		$colors = get_field('colors', $post_id) ?: get_post_meta($post_id, 'colors', true);
+		$colors = get_post_meta($post_id, '_frame_colors_data', true);
+		if (empty($colors) || !is_array($colors)) {
+			$colors = get_post_meta($post_id, 'colors', true);
+		}
+		if (empty($colors) && function_exists('get_field')) {
+			$colors = get_field('colors', $post_id);
+		}
 		if (!empty($colors) && is_array($colors)) {
 			$chips = [];
 			foreach ($colors as $c) {
-				$hex = $c['color_hex'] ?? '#cccccc';
-				$name = $c['color_name'] ?? '';
+				$hex = $c['color_hex'] ?? ($c['hex'] ?? '#cccccc');
+				$name = $c['color_name'] ?? ($c['name'] ?? '');
 				$chips[] = '<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px;font-size:12px;"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' . esc_attr($hex) . ';border:1px solid #999;"></span> ' . esc_html($name) . '</span>';
 			}
 			echo implode(' ', $chips);
@@ -2147,6 +2157,47 @@ add_action('manage_sd_frame_style_posts_custom_column', function ($column, $post
 		}
 	}
 }, 10, 2);
+
+/**
+ * Migration to reset existing frame style database posts to 0.00 base price and 0.00 color surcharges.
+ */
+function cutlist_migrate_frame_styles_zero_prices() {
+	if (get_option('cutlist_sd_frame_prices_zero_v3') && !isset($_GET['reset_sd_frame_prices'])) {
+		return;
+	}
+
+	$frames = get_posts([
+		'post_type'      => 'sd_frame_style',
+		'posts_per_page' => -1,
+		'post_status'    => 'any',
+	]);
+
+	if (!empty($frames)) {
+		foreach ($frames as $f) {
+			update_post_meta($f->ID, 'base_price', 0.00);
+			if (function_exists('update_field')) {
+				update_field('base_price', 0.00, $f->ID);
+			}
+
+			$colors = get_post_meta($f->ID, '_frame_colors_data', true);
+			if (empty($colors) || !is_array($colors)) {
+				$colors = get_post_meta($f->ID, 'colors', true);
+			}
+			if (!empty($colors) && is_array($colors)) {
+				foreach ($colors as &$c) {
+					$c['base_price'] = 0.00;
+					$c['surcharge']  = 0.00;
+				}
+				unset($c);
+				update_post_meta($f->ID, '_frame_colors_data', $colors);
+				update_post_meta($f->ID, 'colors', $colors);
+			}
+		}
+	}
+
+	update_option('cutlist_sd_frame_prices_zero_v3', 1);
+}
+add_action('init', 'cutlist_migrate_frame_styles_zero_prices', 30);
 
 // 2. Door Designs Columns
 add_filter('manage_sd_door_design_posts_columns', function ($columns) {
@@ -2333,7 +2384,7 @@ function cutlist_seed_default_sliding_doors()
 			[
 				'title' => 'Shaker',
 				'code' => 'shaker',
-				'base_price' => 68.00,
+				'base_price' => 0.00,
 				'description' => 'Classic Shaker profile with clean borders and built-in finger pull.',
 				'profile_image' => $img_dir . 'shaker-cashmere.jpg',
 				'lifestyle_image' => $img_dir . 'lifestyle-1.jpg',
@@ -2341,14 +2392,14 @@ function cutlist_seed_default_sliding_doors()
 				'colors' => [
 					['color_name' => 'White', 'color_hex' => '#f5f5f5', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-white.jpg'],
 					['color_name' => 'Silver satin', 'color_hex' => '#c8c8c8', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-silver.jpg'],
-					['color_name' => 'Cashmere', 'color_hex' => '#d9d0c7', 'surcharge' => 12.00, 'image_file' => $img_dir . 'shaker-cashmere.jpg'],
+					['color_name' => 'Cashmere', 'color_hex' => '#d9d0c7', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-cashmere.jpg'],
 					['color_name' => 'Matt black', 'color_hex' => '#1a1a1a', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-black.jpg'],
 				],
 			],
 			[
 				'title' => 'Palermo',
 				'code' => 'palermo',
-				'base_price' => 74.00,
+				'base_price' => 0.00,
 				'description' => 'Soft curved ergonomic profile providing modern elegance and ease of glide.',
 				'profile_image' => $img_dir . 'palermo-silver.jpg',
 				'lifestyle_image' => $img_dir . 'lifestyle-1.jpg',
@@ -2356,14 +2407,14 @@ function cutlist_seed_default_sliding_doors()
 				'colors' => [
 					['color_name' => 'Silver satin', 'color_hex' => '#c8c8c8', 'surcharge' => 0.00, 'image_file' => $img_dir . 'palermo-silver.jpg'],
 					['color_name' => 'Matt black', 'color_hex' => '#1a1a1a', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-black.jpg'],
-					['color_name' => 'Bronze', 'color_hex' => '#6e5849', 'surcharge' => 15.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
-					['color_name' => 'Brushed brass', 'color_hex' => '#c5a059', 'surcharge' => 18.00, 'image_file' => $img_dir . 'palermo-silver.jpg'],
+					['color_name' => 'Bronze', 'color_hex' => '#6e5849', 'surcharge' => 0.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
+					['color_name' => 'Brushed brass', 'color_hex' => '#c5a059', 'surcharge' => 0.00, 'image_file' => $img_dir . 'palermo-silver.jpg'],
 				],
 			],
 			[
 				'title' => 'Supreme',
 				'code' => 'supreme',
-				'base_price' => 82.00,
+				'base_price' => 0.00,
 				'description' => 'Sturdy architectural profile with deep recessed channel for large wardrobes.',
 				'profile_image' => $img_dir . 'supreme-silver.jpg',
 				'lifestyle_image' => $img_dir . 'lifestyle-1.jpg',
@@ -2371,14 +2422,14 @@ function cutlist_seed_default_sliding_doors()
 				'colors' => [
 					['color_name' => 'Silver satin', 'color_hex' => '#c8c8c8', 'surcharge' => 0.00, 'image_file' => $img_dir . 'supreme-silver.jpg'],
 					['color_name' => 'Matt black', 'color_hex' => '#1a1a1a', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-black.jpg'],
-					['color_name' => 'Anthracite', 'color_hex' => '#383e42', 'surcharge' => 10.00, 'image_file' => $img_dir . 'slim-black.jpg'],
+					['color_name' => 'Anthracite', 'color_hex' => '#383e42', 'surcharge' => 0.00, 'image_file' => $img_dir . 'slim-black.jpg'],
 					['color_name' => 'White', 'color_hex' => '#f5f5f5', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-white.jpg'],
 				],
 			],
 			[
 				'title' => 'Prestige',
 				'code' => 'prestige',
-				'base_price' => 88.00,
+				'base_price' => 0.00,
 				'description' => 'Sculpted luxury profile with premium anodised and painted finishes.',
 				'profile_image' => $img_dir . 'prestige-bronze.jpg',
 				'lifestyle_image' => $img_dir . 'lifestyle-1.jpg',
@@ -2386,14 +2437,14 @@ function cutlist_seed_default_sliding_doors()
 				'colors' => [
 					['color_name' => 'Silver satin', 'color_hex' => '#c8c8c8', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-silver.jpg'],
 					['color_name' => 'Matt black', 'color_hex' => '#1a1a1a', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-black.jpg'],
-					['color_name' => 'Bronze', 'color_hex' => '#6e5849', 'surcharge' => 15.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
-					['color_name' => 'Brushed brass', 'color_hex' => '#c5a059', 'surcharge' => 18.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
+					['color_name' => 'Bronze', 'color_hex' => '#6e5849', 'surcharge' => 0.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
+					['color_name' => 'Brushed brass', 'color_hex' => '#c5a059', 'surcharge' => 0.00, 'image_file' => $img_dir . 'prestige-bronze.jpg'],
 				],
 			],
 			[
 				'title' => 'Slim',
 				'code' => 'slim',
-				'base_price' => 78.00,
+				'base_price' => 0.00,
 				'description' => 'Minimalist slimline edge maximizing visible surface of glass and decorative decors.',
 				'profile_image' => $img_dir . 'slim-black.jpg',
 				'lifestyle_image' => $img_dir . 'lifestyle-1.jpg',
@@ -2401,7 +2452,7 @@ function cutlist_seed_default_sliding_doors()
 				'colors' => [
 					['color_name' => 'Matt black', 'color_hex' => '#1a1a1a', 'surcharge' => 0.00, 'image_file' => $img_dir . 'slim-black.jpg'],
 					['color_name' => 'Silver satin', 'color_hex' => '#c8c8c8', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-silver.jpg'],
-					['color_name' => 'Anthracite', 'color_hex' => '#383e42', 'surcharge' => 10.00, 'image_file' => $img_dir . 'slim-black.jpg'],
+					['color_name' => 'Anthracite', 'color_hex' => '#383e42', 'surcharge' => 0.00, 'image_file' => $img_dir . 'slim-black.jpg'],
 					['color_name' => 'White', 'color_hex' => '#f5f5f5', 'surcharge' => 0.00, 'image_file' => $img_dir . 'shaker-white.jpg'],
 				],
 			],
@@ -2628,10 +2679,11 @@ function cutlist_get_sliding_doors_admin_config()
 	if (!empty($frame_posts)) {
 		foreach ($frame_posts as $f) {
 			$f_code = get_field('frame_code', $f->ID) ?: sanitize_title($f->post_title);
-			$f_price = (float) get_post_meta($f->ID, 'base_price', true);
-			if ($f_price <= 0 && function_exists('get_field')) {
-				$f_price = (float) get_field('base_price', $f->ID);
+			$f_price_val = get_post_meta($f->ID, 'base_price', true);
+			if ($f_price_val === '' && function_exists('get_field')) {
+				$f_price_val = get_field('base_price', $f->ID);
 			}
+			$f_price = is_numeric($f_price_val) ? (float)$f_price_val : 0.00;
 			$f_desc = get_field('description', $f->ID) ?: '';
 
 			// 1. Featured Image (used on Main Configurator Step 2 card)
@@ -2655,7 +2707,7 @@ function cutlist_get_sliding_doors_admin_config()
 				foreach ($colors_raw as $c) {
 					$c_name = $c['color_name'] ?? ($c['name'] ?? 'Silver satin');
 					$c_hex = $c['color_hex'] ?? ($c['hex'] ?? '#c8c8c8');
-					$c_price = isset($c['base_price']) && (float)$c['base_price'] > 0 ? (float)$c['base_price'] : ($f_price > 0 ? $f_price : 74.00);
+					$c_price = (isset($c['base_price']) && is_numeric($c['base_price'])) ? (float)$c['base_price'] : $f_price;
 
 					// Per-color gallery URLs
 					$c_gallery_urls = [];
@@ -2728,7 +2780,7 @@ function cutlist_get_sliding_doors_admin_config()
 			// First color and primary defaults
 			$first_color = !empty($f_colors) ? $f_colors[0] : null;
 			$default_gallery = ($first_color && !empty($first_color['gallery'])) ? $first_color['gallery'] : [$feat_url, $frames_base_url . 'lifestyle-1.jpg', $frames_base_url . 'lifestyle-2.jpg'];
-			$default_base_price = ($first_color && $first_color['basePrice'] > 0) ? $first_color['basePrice'] : ($f_price > 0 ? $f_price : 74.00);
+			$default_base_price = ($first_color && isset($first_color['basePrice']) && is_numeric($first_color['basePrice'])) ? (float)$first_color['basePrice'] : $f_price;
 
 			$config['frames'][] = [
 				'id'             => $f_code,
@@ -2753,7 +2805,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'id' => 'shaker',
 				'name' => 'Shaker',
 				'code' => 'shaker',
-				'basePrice' => 68.00,
+				'basePrice' => 0.00,
 				'description' => 'Classic Shaker profile with clean borders and built-in finger pull.',
 				'profileImage' => $frames_base_url . 'shaker-cashmere.jpg',
 				'lifestyleImage' => $frames_base_url . 'lifestyle-1.jpg',
@@ -2761,7 +2813,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'colors' => [
 					['name' => 'White', 'hex' => '#f5f5f5', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-white.jpg'],
 					['name' => 'Silver satin', 'hex' => '#c8c8c8', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-silver.jpg'],
-					['name' => 'Cashmere', 'hex' => '#d9d0c7', 'surcharge' => 12.00, 'image' => $frames_base_url . 'shaker-cashmere.jpg'],
+					['name' => 'Cashmere', 'hex' => '#d9d0c7', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-cashmere.jpg'],
 					['name' => 'Matt black', 'hex' => '#1a1a1a', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-black.jpg'],
 				]
 			],
@@ -2769,7 +2821,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'id' => 'palermo',
 				'name' => 'Palermo',
 				'code' => 'palermo',
-				'basePrice' => 74.00,
+				'basePrice' => 0.00,
 				'description' => 'Soft curved ergonomic profile providing modern elegance and ease of glide.',
 				'profileImage' => $frames_base_url . 'palermo-silver.jpg',
 				'lifestyleImage' => $frames_base_url . 'lifestyle-1.jpg',
@@ -2777,15 +2829,15 @@ function cutlist_get_sliding_doors_admin_config()
 				'colors' => [
 					['name' => 'Silver satin', 'hex' => '#c8c8c8', 'surcharge' => 0.00, 'image' => $frames_base_url . 'palermo-silver.jpg'],
 					['name' => 'Matt black', 'hex' => '#1a1a1a', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-black.jpg'],
-					['name' => 'Bronze', 'hex' => '#6e5849', 'surcharge' => 15.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
-					['name' => 'Brushed brass', 'hex' => '#c5a059', 'surcharge' => 18.00, 'image' => $frames_base_url . 'palermo-silver.jpg'],
+					['name' => 'Bronze', 'hex' => '#6e5849', 'surcharge' => 0.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
+					['name' => 'Brushed brass', 'hex' => '#c5a059', 'surcharge' => 0.00, 'image' => $frames_base_url . 'palermo-silver.jpg'],
 				]
 			],
 			[
 				'id' => 'supreme',
 				'name' => 'Supreme',
 				'code' => 'supreme',
-				'basePrice' => 82.00,
+				'basePrice' => 0.00,
 				'description' => 'Sturdy architectural profile with deep recessed channel for large wardrobes.',
 				'profileImage' => $frames_base_url . 'supreme-silver.jpg',
 				'lifestyleImage' => $frames_base_url . 'lifestyle-1.jpg',
@@ -2793,7 +2845,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'colors' => [
 					['name' => 'Silver satin', 'hex' => '#c8c8c8', 'surcharge' => 0.00, 'image' => $frames_base_url . 'supreme-silver.jpg'],
 					['name' => 'Matt black', 'hex' => '#1a1a1a', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-black.jpg'],
-					['name' => 'Anthracite', 'hex' => '#383e42', 'surcharge' => 10.00, 'image' => $frames_base_url . 'slim-black.jpg'],
+					['name' => 'Anthracite', 'hex' => '#383e42', 'surcharge' => 0.00, 'image' => $frames_base_url . 'slim-black.jpg'],
 					['name' => 'White', 'hex' => '#f5f5f5', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-white.jpg'],
 				]
 			],
@@ -2801,7 +2853,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'id' => 'prestige',
 				'name' => 'Prestige',
 				'code' => 'prestige',
-				'basePrice' => 88.00,
+				'basePrice' => 0.00,
 				'description' => 'Sculpted luxury profile with premium anodised and painted finishes.',
 				'profileImage' => $frames_base_url . 'prestige-bronze.jpg',
 				'lifestyleImage' => $frames_base_url . 'lifestyle-1.jpg',
@@ -2809,15 +2861,15 @@ function cutlist_get_sliding_doors_admin_config()
 				'colors' => [
 					['name' => 'Silver satin', 'hex' => '#c8c8c8', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-silver.jpg'],
 					['name' => 'Matt black', 'hex' => '#1a1a1a', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-black.jpg'],
-					['name' => 'Bronze', 'hex' => '#6e5849', 'surcharge' => 15.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
-					['name' => 'Brushed brass', 'hex' => '#c5a059', 'surcharge' => 18.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
+					['name' => 'Bronze', 'hex' => '#6e5849', 'surcharge' => 0.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
+					['name' => 'Brushed brass', 'hex' => '#c5a059', 'surcharge' => 0.00, 'image' => $frames_base_url . 'prestige-bronze.jpg'],
 				]
 			],
 			[
 				'id' => 'slim',
 				'name' => 'Slim',
 				'code' => 'slim',
-				'basePrice' => 78.00,
+				'basePrice' => 0.00,
 				'description' => 'Minimalist slimline edge maximizing visible surface of glass and decorative decors.',
 				'profileImage' => $frames_base_url . 'slim-black.jpg',
 				'lifestyleImage' => $frames_base_url . 'lifestyle-1.jpg',
@@ -2825,7 +2877,7 @@ function cutlist_get_sliding_doors_admin_config()
 				'colors' => [
 					['name' => 'Matt black', 'hex' => '#1a1a1a', 'surcharge' => 0.00, 'image' => $frames_base_url . 'slim-black.jpg'],
 					['name' => 'Silver satin', 'hex' => '#c8c8c8', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-silver.jpg'],
-					['name' => 'Anthracite', 'hex' => '#383e42', 'surcharge' => 10.00, 'image' => $frames_base_url . 'slim-black.jpg'],
+					['name' => 'Anthracite', 'hex' => '#383e42', 'surcharge' => 0.00, 'image' => $frames_base_url . 'slim-black.jpg'],
 					['name' => 'White', 'hex' => '#f5f5f5', 'surcharge' => 0.00, 'image' => $frames_base_url . 'shaker-white.jpg'],
 				]
 			],
@@ -2875,8 +2927,19 @@ function cutlist_get_sliding_doors_admin_config()
 			$g_cat = get_field('glass_category', $g->ID) ?: 'colours';
 			$g_price = (float) get_field('price_per_sqm', $g->ID);
 			$g_hex = get_field('swatch_color', $g->ID) ?: '#e2e8f0';
-			$g_img = get_field('glass_image', $g->ID) ?: '';
+			$image_id = get_post_thumbnail_id($g->ID);
+			$g_img = $image_id ? wp_get_attachment_image_url($image_id, 'full') : '';
+			if (!$g_img) {
+				$g_img_field = get_field('glass_image', $g->ID);
+				if (!empty($g_img_field)) {
+					$g_img = is_array($g_img_field) ? ($g_img_field['url'] ?? '') : (is_numeric($g_img_field) ? wp_get_attachment_image_url($g_img_field, 'full') : $g_img_field);
+				}
+			}
 			$g_thick = get_field('thickness_spec', $g->ID) ?: '4mm safety backed';
+
+			$stock_status = function_exists('cutlist_get_glass_panel_stock_status') ? cutlist_get_glass_panel_stock_status($g->ID) : 'instock';
+			$stock_avail = function_exists('cutlist_get_glass_panel_available_stock') ? cutlist_get_glass_panel_available_stock($g->ID) : ['stock' => 999999, 'is_available' => true, 'is_managed' => false];
+			$is_out_of_stock = ($stock_status === 'outofstock' || !$stock_avail['is_available']);
 
 			$config['glass'][] = [
 				'id' => sanitize_title($g->post_title),
@@ -2885,7 +2948,11 @@ function cutlist_get_sliding_doors_admin_config()
 				'pricePerSqm' => $g_price > 0 ? $g_price : 30.00,
 				'swatchColor' => $g_hex,
 				'thickness' => $g_thick,
-				'image' => $g_img,
+				'image' => $g_img ?: '',
+				'stockStatus' => $stock_status,
+				'stock' => $stock_avail['stock'],
+				'isOutOfStock' => $is_out_of_stock,
+				'isManaged' => $stock_avail['is_managed'],
 			];
 		}
 	}
@@ -2902,7 +2969,7 @@ function cutlist_get_sliding_doors_admin_config()
 
 	if (empty($config['glass'])) {
 		$config['glass'] = [
-			['id' => 'silver-mirror', 'name' => 'Silver Mirror', 'category' => 'mirrors', 'pricePerSqm' => 30.00, 'swatchColor' => '#dbe4eb', 'thickness' => '4mm safety backed'],
+			['id' => 'silver-mirror', 'name' => 'Silver Mirror', 'category' => 'mirrors', 'pricePerSqm' => 30.00, 'swatchColor' => '#ffffff', 'thickness' => '4mm safety backed'],
 			['id' => 'grey-mirror', 'name' => 'Grey Mirror', 'category' => 'mirrors', 'pricePerSqm' => 35.00, 'swatchColor' => '#5c646b', 'thickness' => '4mm safety backed'],
 			['id' => 'bronze-mirror', 'name' => 'Bronze Mirror', 'category' => 'mirrors', 'pricePerSqm' => 38.00, 'swatchColor' => '#9e7358', 'thickness' => '4mm safety backed'],
 			['id' => 'pure-white', 'name' => 'Pure White', 'category' => 'colours', 'pricePerSqm' => 45.00, 'swatchColor' => '#ffffff', 'thickness' => '4mm safety backed'],

@@ -41,6 +41,7 @@ require_once CUTLIST_CATALOGUE_PATH . 'includes/hinged-doors-shortcode.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/wc-cart-integration.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/board-inventory.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/edge-tape-inventory.php';
+require_once CUTLIST_CATALOGUE_PATH . 'includes/glass-inventory.php';
 require_once CUTLIST_CATALOGUE_PATH . 'includes/admin-settings.php';
 
 register_activation_hook(__FILE__, function () {

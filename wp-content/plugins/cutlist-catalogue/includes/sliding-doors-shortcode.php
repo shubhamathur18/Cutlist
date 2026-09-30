@@ -76,7 +76,7 @@ function cutlist_enqueue_sliding_doors_assets()
 	$board_posts = get_posts(array(
 		'post_type'      => 'board',
 		'post_status'    => 'publish',
-		'posts_per_page' => 150,
+		'posts_per_page' => -1,
 		'orderby'        => 'title',
 		'order'          => 'ASC',
 	));
@@ -84,36 +84,68 @@ function cutlist_enqueue_sliding_doors_assets()
 	foreach ($board_posts as $b) {
 		$decor_code = get_post_meta($b->ID, 'decor_code', true) ?: $b->post_title;
 		$image_id = get_post_thumbnail_id($b->ID);
-		$image_url = $image_id ? wp_get_attachment_image_url($image_id, 'medium') : '';
+		if (!$image_id) {
+			$gallery_ids = get_post_meta($b->ID, '_board_gallery_ids', true);
+			if (!empty($gallery_ids) && is_array($gallery_ids)) {
+				$image_id = (int) $gallery_ids[0];
+			}
+		}
+		if (!$image_id) {
+			$image_id = get_post_meta($b->ID, 'decor_image', true);
+		}
+		$image_url = $image_id ? (is_numeric($image_id) ? wp_get_attachment_image_url($image_id, 'medium') : $image_id) : '';
 		
 		$brand_terms = get_the_terms($b->ID, 'board_brand');
 		$brand = ($brand_terms && !is_wp_error($brand_terms)) ? $brand_terms[0]->name : (get_post_meta($b->ID, 'brand', true) ?: 'Egger');
+
+		$collection_terms = get_the_terms($b->ID, 'board_collection');
+		$collection = ($collection_terms && !is_wp_error($collection_terms)) ? $collection_terms[0]->name : (get_post_meta($b->ID, 'collection', true) ?: '');
 		
 		$price = (float) get_post_meta($b->ID, 'price_full_sheet', true);
 		if ($price <= 0) $price = (float) get_post_meta($b->ID, 'sheet_price', true);
 		if ($price <= 0) $price = (float) get_field('full_sheet_price', $b->ID);
 		if ($price <= 0) $price = 78.50;
 
+		$stock_status = function_exists('cutlist_get_board_stock_status') ? cutlist_get_board_stock_status($b->ID) : 'instock';
+		$stock_avail = function_exists('cutlist_get_board_available_stock') ? cutlist_get_board_available_stock($b->ID) : array('stock' => 999999, 'is_available' => true, 'is_managed' => false);
+		$is_out_of_stock = ($stock_status === 'outofstock' || !$stock_avail['is_available']);
+
 		$boards_data[] = array(
-			'id'        => $b->ID,
-			'title'     => $b->post_title,
-			'code'      => $decor_code,
-			'brand'     => $brand,
-			'image'     => $image_url,
-			'price'     => $price,
+			'id'           => $b->ID,
+			'title'        => $b->post_title,
+			'code'         => $decor_code,
+			'brand'        => $brand,
+			'collection'   => $collection,
+			'image'        => $image_url,
+			'price'        => $price,
+			'stockStatus'  => $stock_status,
+			'stock'        => $stock_avail['stock'],
+			'isOutOfStock' => $is_out_of_stock,
+			'isManaged'    => $stock_avail['is_managed'],
 		);
+	}
+
+	$brand_terms_all = get_terms(array('taxonomy' => 'board_brand', 'hide_empty' => false));
+	$brands_list = array();
+	if ($brand_terms_all && !is_wp_error($brand_terms_all)) {
+		foreach ($brand_terms_all as $bt) {
+			$brands_list[] = $bt->name;
+		}
 	}
 
 	wp_localize_script('sliding-doors-main', 'slidingDoorsData', array(
 		'currencySymbol' => $currency_sym,
 		'ajaxUrl'        => admin_url('admin-ajax.php'),
-		'nonce'          => wp_create_nonce('cutlist_frontend_nonce'),
+		'nonce'          => wp_create_nonce('cutlist_cart_nonce'),
 		'cartUrl'        => function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/'),
 		'checkoutUrl'    => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : home_url('/checkout/'),
 		'frames'         => $sd_config['frames'] ?? array(),
 		'designs'        => $sd_config['designs'] ?? array(),
 		'glass'          => $sd_config['glass'] ?? array(),
 		'boards'         => $boards_data,
+		'boardBrands'    => $brands_list,
+		'assetsUrl'      => plugins_url('assets/', dirname(__FILE__)),
+		'roomImageUrl'   => plugins_url('assets/images/room-reflection.jpg', dirname(__FILE__)),
 		'pricing'        => $sd_config['pricing'] ?? array(
 			'trackPerMeter'     => 42.00,
 			'softClosePair'     => 34.00,

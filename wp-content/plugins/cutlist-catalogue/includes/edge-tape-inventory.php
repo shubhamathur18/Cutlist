@@ -651,7 +651,6 @@ function cutlist_render_edge_tape_inventory_meta_box($post)
 	$stock = ($stock_meta !== '') ? (int) $stock_meta : 10;
 	$reorder = (int) get_post_meta($post_id, 'stock_reorder_level', true);
 	if ($reorder <= 0) $reorder = 5;
-	$rack = get_post_meta($post_id, 'rack_location', true);
 	$sku = get_post_meta($post_id, 'supplier_sku', true);
 	$manage_stock = get_post_meta($post_id, 'manage_stock', true);
 	if ($manage_stock === '') $manage_stock = 'yes'; // Default to managed
@@ -842,7 +841,6 @@ add_action('save_post_edge_tape', function ($post_id) {
 		$old_stock = (int) get_post_meta($post_id, 'stock_units_qty', true);
 		$new_stock = max(0, (int) ($_POST['cutlist_stock_units_qty'] ?? $_POST['cutlist_stock_meters_qty'] ?? 0));
 		$reorder = max(1, (int) ($_POST['cutlist_tape_reorder_level'] ?? 5));
-		$rack = sanitize_text_field($_POST['cutlist_tape_rack_location'] ?? '');
 		$status = sanitize_text_field($_POST['cutlist_tape_internal_stock_status'] ?? 'instock');
 		$sku = sanitize_text_field($_POST['cutlist_tape_supplier_sku'] ?? '');
 
@@ -861,7 +859,6 @@ add_action('save_post_edge_tape', function ($post_id) {
 		update_post_meta($post_id, 'stock_units_qty', $new_stock);
 		update_post_meta($post_id, 'stock_meters_qty', $new_stock);
 		update_post_meta($post_id, 'stock_reorder_level', $reorder);
-		update_post_meta($post_id, 'rack_location', $rack);
 		update_post_meta($post_id, 'internal_stock_status', $status);
 		update_post_meta($post_id, 'supplier_sku', $sku);
 
@@ -869,7 +866,6 @@ add_action('save_post_edge_tape', function ($post_id) {
 		if (function_exists('update_field')) {
 			update_field('stock_units_qty', $new_stock, $post_id);
 			update_field('stock_reorder_level', $reorder, $post_id);
-			update_field('rack_location', $rack, $post_id);
 			update_field('internal_stock_status', $status, $post_id);
 			update_field('supplier_sku', $sku, $post_id);
 		}

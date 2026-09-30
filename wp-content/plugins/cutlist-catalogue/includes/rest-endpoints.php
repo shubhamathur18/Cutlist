@@ -285,7 +285,6 @@ function cutlist_format_edge_tape($post) {
 		'stock_status' => $stock_status,
 		'is_managed_stock' => (bool) $stock_avail['is_managed'],
 		'is_out_of_stock' => $is_out_of_stock,
-		'rack_location' => (string) get_post_meta($post->ID, 'rack_location', true),
 		'supplier_sku' => (string) get_post_meta($post->ID, 'supplier_sku', true),
 	];
 }

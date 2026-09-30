@@ -1,0 +1,2 @@
+2026-09-24T04:25:56+00:00 INFO Email "new_order" for order #258 sent CONTEXT: {"email_type":"new_order","status":"sent","recipient":"admin","order":258}
+2026-09-24T04:25:57+00:00 INFO Email "customer_processing_order" for order #258 sent CONTEXT: {"email_type":"customer_processing_order","status":"sent","recipient":"admin","order":258}

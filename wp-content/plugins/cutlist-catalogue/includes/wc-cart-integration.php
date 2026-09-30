@@ -350,10 +350,31 @@ function cutlist_format_machining_categories($machining_items, $panel_len = 0, $
  */
 function cutlist_ajax_add_to_cart()
 {
-	check_ajax_referer('cutlist_cart_nonce', 'nonce');
+	if (function_exists('WC')) {
+		if (null === WC()->session) {
+			$session_class = apply_filters('woocommerce_session_handler', 'WC_Session_Handler');
+			if (class_exists($session_class)) {
+				WC()->session = new $session_class();
+				WC()->session->init();
+			}
+		}
+		if (null === WC()->customer) {
+			WC()->customer = new WC_Customer(get_current_user_id(), true);
+		}
+		if (null === WC()->cart) {
+			WC()->cart = new WC_Cart();
+		}
+	}
+
+	$nonce_valid = check_ajax_referer('cutlist_cart_nonce', 'nonce', false) || check_ajax_referer('cutlist_frontend_nonce', 'nonce', false);
+	if (!$nonce_valid) {
+		wp_send_json_error(array('message' => __('Security check failed. Please refresh the page and try again.', 'cutlist-catalogue')));
+		return;
+	}
 
 	if (!function_exists('WC') || !WC()->cart) {
 		wp_send_json_error(array('message' => __('WooCommerce is not active.', 'cutlist-catalogue')));
+		return;
 	}
 
 	$data = null;
@@ -494,15 +515,38 @@ function cutlist_ajax_add_to_cart()
 			$image_url = !empty($item['image']) ? esc_url_raw($item['image']) : $decor_img['url'];
 
 			// Build edging summary
+			$decor_code_val = !empty($item['decorCode']) ? sanitize_text_field($item['decorCode']) : trim(explode(' - ', $decor)[0]);
+
+			$resolve_edge_code = function ($val, $d_code) {
+				$val = trim((string) $val);
+				if (empty($val) || $val === '-' || $val === 'none') {
+					return '';
+				}
+				if (($val === 'M1' || $val === 'M2' || $val === '1' || strpos($val, '/') === false) && !empty($d_code) && function_exists('cutlist_proto_get_edge_tape_options')) {
+					$all_tapes = cutlist_proto_get_edge_tape_options();
+					foreach ($all_tapes as $t) {
+						if (!empty($t['decorCode']) && (strcasecmp($t['decorCode'], $d_code) === 0 || stripos($d_code, $t['decorCode']) !== false)) {
+							return $t['code'];
+						}
+					}
+				}
+				return $val;
+			};
+
+			$l1_code = $resolve_edge_code($item['edgeL1'] ?? '', $decor_code_val);
+			$l2_code = $resolve_edge_code($item['edgeL2'] ?? '', $decor_code_val);
+			$w1_code = $resolve_edge_code($item['edgeW1'] ?? '', $decor_code_val);
+			$w2_code = $resolve_edge_code($item['edgeW2'] ?? '', $decor_code_val);
+
 			$edges = array();
-			if (!empty($item['edgeL1']))
-				$edges[] = 'L1: ' . sanitize_text_field($item['edgeL1']);
-			if (!empty($item['edgeL2']))
-				$edges[] = 'L2: ' . sanitize_text_field($item['edgeL2']);
-			if (!empty($item['edgeW1']))
-				$edges[] = 'W1: ' . sanitize_text_field($item['edgeW1']);
-			if (!empty($item['edgeW2']))
-				$edges[] = 'W2: ' . sanitize_text_field($item['edgeW2']);
+			if (!empty($l1_code))
+				$edges[] = 'L1: ' . sanitize_text_field($l1_code);
+			if (!empty($l2_code))
+				$edges[] = 'L2: ' . sanitize_text_field($l2_code);
+			if (!empty($w1_code))
+				$edges[] = 'W1: ' . sanitize_text_field($w1_code);
+			if (!empty($w2_code))
+				$edges[] = 'W2: ' . sanitize_text_field($w2_code);
 			$edge_summary = implode(', ', $edges);
 
 			// Build machining summary
@@ -590,10 +634,11 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_description' => $desc,
 				'cutlist_panel_info' => $panel_info,
 				'cutlist_edges' => $edge_summary,
-				'cutlist_edging_l1' => !empty($item['edgeL1']) ? sanitize_text_field($item['edgeL1']) : '',
-				'cutlist_edging_l2' => !empty($item['edgeL2']) ? sanitize_text_field($item['edgeL2']) : '',
-				'cutlist_edging_w1' => !empty($item['edgeW1']) ? sanitize_text_field($item['edgeW1']) : '',
-				'cutlist_edging_w2' => !empty($item['edgeW2']) ? sanitize_text_field($item['edgeW2']) : '',
+				'cutlist_edging_l1' => $l1_code,
+				'cutlist_edging_l2' => $l2_code,
+				'cutlist_edging_w1' => $w1_code,
+				'cutlist_edging_w2' => $w2_code,
+				'cutlist_finish' => !empty($item['edgeFinish']) ? sanitize_text_field($item['edgeFinish']) : (!empty($item['finish']) ? sanitize_text_field($item['finish']) : ''),
 				'cutlist_machining' => $machining_summary,
 				'cutlist_panel_shaping' => $panel_shaping,
 				'cutlist_surface_shaping' => $surface_shaping,
@@ -753,7 +798,34 @@ function cutlist_ajax_add_to_cart()
 
 	// 5. Sliding Doors
 	if (!empty($data['slidingDoorsItems']) && is_array($data['slidingDoorsItems'])) {
+		// Replace/update previous sliding doors in the cart (so returning and modifying updates the current order item)
+		if (!empty($data['replace_sliding_doors']) || !isset($data['replace_sliding_doors'])) {
+			$incoming_set_ids = array();
+			foreach ($data['slidingDoorsItems'] as $item_check) {
+				if (!empty($item_check['setId'])) {
+					$incoming_set_ids[] = (string) $item_check['setId'];
+				}
+			}
+
+			foreach (WC()->cart->get_cart() as $cart_item_key => $cart_item) {
+				$is_sd = (!empty($cart_item['cutlist_unique_key']) && strpos($cart_item['cutlist_unique_key'], 'sd_') === 0)
+					|| (!empty($cart_item['cutlist_type']) && $cart_item['cutlist_type'] === __('Sliding Doors', 'cutlist-catalogue'));
+
+				if ($is_sd) {
+					if (!empty($incoming_set_ids)) {
+						$c_set_id = !empty($cart_item['cutlist_set_id']) ? (string) $cart_item['cutlist_set_id'] : '1';
+						if (in_array($c_set_id, $incoming_set_ids, true) || empty($cart_item['cutlist_set_id'])) {
+							WC()->cart->remove_cart_item($cart_item_key);
+						}
+					} else {
+						WC()->cart->remove_cart_item($cart_item_key);
+					}
+				}
+			}
+		}
+
 		foreach ($data['slidingDoorsItems'] as $idx => $item) {
+			$set_id = !empty($item['setId']) ? sanitize_text_field($item['setId']) : '1';
 			$qty = isset($item['qty']) ? max(1, (int) $item['qty']) : 1;
 			$title = !empty($item['title']) ? sanitize_text_field($item['title']) : __('Custom Sliding Wardrobe Doors', 'cutlist-catalogue');
 			$opening_w = !empty($item['openingWidth']) ? sanitize_text_field($item['openingWidth']) : '';
@@ -764,12 +836,13 @@ function cutlist_ajax_add_to_cart()
 			$frame_finish = !empty($item['frameFinish']) ? sanitize_text_field($item['frameFinish']) : '';
 			$track_type = !empty($item['trackType']) ? sanitize_text_field($item['trackType']) : '';
 			$soft_close = !empty($item['softClose']) ? sanitize_text_field($item['softClose']) : '';
-			$door_details = !empty($item['doorDetails']) ? sanitize_text_field($item['doorDetails']) : '';
+			$door_details = !empty($item['doorDetails']) ? sanitize_textarea_field($item['doorDetails']) : '';
 			$price = isset($item['unitPrice']) ? max(0, (float) $item['unitPrice']) : 0;
 			$image_url = !empty($item['image']) ? esc_url_raw($item['image']) : '';
 
 			$cart_item_data = array(
 				'cutlist_type'             => __('Sliding Doors', 'cutlist-catalogue'),
+				'cutlist_set_id'           => $set_id,
 				'cutlist_title'            => $title,
 				'cutlist_opening_size'     => ($opening_w && $opening_h) ? ($opening_w . ' x ' . $opening_h . ' mm') : '',
 				'cutlist_door_count'       => $door_count ? ($door_count . ' Doors') : '',
@@ -780,7 +853,7 @@ function cutlist_ajax_add_to_cart()
 				'cutlist_door_details'     => $door_details,
 				'cutlist_unit_price'       => $price,
 				'cutlist_image_url'        => $image_url,
-				'cutlist_unique_key'       => 'sd_' . md5($title . $opening_w . $opening_h . $door_count . $frame_finish . $price . $idx . microtime(true)),
+				'cutlist_unique_key'       => 'sd_set_' . $set_id . '_' . md5($title . $opening_w . $opening_h . $door_count . $frame_finish . $price . $idx . microtime(true)),
 			);
 
 			WC()->cart->add_to_cart($product_id, $qty, 0, array(), $cart_item_data);
@@ -803,6 +876,8 @@ function cutlist_ajax_add_to_cart()
 }
 add_action('wp_ajax_cutlist_add_to_cart', 'cutlist_ajax_add_to_cart');
 add_action('wp_ajax_nopriv_cutlist_add_to_cart', 'cutlist_ajax_add_to_cart');
+add_action('wp_ajax_cutlist_add_sliding_doors_to_cart', 'cutlist_ajax_add_to_cart');
+add_action('wp_ajax_nopriv_cutlist_add_sliding_doors_to_cart', 'cutlist_ajax_add_to_cart');
 
 /**
  * Returns current live WooCommerce cart total and items count via AJAX.
@@ -965,13 +1040,70 @@ add_filter('woocommerce_order_item_thumbnail', function ($image, $item) {
  */
 function cutlist_hidden_order_itemmeta($hidden_keys)
 {
-	$hidden_keys[] = '_cutlist_image_id';
-	$hidden_keys[] = '_cutlist_image_url';
-	$hidden_keys[] = '_cutlist_grain_files';
-	$hidden_keys[] = '_cutlist_unique_key';
-	return $hidden_keys;
+	$cutlist_hidden = array(
+		'_cutlist_decor',
+		'_cutlist_thick',
+		'_cutlist_length',
+		'_cutlist_width',
+		'_cutlist_description',
+		'_cutlist_panel_info',
+		'_cutlist_edging_l1',
+		'_cutlist_edging_l2',
+		'_cutlist_edging_w1',
+		'_cutlist_edging_w2',
+		'_cutlist_finish',
+		'_cutlist_type',
+		'_cutlist_image_id',
+		'_cutlist_image_url',
+		'_cutlist_grain_files',
+		'_cutlist_unique_key',
+		'_cutlist_csv_row',
+		'_cutlist_cart_key',
+		'_cutlist_parent_item_id',
+		'_cutlist_raw_data',
+		'_cutlist_grain_matching_files',
+		'_cutlist_grain_matching_info',
+		'_cutlist_edging',
+		'_cutlist_machining',
+		'_cutlist_spray',
+		'_cutlist_grain',
+		'_cutlist_extra_cuts',
+		'_cutlist_selected_offcuts',
+		'_cutlist_opening_size',
+		'_cutlist_door_count',
+		'_cutlist_door_size',
+		'_cutlist_frame_finish',
+		'_cutlist_track_type',
+		'_cutlist_soft_close',
+		'_cutlist_door_details',
+		'_cutlist_set_id',
+		'_cutlist_section',
+	);
+	return array_unique(array_merge((array) $hidden_keys, $cutlist_hidden));
 }
 add_filter('woocommerce_hidden_order_itemmeta', 'cutlist_hidden_order_itemmeta', 10, 1);
+
+/**
+ * Filter formatted order item meta data to ensure no internal _cutlist_ or private keys are displayed.
+ */
+function cutlist_filter_order_item_formatted_meta_data($formatted_meta, $item)
+{
+	if (!empty($formatted_meta) && is_array($formatted_meta)) {
+		foreach ($formatted_meta as $key => $meta) {
+			$meta_key = '';
+			if (is_object($meta) && isset($meta->key)) {
+				$meta_key = (string) $meta->key;
+			} elseif (is_array($meta) && isset($meta['key'])) {
+				$meta_key = (string) $meta['key'];
+			}
+			if ($meta_key !== '' && (strpos($meta_key, '_cutlist_') === 0 || strpos($meta_key, '_') === 0)) {
+				unset($formatted_meta[$key]);
+			}
+		}
+	}
+	return $formatted_meta;
+}
+add_filter('woocommerce_order_item_get_formatted_meta_data', 'cutlist_filter_order_item_formatted_meta_data', 10, 2);
 
 /**
  * Customizes the cart item title in WooCommerce Cart and Checkout.
@@ -984,6 +1116,188 @@ function cutlist_custom_cart_item_title($title, $cart_item, $cart_item_key)
 	return $title;
 }
 add_filter('woocommerce_cart_item_name', 'cutlist_custom_cart_item_title', 10, 3);
+
+/**
+ * Helper: Parses and normalizes sliding door panel layout & infills into clean structured label => value entries.
+ * Handles both new structured format and legacy concatenated formats.
+ *
+ * @param string $raw_text
+ * @return array Array of array('label' => string, 'value' => string)
+ */
+function cutlist_parse_door_details_entries($raw_text)
+{
+	if (empty($raw_text)) {
+		return array();
+	}
+
+	$text = trim((string) $raw_text);
+	$text = str_replace("\r", "", $text);
+
+	// Split lines, handling both newlines and legacy concatenated strings safely
+	$raw_lines = explode("\n", $text);
+	$lines = array();
+
+	foreach ($raw_lines as $r_line) {
+		$r_line = trim($r_line);
+		if ($r_line === '') {
+			continue;
+		}
+		// If an individual line has multiple concatenated "Door X" entries without newlines
+		if (preg_match('/Door\s+\d+.*?Door\s+\d+/i', $r_line)) {
+			$split_r = preg_replace('/(?<!^)\s+(?=Door\s+\d+)/i', "\n", $r_line);
+			foreach (explode("\n", $split_r) as $sub) {
+				$sub = trim($sub);
+				if ($sub !== '') {
+					$lines[] = $sub;
+				}
+			}
+		} else {
+			$lines[] = $r_line;
+		}
+	}
+
+	$entries = array();
+	$current_door_num = 1;
+
+	foreach ($lines as $line) {
+		// Pattern 1: Door X [Layout]: Panel A: Material (Legacy composite first line)
+		if (preg_match('/^Door\s+(\d+)\s*\[([^\]]+)\]\s*:\s*Panel\s+([A-Z])\s*:\s*(.*)$/i', $line, $m)) {
+			$door_num = intval($m[1]);
+			$current_door_num = $door_num;
+			$layout   = trim($m[2]);
+			$p_letter = strtoupper(trim($m[3]));
+			$mat      = trim($m[4]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d', 'cutlist-catalogue'), $door_num),
+				'value' => $layout,
+			);
+			$entries[] = array(
+				'label' => sprintf(__('Door %d - Panel %s', 'cutlist-catalogue'), $door_num, $p_letter),
+				'value' => $mat,
+			);
+			continue;
+		}
+
+		// Pattern 2: Door X [Single panel]: Material (Legacy single panel line)
+		if (preg_match('/^Door\s+(\d+)\s*\[Single\s*panel\]\s*:\s*(.*)$/i', $line, $m)) {
+			$door_num = intval($m[1]);
+			$current_door_num = $door_num;
+			$mat      = trim($m[2]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d', 'cutlist-catalogue'), $door_num),
+				'value' => $mat . ' (' . __('Single panel', 'cutlist-catalogue') . ')',
+			);
+			continue;
+		}
+
+		// Pattern 3: Door X [Layout]: Material (Legacy multi-panel line without explicit Panel A prefix)
+		if (preg_match('/^Door\s+(\d+)\s*\[([^\]]+)\]\s*:\s*(.*)$/i', $line, $m)) {
+			$door_num = intval($m[1]);
+			$current_door_num = $door_num;
+			$layout   = trim($m[2]);
+			$val      = trim($m[3]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d', 'cutlist-catalogue'), $door_num),
+				'value' => $layout . (!empty($val) ? ' — ' . $val : ''),
+			);
+			continue;
+		}
+
+		// Pattern 4: Door X - Panel Y: Material
+		if (preg_match('/^Door\s+(\d+)\s*-\s*Panel\s+([A-Z])\s*:\s*(.*)$/i', $line, $m)) {
+			$door_num = intval($m[1]);
+			$current_door_num = $door_num;
+			$p_letter = strtoupper(trim($m[2]));
+			$mat      = trim($m[3]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d - Panel %s', 'cutlist-catalogue'), $door_num, $p_letter),
+				'value' => $mat,
+			);
+			continue;
+		}
+
+		// Pattern 5: Door X: Material / Layout
+		if (preg_match('/^Door\s+(\d+)\s*:\s*(.*)$/i', $line, $m)) {
+			$door_num = intval($m[1]);
+			$current_door_num = $door_num;
+			$val      = trim($m[2]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d', 'cutlist-catalogue'), $door_num),
+				'value' => $val,
+			);
+			continue;
+		}
+
+		// Pattern 6: Panel Y: Material (sub-panel under current door)
+		if (preg_match('/^Panel\s+([A-Z])\s*:\s*(.*)$/i', $line, $m)) {
+			$p_letter = strtoupper(trim($m[1]));
+			$mat      = trim($m[2]);
+
+			$entries[] = array(
+				'label' => sprintf(__('Door %d - Panel %s', 'cutlist-catalogue'), $current_door_num, $p_letter),
+				'value' => $mat,
+			);
+			continue;
+		}
+
+		// Fallback: Generic line (ignore any empty or artifact lines like "Door X -")
+		if (!preg_match('/^Door\s+\d+\s*-?\s*$/i', $line)) {
+			$entries[] = array(
+				'label' => __('Door Detail', 'cutlist-catalogue'),
+				'value' => $line,
+			);
+		}
+	}
+
+	return $entries;
+}
+
+/**
+ * Helper: Parses and normalizes sliding door panel layout & infills text into distinct lines.
+ */
+function cutlist_format_door_details_lines($raw_text)
+{
+	$entries = cutlist_parse_door_details_entries($raw_text);
+	if (empty($entries)) {
+		return array();
+	}
+	$lines = array();
+	foreach ($entries as $e) {
+		$lines[] = $e['label'] . ': ' . $e['value'];
+	}
+	return $lines;
+}
+
+/**
+ * Helper: Formats door details for HTML display in Cart & Checkout with separate block rows.
+ */
+function cutlist_format_door_details_html($raw_text)
+{
+	$entries = cutlist_parse_door_details_entries($raw_text);
+	if (empty($entries)) {
+		return esc_html($raw_text);
+	}
+
+	$html = '<div class="cutlist-meta-sliding-details" style="display:block !important; width:100% !important; margin-top:3px; font-size:12.5px; line-height:1.55; color:#334155; white-space:pre-line !important;">';
+	foreach ($entries as $idx => $entry) {
+		$is_door_header = (bool) preg_match('/^Door\s+\d+$/i', $entry['label']);
+		$margin_top = ($is_door_header && $idx > 0) ? 'margin-top:6px;' : 'margin-top:2px;';
+		$font_weight = $is_door_header ? 'font-weight:600;' : 'font-weight:400;';
+		$padding_left = (!$is_door_header) ? 'padding-left:10px;' : '';
+		$html .= '<div class="cutlist-meta-door-row" style="display:block !important; width:100% !important; clear:both !important; ' . $margin_top . ' ' . $font_weight . ' ' . $padding_left . '">'
+			. '<span style="font-weight:600;">' . esc_html($entry['label']) . ': </span>'
+			. '<span>' . esc_html($entry['value']) . '</span>'
+			. '</div>';
+	}
+	$html .= '</div>';
+
+	return $html;
+}
 
 /**
  * Displays cutlist item attributes (Decor, Thickness, Dimensions, Edging, Machining, Spray, Grain Matching with drawings, Offcuts)
@@ -1172,10 +1486,24 @@ function cutlist_render_cart_item_data($item_data, $cart_item)
 		);
 	}
 	if (!empty($cart_item['cutlist_door_details'])) {
-		$item_data[] = array(
-			'name' => __('Door Panel Layout & Infills', 'cutlist-catalogue'),
-			'value' => esc_html($cart_item['cutlist_door_details']),
-		);
+		$entries = cutlist_parse_door_details_entries($cart_item['cutlist_door_details']);
+		if (!empty($entries)) {
+			foreach ($entries as $entry) {
+				$item_data[] = array(
+					'key'     => $entry['label'],
+					'name'    => $entry['label'],
+					'value'   => $entry['value'],
+					'display' => esc_html($entry['value']),
+				);
+			}
+		} else {
+			$item_data[] = array(
+				'key'     => __('Door Details', 'cutlist-catalogue'),
+				'name'    => __('Door Details', 'cutlist-catalogue'),
+				'value'   => $cart_item['cutlist_door_details'],
+				'display' => esc_html($cart_item['cutlist_door_details']),
+			);
+		}
 	}
 
 	return $item_data;
@@ -1271,7 +1599,45 @@ function cutlist_add_order_line_item_meta($item, $cart_item_key, $values, $order
 		$item->add_meta_data(__('Soft-Close Dampers', 'cutlist-catalogue'), $values['cutlist_soft_close']);
 	}
 	if (!empty($values['cutlist_door_details'])) {
-		$item->add_meta_data(__('Door Panel Layout & Infills', 'cutlist-catalogue'), $values['cutlist_door_details']);
+		$lines = cutlist_format_door_details_lines($values['cutlist_door_details']);
+		$clean_details = !empty($lines) ? implode("\n", $lines) : $values['cutlist_door_details'];
+		$item->add_meta_data(__('Door Panel Layout & Infills', 'cutlist-catalogue'), $clean_details);
+	}
+	if (!empty($values['cutlist_decor'])) {
+		$item->add_meta_data('_cutlist_decor', $values['cutlist_decor'], true);
+	}
+	if (!empty($values['cutlist_thick'])) {
+		$item->add_meta_data('_cutlist_thick', $values['cutlist_thick'], true);
+	}
+	if (!empty($values['cutlist_length'])) {
+		$item->add_meta_data('_cutlist_length', $values['cutlist_length'], true);
+	}
+	if (!empty($values['cutlist_width'])) {
+		$item->add_meta_data('_cutlist_width', $values['cutlist_width'], true);
+	}
+	if (!empty($values['cutlist_description'])) {
+		$item->add_meta_data('_cutlist_description', $values['cutlist_description'], true);
+	}
+	if (!empty($values['cutlist_panel_info'])) {
+		$item->add_meta_data('_cutlist_panel_info', $values['cutlist_panel_info'], true);
+	}
+	if (isset($values['cutlist_edging_l1'])) {
+		$item->add_meta_data('_cutlist_edging_l1', $values['cutlist_edging_l1'], true);
+	}
+	if (isset($values['cutlist_edging_l2'])) {
+		$item->add_meta_data('_cutlist_edging_l2', $values['cutlist_edging_l2'], true);
+	}
+	if (isset($values['cutlist_edging_w1'])) {
+		$item->add_meta_data('_cutlist_edging_w1', $values['cutlist_edging_w1'], true);
+	}
+	if (isset($values['cutlist_edging_w2'])) {
+		$item->add_meta_data('_cutlist_edging_w2', $values['cutlist_edging_w2'], true);
+	}
+	if (!empty($values['cutlist_finish'])) {
+		$item->add_meta_data('_cutlist_finish', $values['cutlist_finish'], true);
+	}
+	if (!empty($values['cutlist_type'])) {
+		$item->add_meta_data('_cutlist_type', $values['cutlist_type'], true);
 	}
 	if (!empty($values['cutlist_image_id'])) {
 		$item->add_meta_data('_cutlist_image_id', (int) $values['cutlist_image_id'], true);
@@ -1749,6 +2115,324 @@ function cutlist_render_admin_order_grain_metabox($post_or_order_object)
 		echo '</div>';
 	}
 }
+
+/**
+ * Checks if a given WooCommerce Order contains any Cutlist Panel items.
+ */
+function cutlist_order_has_cutlist_items($order)
+{
+	if (!$order instanceof WC_Order) {
+		$order = wc_get_order($order);
+	}
+	if (!$order) {
+		return false;
+	}
+
+	foreach ($order->get_items() as $item) {
+		$type = $item->get_meta('_cutlist_type', true) ?: $item->get_meta(__('Item Type', 'cutlist-catalogue'), true);
+		if ($type === 'Cut Panel' || $type === __('Cut Panel', 'cutlist-catalogue') || $type === 'cut_panel') {
+			return true;
+		}
+		if ($item->get_meta('_cutlist_length', true) || $item->get_meta('_cutlist_decor', true) || $item->get_meta(__('Dimensions', 'cutlist-catalogue'), true)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Generates an array of cutting list CSV rows from a WooCommerce Order.
+ * Exact format: Decor code, Thickness, Length, Width, Quantity, Description, L1, L2, W1, W2, Edge finish, Customer note
+ */
+function cutlist_get_order_cutlist_csv_rows($order)
+{
+	if (!$order instanceof WC_Order) {
+		$order = wc_get_order($order);
+	}
+	if (!$order) {
+		return array();
+	}
+
+	$rows = array();
+	$rows[] = array('Decor code', 'Thickness', 'Length', 'Width', 'Quantity', 'Description', 'L1', 'L2', 'W1', 'W2', 'Edge finish', 'Customer note');
+
+	foreach ($order->get_items() as $item) {
+		$type = $item->get_meta('_cutlist_type', true) ?: $item->get_meta(__('Item Type', 'cutlist-catalogue'), true);
+
+		// Exclude non-cut-panel items (e.g. Full sheets, Standalone Edging Tapes, Service charges)
+		if ($type && $type !== 'Cut Panel' && $type !== __('Cut Panel', 'cutlist-catalogue') && $type !== 'cut_panel') {
+			continue;
+		}
+
+		// 1. Decor code
+		$decor = $item->get_meta('_cutlist_decor', true) ?: $item->get_meta(__('Decor', 'cutlist-catalogue'), true);
+		if (empty($decor)) {
+			$name = $item->get_name();
+			if (preg_match('/Cut Panel(?:\s*\[[^\]]+\])?:\s*([^\(]+)/i', $name, $m)) {
+				$decor = trim($m[1]);
+			} else {
+				$decor = $name;
+			}
+		}
+		$decor_code = trim(explode(' - ', $decor)[0]);
+		if (empty($decor_code)) {
+			continue;
+		}
+
+		// 2. Thickness
+		$thick = $item->get_meta('_cutlist_thick', true) ?: $item->get_meta(__('Thickness', 'cutlist-catalogue'), true);
+		if (empty($thick)) {
+			$name = $item->get_name();
+			if (preg_match('/\((\d+(?:\.\d+)?)\s*mm\)/i', $name, $m)) {
+				$thick = $m[1];
+			}
+		}
+		$thickness = trim(str_ireplace('mm', '', $thick));
+
+		// 3. Length & Width
+		$length = $item->get_meta('_cutlist_length', true);
+		$width = $item->get_meta('_cutlist_width', true);
+		if (empty($length) || empty($width)) {
+			$dims = $item->get_meta(__('Dimensions', 'cutlist-catalogue'), true);
+			if (!empty($dims) && preg_match('/(\d+(?:\.\d+)?)\s*[xX×]\s*(\d+(?:\.\d+)?)/', $dims, $m)) {
+				$length = $length ?: $m[1];
+				$width = $width ?: $m[2];
+			}
+		}
+
+		// 4. Quantity
+		$qty = $item->get_quantity();
+
+		// 5. Description
+		$desc = $item->get_meta('_cutlist_description', true) ?: $item->get_meta(__('Part Description', 'cutlist-catalogue'), true) ?: '';
+
+		// 6. Edging L1, L2, W1, W2 (Binary 0, 1)
+		$l1_val = $item->get_meta('_cutlist_edging_l1', true);
+		$l2_val = $item->get_meta('_cutlist_edging_l2', true);
+		$w1_val = $item->get_meta('_cutlist_edging_w1', true);
+		$w2_val = $item->get_meta('_cutlist_edging_w2', true);
+		$edges_str = $item->get_meta(__('Edging Tape', 'cutlist-catalogue'), true) ?: '';
+
+		$is_edge_active = function ($val, $key, $summary) {
+			if ($val !== '' && $val !== null && $val !== false) {
+				$v = strtolower(trim((string) $val));
+				if ($v === '0' || $v === 'false' || $v === 'no' || $v === 'n' || $v === '-' || $v === 'none' || $v === 'off') {
+					return 0;
+				}
+				return 1;
+			}
+			if (!empty($summary) && stripos($summary, $key . ':') !== false) {
+				if (preg_match('/' . preg_quote($key, '/') . ':\s*([^,\n\r]+)/i', $summary, $m)) {
+					$v = strtolower(trim($m[1]));
+					if ($v === '0' || $v === 'false' || $v === 'no' || $v === '-' || $v === 'none' || empty($v)) {
+						return 0;
+					}
+					return 1;
+				}
+			}
+			return 0;
+		};
+
+		$l1 = $is_edge_active($l1_val, 'L1', $edges_str);
+		$l2 = $is_edge_active($l2_val, 'L2', $edges_str);
+		$w1 = $is_edge_active($w1_val, 'W1', $edges_str);
+		$w2 = $is_edge_active($w2_val, 'W2', $edges_str);
+
+		// 7. Edge finish (Radius / Square)
+		$finish = $item->get_meta('_cutlist_finish', true) ?: $item->get_meta(__('Edge Finish', 'cutlist-catalogue'), true) ?: $item->get_meta('Edge Finish', true) ?: '';
+		if (empty($finish)) {
+			$m_str = $item->get_meta(__('Machining Operations', 'cutlist-catalogue'), true) ?: '';
+			if (stripos($m_str, 'radius') !== false) {
+				$finish = 'Radius';
+			} elseif (stripos($m_str, 'square') !== false) {
+				$finish = 'Square';
+			} else {
+				if ($l1 || $l2 || $w1 || $w2) {
+					$finish = 'Radius';
+				}
+			}
+		}
+		if ($finish) {
+			$finish = ucfirst(strtolower(trim($finish)));
+		}
+
+		// 8. Customer note
+		$note = $item->get_meta('_cutlist_panel_info', true) ?: $item->get_meta(__('Additional Note', 'cutlist-catalogue'), true) ?: '';
+
+		$rows[] = array(
+			$decor_code,
+			$thickness,
+			$length,
+			$width,
+			$qty,
+			$desc,
+			$l1,
+			$l2,
+			$w1,
+			$w2,
+			$finish,
+			$note
+		);
+	}
+
+	return $rows;
+}
+
+/**
+ * Handles CSV download requests for order cutting lists:
+ * ?download_cutlist_csv=ORDER_ID&key=ORDER_KEY (or for admins with manage_woocommerce)
+ */
+function cutlist_handle_order_csv_download()
+{
+	if (!isset($_GET['download_cutlist_csv'])) {
+		return;
+	}
+
+	$order_id = absint($_GET['download_cutlist_csv']);
+	if (!$order_id) {
+		wp_die(__('Invalid order ID.', 'cutlist-catalogue'), __('Error', 'cutlist-catalogue'), array('response' => 400));
+	}
+
+	$order = wc_get_order($order_id);
+	if (!$order) {
+		wp_die(__('Order not found.', 'cutlist-catalogue'), __('Error', 'cutlist-catalogue'), array('response' => 404));
+	}
+
+	// Security & permission check:
+	$is_admin = current_user_can('manage_woocommerce') || current_user_can('edit_shop_orders');
+	$key = isset($_GET['key']) ? sanitize_text_field($_GET['key']) : '';
+	$is_valid_key = !empty($key) && hash_equals($order->get_order_key(), $key);
+	$is_customer = is_user_logged_in() && ((int) $order->get_customer_id() === get_current_user_id());
+
+	if (!$is_admin && !$is_valid_key && !$is_customer) {
+		wp_die(__('You do not have permission to download this cutting list.', 'cutlist-catalogue'), __('Permission Denied', 'cutlist-catalogue'), array('response' => 403));
+	}
+
+	$rows = cutlist_get_order_cutlist_csv_rows($order);
+	if (empty($rows) || count($rows) <= 1) {
+		wp_die(__('No cutting list items found in this order.', 'cutlist-catalogue'), __('Information', 'cutlist-catalogue'), array('response' => 200));
+	}
+
+	$filename = 'cutting_list_order_' . $order->get_order_number() . '.csv';
+
+	// Disable caching
+	nocache_headers();
+	header('Content-Type: text/csv; charset=utf-8');
+	header('Content-Disposition: attachment; filename="' . $filename . '"');
+	header('Pragma: no-cache');
+	header('Expires: 0');
+
+	// Output UTF-8 BOM for Excel compatibility
+	echo "\xEF\xBB\xBF";
+
+	$output = fopen('php://output', 'w');
+	foreach ($rows as $row) {
+		fputcsv($output, $row);
+	}
+	fclose($output);
+	exit;
+}
+add_action('init', 'cutlist_handle_order_csv_download');
+
+/**
+ * Adds a meta box to WooCommerce Order Edit pages (both Classic and HPOS)
+ * allowing the workshop / production team to download the Cutting List CSV directly with 1 click.
+ */
+function cutlist_add_admin_order_csv_metabox()
+{
+	$screen = function_exists('wc_get_page_screen_id') ? wc_get_page_screen_id('shop_order') : 'shop_order';
+
+	add_meta_box(
+		'cutlist_order_csv_export_box',
+		__('📋 Cutting List (CSV Export)', 'cutlist-catalogue'),
+		'cutlist_render_admin_order_csv_metabox',
+		$screen,
+		'side',
+		'high'
+	);
+
+	// Support for HPOS screen
+	add_meta_box(
+		'cutlist_order_csv_export_box',
+		__('📋 Cutting List (CSV Export)', 'cutlist-catalogue'),
+		'cutlist_render_admin_order_csv_metabox',
+		'woocommerce_page_wc-orders',
+		'side',
+		'high'
+	);
+}
+add_action('add_meta_boxes', 'cutlist_add_admin_order_csv_metabox', 15);
+
+function cutlist_render_admin_order_csv_metabox($post_or_order_object)
+{
+	$order = ($post_or_order_object instanceof WC_Order) ? $post_or_order_object : wc_get_order(is_object($post_or_order_object) ? $post_or_order_object->ID : $post_or_order_object);
+	if (!$order) {
+		return;
+	}
+
+	$has_cutlist = cutlist_order_has_cutlist_items($order);
+	$rows = cutlist_get_order_cutlist_csv_rows($order);
+	$item_count = count($rows) > 1 ? (count($rows) - 1) : 0;
+
+	if (!$has_cutlist || $item_count === 0) {
+		echo '<p style="color:#777; font-style:italic; margin:0;">' . esc_html__('No cutting list panels in this order.', 'cutlist-catalogue') . '</p>';
+		return;
+	}
+
+	$total_pieces = 0;
+	for ($i = 1; $i < count($rows); $i++) {
+		$total_pieces += (int) ($rows[$i][4] ?? 1);
+	}
+
+	$csv_url = add_query_arg(array('download_cutlist_csv' => $order->get_id()), home_url('/'));
+	?>
+	<div style="padding:4px 0;">
+		<div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px; margin-bottom:12px;">
+			<div style="font-size:13px; color:#166534; font-weight:600; margin-bottom:4px;">
+				<?php printf(esc_html__('Cutting List: %1$d panel rows (%2$d total pieces)', 'cutlist-catalogue'), $item_count, $total_pieces); ?>
+			</div>
+			<p style="font-size:12px; color:#374151; margin:0 0 10px 0;">
+				<?php esc_html_e('Export full workshop cutting list CSV with decor codes, dimensions, 0/1 edgebanding, finish, and customer notes.', 'cutlist-catalogue'); ?>
+			</p>
+			<a href="<?php echo esc_url($csv_url); ?>" class="button button-primary" style="background:#15803d; border-color:#15803d; font-size:13px; height:auto; padding:6px 14px; display:inline-flex; align-items:center; gap:6px; color:#fff; text-decoration:none; font-weight:600;">
+				<span>📥 <?php esc_html_e('Download Cutting List (CSV)', 'cutlist-catalogue'); ?></span>
+			</a>
+		</div>
+	</div>
+	<?php
+}
+
+/**
+ * Adds an action to the WooCommerce Order Actions dropdown in Admin Order page.
+ */
+function cutlist_add_admin_order_actions($actions, $order)
+{
+	if (cutlist_order_has_cutlist_items($order)) {
+		$actions['download_cutlist_csv'] = __('Download Cutting List (CSV)', 'cutlist-catalogue');
+	}
+	return $actions;
+}
+add_filter('woocommerce_order_actions', 'cutlist_add_admin_order_actions', 20, 2);
+
+/**
+ * Adds a Cutlist CSV download action button in My Account > Orders table.
+ */
+function cutlist_add_my_account_orders_actions($actions, $order)
+{
+	if (cutlist_order_has_cutlist_items($order)) {
+		$csv_url = add_query_arg(array(
+			'download_cutlist_csv' => $order->get_id(),
+			'key' => $order->get_order_key(),
+		), home_url('/'));
+
+		$actions['cutlist_csv'] = array(
+			'url'  => $csv_url,
+			'name' => __('Cutlist CSV', 'cutlist-catalogue'),
+		);
+	}
+	return $actions;
+}
+add_filter('woocommerce_my_account_my_orders_actions', 'cutlist_add_my_account_orders_actions', 20, 2);
 
 
 
@@ -3228,6 +3912,32 @@ function cutlist_my_account_custom_styles()
 			border-color: #9ca3af;
 		}
 
+		.cl-vo-btn-csv {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			padding: 7px 16px;
+			background: #15803d;
+			border: 1px solid #15803d;
+			border-radius: 8px;
+			font-size: 13px;
+			font-weight: 600;
+			color: #ffffff !important;
+			text-decoration: none !important;
+			cursor: pointer;
+			transition: all 0.15s ease;
+		}
+
+		.cl-vo-btn-csv:hover {
+			background: #166534;
+			border-color: #166534;
+			color: #ffffff !important;
+		}
+
+		.cl-vo-btn-csv svg {
+			flex-shrink: 0;
+		}
+
 		/* 3-Column Metric Tiles */
 		.cl-vo-metrics-grid {
 			display: grid;
@@ -3711,3 +4421,188 @@ function cutlist_clear_draft_on_order_received($order_id)
 	<?php
 }
 add_action('woocommerce_thankyou', 'cutlist_clear_draft_on_order_received', 10, 1);
+
+/**
+ * Fixes WooCommerce Blocks & Interactivity API missing restUrl / undefinedwc/store/v1/cart 404 error.
+ * Ensures wp_interactivity_state, wpApiSettings, and wp.apiFetch rootURLMiddleware are always correctly configured.
+ */
+function cutlist_fix_wc_blocks_api_fetch()
+{
+	$rest_url = trailingslashit(esc_url_raw(get_rest_url()));
+	$nonce    = wp_create_nonce('wp_rest');
+	$store_nonce = wp_create_nonce('wc_store_api');
+
+	// 1. Initialize WordPress Interactivity API store state for WooCommerce (fixes @woocommerce/stores/woocommerce/cart.js refreshCartItems)
+	if (function_exists('wp_interactivity_state')) {
+		wp_interactivity_state('woocommerce', array(
+			'restUrl'  => $rest_url,
+			'nonce'    => $store_nonce,
+		));
+	}
+
+	// 2. Initialize @wordpress/api-fetch middleware
+	if (wp_script_is('wp-api-fetch', 'registered')) {
+		wp_add_inline_script(
+			'wp-api-fetch',
+			sprintf(
+				'if (window.wp && window.wp.apiFetch && typeof window.wp.apiFetch.use === "function" && typeof window.wp.apiFetch.createRootURLMiddleware === "function") {
+					window.wp.apiFetch.use(window.wp.apiFetch.createRootURLMiddleware(%s));
+				}',
+				wp_json_encode($rest_url)
+			),
+			'after'
+		);
+		wp_localize_script('wp-api-fetch', 'wpApiSettings', array(
+			'root'          => $rest_url,
+			'nonce'         => $nonce,
+			'versionString' => 'wp/v2/',
+		));
+	}
+}
+add_action('init', 'cutlist_fix_wc_blocks_api_fetch', 20);
+add_action('wp_enqueue_scripts', 'cutlist_fix_wc_blocks_api_fetch', 5);
+add_action('admin_enqueue_scripts', 'cutlist_fix_wc_blocks_api_fetch', 5);
+add_action('template_redirect', 'cutlist_fix_wc_blocks_api_fetch', 5);
+
+/**
+ * Early header fix script to catch any block script or fetch executing before or during Interactivity/apiFetch initialization.
+ */
+function cutlist_output_early_api_fetch_fix()
+{
+	$rest_url = trailingslashit(esc_url_raw(get_rest_url()));
+	$nonce    = wp_create_nonce('wp_rest');
+	$store_nonce = wp_create_nonce('wc_store_api');
+	?>
+	<script id="cutlist-wp-api-fetch-fix">
+	(function() {
+		var restRoot = <?php echo wp_json_encode($rest_url); ?>;
+		var restNonce = <?php echo wp_json_encode($nonce); ?>;
+		var storeNonce = <?php echo wp_json_encode($store_nonce); ?>;
+
+		// 1. Intercept native window.fetch to instantly repair any 'undefinedwc/store/' or 'undefined/wc/store/' calls
+		var origFetch = window.fetch;
+		if (typeof origFetch === 'function') {
+			window.fetch = function(input, init) {
+				if (typeof input === 'string') {
+					if (input.indexOf('undefinedwc/store/') !== -1) {
+						input = input.replace(/.*undefinedwc\/store\//, restRoot + 'wc/store/');
+					} else if (input.indexOf('undefined/wc/store/') !== -1) {
+						input = input.replace(/.*undefined\/wc\/store\//, restRoot + 'wc/store/');
+					}
+				} else if (input && typeof input === 'object' && typeof input.url === 'string') {
+					if (input.url.indexOf('undefinedwc/store/') !== -1) {
+						var newUrl = input.url.replace(/.*undefinedwc\/store\//, restRoot + 'wc/store/');
+						input = new Request(newUrl, input);
+					} else if (input.url.indexOf('undefined/wc/store/') !== -1) {
+						var newUrl = input.url.replace(/.*undefined\/wc\/store\//, restRoot + 'wc/store/');
+						input = new Request(newUrl, input);
+					}
+				}
+				return origFetch.call(this, input, init);
+			};
+		}
+
+		// 2. Global wpApiSettings
+		window.wpApiSettings = window.wpApiSettings || {};
+		if (!window.wpApiSettings.root) window.wpApiSettings.root = restRoot;
+		if (!window.wpApiSettings.nonce) window.wpApiSettings.nonce = restNonce;
+		if (!window.wpApiSettings.versionString) window.wpApiSettings.versionString = 'wp/v2/';
+
+		// 3. Setup apiFetch middleware as soon as available
+		function setupApiFetch() {
+			if (window.wp && window.wp.apiFetch) {
+				if (!window._cutlistApiFetchConfigured && typeof window.wp.apiFetch.use === 'function') {
+					window._cutlistApiFetchConfigured = true;
+					if (typeof window.wp.apiFetch.createRootURLMiddleware === 'function') {
+						window.wp.apiFetch.use(window.wp.apiFetch.createRootURLMiddleware(restRoot));
+					}
+					if (typeof window.wp.apiFetch.createNonceMiddleware === 'function' && restNonce) {
+						window.wp.apiFetch.use(window.wp.apiFetch.createNonceMiddleware(restNonce));
+					}
+				}
+			}
+		}
+		setupApiFetch();
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', setupApiFetch);
+		}
+	})();
+	</script>
+	<style id="cutlist-cart-variation-styles">
+	.wc-block-components-product-details__item-value,
+	.wc-block-components-product-details__item,
+	.wc-block-components-product-details,
+	.variation-DoorPanelLayoutInfills dd,
+	.variation-DoorPanelLayoutInfills,
+	.variation-door-panel-layout-infills,
+	.cutlist-meta-sliding-details,
+	.cutlist-meta-door-row,
+	dl.variation dd,
+	dl.variation dd p {
+		white-space: pre-line !important;
+	}
+	.wc-block-components-product-details__item {
+		display: block !important;
+		margin-bottom: 3px !important;
+		line-height: 1.55 !important;
+	}
+	.wc-block-components-product-details__item-label {
+		font-weight: 600;
+	}
+	.wc-block-components-product-details__item[class*="panel-"],
+	.wc-block-components-product-details__item[class*="panel_"],
+	dt[class*="panel-"],
+	dt[class*="panel_"] {
+		padding-left: 14px;
+	}
+	.cutlist-meta-sliding-details {
+		display: block !important;
+		width: 100% !important;
+		margin-top: 3px !important;
+	}
+	.cutlist-meta-sliding-details .cutlist-meta-door-row {
+		display: block !important;
+		width: 100% !important;
+		clear: both !important;
+		line-height: 1.55 !important;
+	}
+	dl.variation dd .cutlist-meta-sliding-details {
+		display: block !important;
+	}
+	</style>
+	<?php
+}
+add_action('wp_head', 'cutlist_output_early_api_fetch_fix', 1);
+add_action('admin_head', 'cutlist_output_early_api_fetch_fix', 1);
+
+/**
+ * Ensures Cart Block product detail styles take precedence over theme CSS on Cart & Checkout.
+ */
+function cutlist_output_late_cart_styles()
+{
+	?>
+	<style id="cutlist-cart-variation-styles-late">
+	.wc-block-components-product-details__item {
+		display: block !important;
+		margin-bottom: 3px !important;
+		line-height: 1.55 !important;
+	}
+	.wc-block-components-product-details__item-value {
+		white-space: pre-line !important;
+	}
+	.wc-block-components-product-details__item-label {
+		font-weight: 600;
+	}
+	.wc-block-components-product-details__item[class*="panel-"],
+	.wc-block-components-product-details__item[class*="panel_"],
+	dt[class*="panel-"],
+	dt[class*="panel_"] {
+		padding-left: 14px;
+	}
+	</style>
+	<?php
+}
+add_action('wp_head', 'cutlist_output_late_cart_styles', 9999);
+add_action('wp_footer', 'cutlist_output_late_cart_styles', 9999);
+add_action('admin_footer', 'cutlist_output_late_cart_styles', 9999);
+

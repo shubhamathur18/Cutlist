@@ -43,13 +43,11 @@ function cutlist_render_frame_colors_tabbed_meta_box($post) {
 	}
 	
 	// Default base price from post or fallback
-	$post_base_price = (float) get_post_meta($post->ID, 'base_price', true);
-	if ($post_base_price <= 0 && function_exists('get_field')) {
-		$post_base_price = (float) get_field('base_price', $post->ID);
+	$post_base_price_val = get_post_meta($post->ID, 'base_price', true);
+	if ($post_base_price_val === '' && function_exists('get_field')) {
+		$post_base_price_val = get_field('base_price', $post->ID);
 	}
-	if ($post_base_price <= 0) {
-		$post_base_price = 74.00;
-	}
+	$post_base_price = is_numeric($post_base_price_val) ? (float)$post_base_price_val : 0.00;
 
 	if (empty($colors) || !is_array($colors)) {
 		$colors = [
@@ -68,13 +66,13 @@ function cutlist_render_frame_colors_tabbed_meta_box($post) {
 			[
 				'color_name'   => 'Bronze',
 				'color_hex'    => '#6e5849',
-				'base_price'   => $post_base_price + 15.00,
+				'base_price'   => $post_base_price,
 				'gallery_ids'  => [],
 			],
 			[
 				'color_name'   => 'Brushed brass',
 				'color_hex'    => '#c5a059',
-				'base_price'   => $post_base_price + 18.00,
+				'base_price'   => $post_base_price,
 				'gallery_ids'  => [],
 			],
 		];
@@ -369,7 +367,7 @@ function cutlist_render_frame_colors_tabbed_meta_box($post) {
 			<?php foreach ($colors as $idx => $c) :
 				$name = $c['color_name'] ?? ($c['name'] ?? 'Silver satin');
 				$hex = $c['color_hex'] ?? ($c['hex'] ?? '#c8c8c8');
-				$price = isset($c['base_price']) && (float)$c['base_price'] > 0 ? (float)$c['base_price'] : ($post_base_price + (float)($c['surcharge'] ?? 0));
+				$price = (isset($c['base_price']) && is_numeric($c['base_price'])) ? (float)$c['base_price'] : ($post_base_price + (float)($c['surcharge'] ?? 0));
 				$raw_ids = $c['gallery_ids'] ?? [];
 				if (is_string($raw_ids)) {
 					$raw_ids = array_filter(array_map('trim', explode(',', $raw_ids)));
@@ -631,7 +629,7 @@ function cutlist_render_frame_colors_tabbed_meta_box($post) {
 			var paneId = 'sd-pane-' + newIdx;
 			var defaultName = '<?php echo esc_js(__('New Finish', 'cutlist-catalogue')); ?>';
 			var defaultHex = '#c8c8c8';
-			var defaultPrice = '74.00';
+			var defaultPrice = '0.00';
 
 			// 1. Create Nav Button
 			var btnHtml = '<button type="button" class="sd-tab-nav-btn" data-target="' + paneId + '">' +
@@ -706,7 +704,7 @@ add_action('save_post_sd_frame_style', function ($post_id) {
 			if (empty($name)) continue;
 
 			$hex = sanitize_text_field($c['hex'] ?? '#c8c8c8');
-			$base_price = (float) ($c['base_price'] ?? 74.00);
+			$base_price = (isset($c['base_price']) && is_numeric($c['base_price'])) ? (float)$c['base_price'] : 0.00;
 			
 			$raw_ids_str = sanitize_text_field($c['gallery_ids'] ?? '');
 			$raw_ids = array_values(array_filter(array_map('trim', explode(',', $raw_ids_str))));

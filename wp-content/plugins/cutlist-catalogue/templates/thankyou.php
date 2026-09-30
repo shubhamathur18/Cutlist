@@ -124,6 +124,21 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 				'key' => $order->get_order_key(),
 			), home_url('/'));
 			?>
+			<?php if (function_exists('cutlist_order_has_cutlist_items') && cutlist_order_has_cutlist_items($order)) : 
+				$csv_url = add_query_arg(array(
+					'download_cutlist_csv' => $order_id,
+					'key' => $order->get_order_key(),
+				), home_url('/'));
+			?>
+				<a href="<?php echo esc_url($csv_url); ?>" class="cl-vo-btn-csv" title="<?php esc_attr_e('Download cutting list CSV file', 'cutlist-catalogue'); ?>">
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+						<polyline points="7 10 12 15 17 10"></polyline>
+						<line x1="12" y1="15" x2="12" y2="3"></line>
+					</svg>
+					<span><?php esc_html_e('Download Cutlist (CSV)', 'cutlist-catalogue'); ?></span>
+				</a>
+			<?php endif; ?>
 			<button type="button"
 				onclick="window.open('<?php echo esc_url($print_url); ?>', '_blank', 'width=950,height=1000,scrollbars=yes,resizable=yes');"
 				class="cl-vo-btn-print">
@@ -240,6 +255,8 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 				$decor = $item->get_meta(__('Decor', 'cutlist-catalogue'), true);
 				$thickness = $item->get_meta(__('Thickness', 'cutlist-catalogue'), true);
 				$dimensions = $item->get_meta(__('Dimensions', 'cutlist-catalogue'), true);
+				$part_desc = $item->get_meta(__('Part Description', 'cutlist-catalogue'), true) ?: $item->get_meta('_cutlist_description', true);
+				$panel_info = $item->get_meta(__('Additional Note', 'cutlist-catalogue'), true) ?: $item->get_meta('_cutlist_panel_info', true);
 				$edging = $item->get_meta(__('Edging Tape', 'cutlist-catalogue'), true);
 				$machining = $item->get_meta(__('Machining Operations', 'cutlist-catalogue'), true);
 				$spray = $item->get_meta(__('Spray Finishing', 'cutlist-catalogue'), true);
@@ -283,6 +300,20 @@ $subtotal_formatted = wc_price($order->get_subtotal());
 								<div class="cl-vo-meta-row">
 									<span class="cl-vo-meta-key"><?php esc_html_e('Dimensions:', 'cutlist-catalogue'); ?></span>
 									<span class="cl-vo-meta-val"><?php echo esc_html($dimensions); ?></span>
+								</div>
+							<?php endif; ?>
+
+							<?php if ($part_desc): ?>
+								<div class="cl-vo-meta-row">
+									<span class="cl-vo-meta-key"><?php esc_html_e('Part Description:', 'cutlist-catalogue'); ?></span>
+									<span class="cl-vo-meta-val"><?php echo esc_html($part_desc); ?></span>
+								</div>
+							<?php endif; ?>
+
+							<?php if ($panel_info): ?>
+								<div class="cl-vo-meta-row">
+									<span class="cl-vo-meta-key"><?php esc_html_e('Additional Note:', 'cutlist-catalogue'); ?></span>
+									<span class="cl-vo-meta-val"><?php echo esc_html($panel_info); ?></span>
 								</div>
 							<?php endif; ?>
 

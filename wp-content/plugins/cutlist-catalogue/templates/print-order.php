@@ -955,6 +955,8 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 						$decor = $item->get_meta(__('Decor', 'cutlist-catalogue'), true);
 						$thickness = $item->get_meta(__('Thickness', 'cutlist-catalogue'), true);
 						$dimensions = $item->get_meta(__('Dimensions', 'cutlist-catalogue'), true);
+						$part_desc = $item->get_meta(__('Part Description', 'cutlist-catalogue'), true) ?: $item->get_meta('_cutlist_description', true);
+						$panel_info = $item->get_meta(__('Additional Note', 'cutlist-catalogue'), true) ?: $item->get_meta('_cutlist_panel_info', true);
 						$edging = $item->get_meta(__('Edging Tape', 'cutlist-catalogue'), true);
 						$machining = $item->get_meta(__('Machining Operations', 'cutlist-catalogue'), true);
 						$spray = $item->get_meta(__('Spray Finishing', 'cutlist-catalogue'), true);
@@ -1000,6 +1002,18 @@ $wood_banner_url = defined('CUTLIST_CATALOGUE_PATH') ? plugins_url('assets/wood-
 										<div class="cl-print-spec-item"><span
 												class="cl-print-k"><?php esc_html_e('Dimensions:', 'cutlist-catalogue'); ?></span>
 											<span class="cl-print-v"><?php echo esc_html($dimensions); ?></span>
+										</div>
+									<?php endif; ?>
+									<?php if ($part_desc): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Part Description:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($part_desc); ?></span>
+										</div>
+									<?php endif; ?>
+									<?php if ($panel_info): ?>
+										<div class="cl-print-spec-item"><span
+												class="cl-print-k"><?php esc_html_e('Additional Note:', 'cutlist-catalogue'); ?></span>
+											<span class="cl-print-v"><?php echo esc_html($panel_info); ?></span>
 										</div>
 									<?php endif; ?>
 									<?php if ($edging): ?>
